@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HEPA Lapszabászat és Bútorgyártás</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+            line-height: 1.6;
+        }
+
+        /* FEJLÉC */
+
+        header {
+            background: #152520;
+            color: white;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 25px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .logo span {
+            color: #d39b42;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 28px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        nav a:hover {
+            color: #d39b42;
+        }
+
+        /* FŐOLDAL */
+
+        .hero {
+            min-height: 600px;
+            background:
+                linear-gradient(rgba(15, 25, 22, 0.68), rgba(15, 25, 22, 0.68)),
+                url("konyha-fo.jpg");
+            background-size: cover;
+            background-position: center center;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .hero-content {
+            max-width: 850px;
+        }
+
+        .hero h1 {
+            font-size: 58px;
+            margin-bottom: 10px;
+        }
+
+        .hero h1 span {
+            color: #d39b42;
+        }
+
+        .hero p {
+            font-size: 20px;
+            margin: 20px 0 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #c58d35;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #a87324;
+            transform: translateY(-2px);
+        }
+
+        /* SZOLGÁLTATÁSOK */
+
+        .services {
+            padding: 80px 8%;
+            background: #f5f5f5;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .section-text {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 50px;
+            color: #666;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 55px 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+
+        .card-icon {
+            font-size: 55px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+/* BÚTORGYÁRTÁS */
+
+.furniture {
+    background: #f7f5f1;
+    padding: 100px 8%;
+}
+
+.furniture-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.intro {
+    text-align: center;
+    max-width: 750px;
+    margin: 0 auto 60px;
+}
+
+.intro h2 {
+    font-size: 42px;
+    margin-bottom: 20px;
+    color: #2b2b2b;
+}
+
+.intro p {
+    color: #666;
+    font-size: 18px;
+}
+
+.furniture-types {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
+
+.type {
+    background: white;
+    padding: 45px 30px;
+    text-align: center;
+    border: 1px solid #e3ddd3;
+    transition: 0.3s;
+}
+
+.type:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+.type-icon {
+    font-size: 38px;
+    margin-bottom: 20px;
+}
+
+.type h3 {
+    font-size: 24px;
+    color: #b7832f;
+    margin-bottom: 15px;
+}
+
+.type p {
+    color: #666;
+    line-height: 1.7;
+}
+
+/* REFERENCIÁK */
+
+.type {
+    cursor: pointer;
+}
+
+.type.active {
+    border-color: #b7832f;
+    box-shadow: 0 15px 35px rgba(183, 131, 47, 0.15);
+}
+
+.references {
+    padding: 0 8% 100px;
+    background: #f7f5f1;
+}
+
+.reference-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: none;
+}
+
+.reference-container.active {
+    display: block;
+}
+
+.reference-heading {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.reference-heading h2 {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.reference-heading p {
+    color: #666;
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+}
+
+.gallery-item {
+    overflow: hidden;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 270px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+}
+
+.gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+.empty-reference {
+    text-align: center;
+    padding: 55px 25px;
+    background: white;
+    border-radius: 10px;
+    color: #777;
+}
+
+.lightbox {
+    display: none;
+    position: fixed;
+    z-index: 3000;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+}
+
+.lightbox.active {
+    display: flex;
+}
+
+.lightbox img {
+    max-width: 95%;
+    max-height: 90vh;
+    border-radius: 6px;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+@media (max-width: 800px) {
+    .references {
+        padding: 0 20px 70px;
+    }
+
+    .gallery {
+        grid-template-columns: 1fr;
+    }
+
+    .gallery-item img {
+        height: 250px;
+    }
+}
+
+        /* STATISZTIKÁK */
+.stats {
+    background: white;
+    padding: 50px 30px;
+    text-align: center;
+}
+
+.stats-title {
+    background: #b8732f;
+    color: white;
+    padding: 25px;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 35px 0;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 8px;
+}
+
+.stat-text {
+    color: #777;
+    font-size: 16px;
+}
+
+/* Mobil */
+
+@media (max-width: 768px) {
+
+    .furniture {
+        padding: 70px 20px;
+    }
+
+    .intro h2 {
+        font-size: 32px;
+    }
+
+    .furniture-types {
+        grid-template-columns: 1fr;
+    }
+
+}
+      
+        /* ÁRAJÁNLATKÉRÉS */
+
+        .quote-section {
+            background: #152520;
+            color: white;
+            padding: 90px 8%;
+        }
+
+        .quote-container {
+            max-width: 950px;
+            margin: auto;
+        }
+
+        .quote-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .quote-header h2 {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .quote-header p {
+            color: #d5d5d5;
+        }
+
+        .quote-form {
+            background: white;
+            color: #222;
+            padding: 40px;
+            border-radius: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #f5f5f5;
+            padding: 12px 15px;
+            border-radius: 6px;
+        }
+
+        .checkbox-item input {
+            width: auto;
+        }
+
+        .form-button {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        #success-message {
+            display: none;
+            text-align: center;
+            background: #e8f5e9;
+            color: #276738;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        /* KAPCSOLAT */
+
+        .contact {
+            padding: 70px 8%;
+            text-align: center;
+            background: #f5f5f5;
+        }
+
+        .contact h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .contact p {
+            margin: 8px 0;
+            font-size: 18px;
+        }
+
+        footer {
+            background: #101b17;
+            color: #aaa;
+            text-align: center;
+            padding: 25px;
+        }
+
+        /* MOBIL */
+
+        @media (max-width: 800px) {
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            nav a {
+                margin: 0 8px;
+                font-size: 14px;
+            }
+
+            .hero h1 {
+                font-size: 40px;
+            }
+
+            .cards,
+            .furniture-types,
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .services,
+            .furniture,
+            .quote-section {
+                padding: 60px 20px;
+            }
+
+            .quote-form {
+                padding: 25px 20px;
+            }
+
+            .section-title,
+            .intro h2,
+            .quote-header h2 {
+                font-size: 30px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- FEJLÉC -->
+
+    <header>
+        <div class="logo">
+            HEPA <span>LAPSZABÁSZAT</span>
+        </div>
+
+        <nav>
+            <a href="#szolgaltatasok">Szolgáltatások</a>
+            <a href="#butorgyartas">Bútorgyártás</a>
+            <a href="#ajanlat">Árajánlat</a>
+            <a href="#kapcsolat">Kapcsolat</a>
+        </nav>
+    </header>
+
+
+    <!-- FŐ RÉSZ -->
+
+    <section class="hero">
+
+        <div class="hero-content">
+
+            <h1>
+                Precíz munka.<br>
+                <span>Minőségi bútor.</span>
+            </h1>
+
+            <p>
+                Lapszabászat és egyedi bútorgyártás,
+                az elképzeléstől a kész megoldásig.
+            </p>
+
+            <a href="#szolgaltatasok" class="btn">
+                Szolgáltatásaink
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- SZOLGÁLTATÁSOK -->
+
+    <section class="services" id="szolgaltatasok">
+
+        <h2 class="section-title">
+            Miben segíthetünk?
+        </h2>
+
+        <p class="section-text">
+            Válassza ki, milyen szolgáltatás érdekli,
+            és segítünk megtalálni a megfelelő megoldást.
+        </p>
+
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="card-icon">📐</div>
+
+                <h2>Lapszabászat</h2>
+
+                <p>
+                    Bútorlapok pontos méretre szabása,
+                    élzárása és előkészítése.
+                </p>
+
+                <a href="#lapszabaszat" class="btn">
+                    Lapszabászat
+                </a>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-icon">🔨</div>
+
+                <h2>Bútorgyártás</h2>
+
+                <p>
+                    Egyedi bútorok tervezése és gyártása,
+                    az Ön igényeihez igazítva.
+                </p>
+
+                <a href="#butorgyartas" class="btn">
+                    Bútorgyártás
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- LAPSZABÁSZAT -->
+
+    <section class="furniture" id="lapszabaszat">
+
+        <div class="furniture-content">
+
+            <div class="intro">
+
+                <h2>📐 Lapszabászat</h2>
+
+                <p>
+                    Itt később elkészítjük a teljes online
+                    lapszabászati rendszert. Az ügyfél kiválaszthatja
+                    az anyagot, megadhatja a méreteket, feltöltheti
+                    a szabáslistát és leadhatja a rendelését.
+                </p>
+
+                <br>
+
+                <a href="#kapcsolat" class="btn">
+                    Hamarosan online rendelés
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- BÚTORGYÁRTÁS -->
+
+    <section class="furniture" id="butorgyartas">
+
+        <div class="furniture-content">
+
+            <div class="intro">
+
+                <h2>Egyedi bútorgyártás</h2>
+
+                <p>
+                    Egyedi igényekre szabott bútorokat készítünk.
+                    Legyen szó egy teljes konyháról, gardróbról
+                    vagy egyedi beépített bútorról, segítünk
+                    az elképzelés megvalósításában.
+                </p>
+
+            </div>
+
+
+            <div class="furniture-types">
+
+                <div class="type" data-category="konyha">
+                    <div class="type-icon">🍽️</div>
+                    <h3>Konyhabútor</h3>
+                    <p>Kattintson a referenciák megtekintéséhez.</p>
+                </div>
+
+                <div class="type" data-category="gardrob">
+                    <div class="type-icon">🚪</div>
+                    <h3>Gardrób</h3>
+                    <p>Kattintson a referenciák megtekintéséhez.</p>
+                </div>
+
+                <div class="type" data-category="eloszoba">
+                    <div class="type-icon">🏠</div>
+                    <h3>Előszobabútor</h3>
+                    <p>Kattintson a referenciák megtekintéséhez.</p>
+                </div>
+
+                <div class="type" data-category="furdo">
+                    <div class="type-icon">🛁</div>
+                    <h3>Fürdőszobabútor</h3>
+                    <p>Kattintson a referenciák megtekintéséhez.</p>
+                </div>
+
+                <div class="type" data-category="nappali">
+                    <div class="type-icon">🛋️</div>
+                    <h3>Nappali bútor</h3>
+                    <p>Kattintson a referenciák megtekintéséhez.</p>
+                </div>
+
+                <div class="type" data-category="egyedi">
+                    <div class="type-icon">📐</div>
+                    <h3>Egyedi bútor</h3>
+                    <p>Kattintson a referenciák megtekintéséhez.</p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- REFERENCIÁK -->
+
+    <section class="references">
+
+        <div class="reference-container" id="konyha">
+            <div class="reference-heading">
+                <h2>🍽️ Konyhabútor referenciák</h2>
+                <p>Néhány példa az általunk készített egyedi konyhákból.</p>
+            </div>
+
+            <div class="gallery">
+                <div class="gallery-item"><img src="konyha-1.jpg" alt="Egyedi konyhabútor"></div>
+                <div class="gallery-item"><img src="konyha-2.jpg" alt="Egyedi konyhabútor"></div>
+                <div class="gallery-item"><img src="konyha-3.jpg" alt="Egyedi konyhabútor"></div>
+            </div>
+        </div>
+
+        <div class="reference-container" id="gardrob"><div class="reference-heading"><h2>🚪 Gardrób referenciák</h2></div><div class="empty-reference">Hamarosan feltöltjük a gardrób referenciáinkat.</div></div>
+        <div class="reference-container" id="eloszoba"><div class="reference-heading"><h2>🏠 Előszobabútor referenciák</h2></div><div class="empty-reference">Hamarosan feltöltjük az előszobabútor referenciáinkat.</div></div>
+        <div class="reference-container" id="furdo"><div class="reference-heading"><h2>🛁 Fürdőszobabútor referenciák</h2></div><div class="empty-reference">Hamarosan feltöltjük a fürdőszobabútor referenciáinkat.</div></div>
+        <div class="reference-container" id="nappali"><div class="reference-heading"><h2>🛋️ Nappali bútor referenciák</h2></div><div class="empty-reference">Hamarosan feltöltjük a nappali bútor referenciáinkat.</div></div>
+        <div class="reference-container" id="egyedi"><div class="reference-heading"><h2>📐 Egyedi bútor referenciák</h2></div><div class="empty-reference">Hamarosan feltöltjük az egyedi bútor referenciáinkat.</div></div>
+
+    </section>
+
+    <div class="lightbox" id="lightbox">
+        <span class="lightbox-close">&times;</span>
+        <img src="" alt="Referencia nagy méretben">
+    </div>
+
+        </div>
+
+    </section>
+    <!-- STATISZTIKÁK -->
+
+    <section class="stats">
+
+        <div class="stats-title">
+            2019 óta
+        </div>
+
+        <div class="stats-grid">
+
+            <div class="stat">
+                 <div class="stat-icon">🪓</div>
+                <div class="stat-number">100 000+</div>
+                <div class="stat-text">m² feldolgozott bútorlap</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-icon">🗄️</div>
+                <div class="stat-number">1 200+</div>
+                <div class="stat-text">elkészített bútor</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-icon">🏠</div>
+                <div class="stat-number">600+</div>
+                <div class="stat-text">sikeres projekt</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-icon">🤝</div>
+                <div class="stat-number">1 000+</div>
+                <div class="stat-text">elégedett ügyfél</div>
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- ÁRAJÁNLAT -->
+
+    <section class="quote-section" id="ajanlat">
+
+        <div class="quote-container">
+
+            <div class="quote-header">
+
+                <h2>Kérjen árajánlatot!</h2>
+
+                <p>
+                    Írja le elképzelését, és felvesszük Önnel a kapcsolatot.
+                </p>
+
+            </div>
+
+
+            <form class="quote-form" id="quoteForm">
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>Név *</label>
+
+                        <input
+                            type="text"
+                            placeholder="Az Ön neve"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>Telefonszám *</label>
+
+                        <input
+                            type="tel"
+                            placeholder="+36 ..."
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>E-mail cím</label>
+
+                    <input
+                        type="email"
+                        placeholder="pelda@email.hu"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Milyen bútort szeretne?</label>
+
+                    <select>
+
+                        <option value="">
+                            Válasszon...
+                        </option>
+
+                        <option>Konyhabútor</option>
+                        <option>Gardrób</option>
+                        <option>Előszobabútor</option>
+                        <option>Fürdőszobabútor</option>
+                        <option>Nappali bútor</option>
+                        <option>Egyedi bútor</option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Írja le, mit szeretne!
+                    </label>
+
+                    <textarea
+                        placeholder="Például: Egy kb. 3 méteres gardróbot szeretnék tolóajtókkal..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Hozzávetőleges méretek
+                    </label>
+
+                    <input
+                        type="text"
+                        placeholder="Például: szélesség 300 cm, magasság 250 cm"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Mit szeretne?
+                    </label>
+
+                    <div class="checkbox-group">
+
+                        <label class="checkbox-item">
+                            <input type="checkbox">
+                            📞 Visszahívást kérek
+                        </label>
+
+                        <label class="checkbox-item">
+                            <input type="checkbox">
+                            💰 Árajánlatot kérek
+                        </label>
+
+                        <label class="checkbox-item">
+                            <input type="checkbox">
+                            🤝 Személyes egyeztetést szeretnék
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <button type="submit" class="btn form-button">
+                    Árajánlatot kérek
+                </button>
+
+                <div id="success-message">
+
+                    Köszönjük az érdeklődést!
+                    Hamarosan felvesszük Önnel a kapcsolatot. ✓
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <!-- KAPCSOLAT -->
+
+    <section class="contact" id="kapcsolat">
+
+        <h2>Kapcsolat</h2>
+
+        <p>
+            📞 Telefonszám: Hamarosan
+        </p>
+
+        <p>
+            ✉️ E-mail: Hamarosan
+        </p>
+
+    </section>
+
+
+    <!-- LÁBLÉC -->
+
+    <footer>
+
+        © 2026 HEPA Lapszabászat és Bútorgyártás
+
+    </footer>
+
+
+    <script>
+
+        document
+            .getElementById("quoteForm")
+            .addEventListener("submit", function(event) {
+
+                event.preventDefault();
+
+                document
+                    .getElementById("success-message")
+                    .style.display = "block";
+
+                document
+                    .getElementById("success-message")
+                    .scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+
+            });
+
+
+        const types = document.querySelectorAll(".type");
+        const referenceContainers = document.querySelectorAll(".reference-container");
+
+        types.forEach(type => {
+            type.addEventListener("click", function() {
+                const category = this.dataset.category;
+
+                types.forEach(item => item.classList.remove("active"));
+                referenceContainers.forEach(item => item.classList.remove("active"));
+
+                this.classList.add("active");
+                const selected = document.getElementById(category);
+                selected.classList.add("active");
+
+                selected.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            });
+        });
+
+        const lightbox = document.getElementById("lightbox");
+        const lightboxImage = lightbox.querySelector("img");
+
+        document.querySelectorAll(".gallery-item img").forEach(image => {
+            image.addEventListener("click", function() {
+                lightboxImage.src = this.src;
+                lightbox.classList.add("active");
+            });
+        });
+
+        lightbox.addEventListener("click", function(event) {
+            if (event.target === lightbox || event.target.classList.contains("lightbox-close")) {
+                lightbox.classList.remove("active");
+            }
+        });
+
+    </script>
+
+</body>
+</html>
