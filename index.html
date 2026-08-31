@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>HEPA Lapszabászat és Bútorgyártás</title>
-
+f
     <style>
         * {
             margin: 0;
@@ -735,6 +735,116 @@
 
     .contact-grid {
         grid-template-columns: 1fr;
+    }
+
+}
+        /* =========================
+   RESZPONZÍV - TABLET
+========================= */
+
+@media (max-width: 900px) {
+
+    header {
+        padding: 20px 5%;
+    }
+
+    nav {
+        gap: 25px;
+    }
+
+    .hero h1 {
+        font-size: 52px;
+    }
+
+    .service-grid {
+        grid-template-columns: 1fr;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .furniture-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .process-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 60px 30px;
+    }
+
+    .process-line {
+        display: none;
+    }
+
+}
+
+
+/* =========================
+   MOBIL NÉZET
+========================= */
+
+@media (max-width: 600px) {
+
+    header {
+        padding: 18px 20px;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .logo {
+        font-size: 24px;
+    }
+
+    nav {
+        gap: 18px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    nav a {
+        font-size: 14px;
+    }
+
+    .hero {
+        min-height: 600px;
+        padding: 40px 20px;
+    }
+
+    .hero h1 {
+        font-size: 42px;
+    }
+
+    .hero p {
+        font-size: 18px;
+    }
+
+    .section-title {
+        font-size: 38px;
+    }
+
+    .section-subtitle {
+        font-size: 17px;
+        padding: 0 20px;
+    }
+
+    .service-card {
+        padding: 50px 25px;
+    }
+
+    .furniture-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .process-grid {
+        grid-template-columns: 1fr;
+        gap: 45px;
+    }
+
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 
 }
