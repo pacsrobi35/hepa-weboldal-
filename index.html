@@ -211,6 +211,78 @@
     transform: translateY(-8px);
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
 }
+        /* BÚTOR KATEGÓRIÁK - KÉPES HÁTTÉR */
+
+.type {
+    position: relative;
+    overflow: hidden;
+    min-height: 270px;
+
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Sötét réteg a kép fölé */
+
+.type::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    transition: background 0.3s ease;
+}
+
+/* A szöveg legyen a sötét réteg fölött */
+
+.type h3,
+.type p {
+    position: relative;
+    z-index: 1;
+    color: white;
+    text-align: center;
+}
+
+/* KÉPEK */
+
+.type[data-category="konyha"] {
+    background-image: url("konyhabutor.png") !important;
+}
+
+.type[data-category="gardrob"] {
+    background-image: url("gardrob.png") !important;
+}
+
+.type[data-category="eloszoba"] {
+    background-image: url("eloszobabutor.png") !important;
+}
+
+.type[data-category="furdo"] {
+    background-image: url("furdoszobabutor.png") !important;
+}
+
+.type[data-category="nappali"] {
+    background-image: url("nappali-butor.png") !important;
+}
+
+.type[data-category="egyedi"] {
+    background-image: url("egyedi-butor.png") !important;
+}
+
+/* Hover */
+
+.type:hover {
+    transform: translateY(-8px);
+}
+
+.type:hover::before {
+    background: rgba(0, 0, 0, 0.25);
+}
 
 .type-icon {
     font-size: 38px;
@@ -917,6 +989,39 @@ input[type="file"]:hover {
     border-color: #b7832f;
     background: #f7f2ea;
 }
+        .furniture-card {
+    min-height: 270px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.card-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 35, 30, 0.55);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    transition: 0.3s;
+}
+
+.furniture-card:hover .card-overlay {
+    background: rgba(15, 35, 30, 0.35);
+}
+
+.card-overlay h3 {
+    color: #d6a85d;
+}
+
+.card-overlay p {
+    color: white;
+}
     </style>
 </head>
 
@@ -1073,37 +1178,37 @@ input[type="file"]:hover {
             <div class="furniture-types">
 
                 <div class="type" data-category="konyha">
-                    <div class="type-icon">🍽️</div>
+                    
                     <h3>Konyhabútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
                 </div>
 
                 <div class="type" data-category="gardrob">
-                    <div class="type-icon">🚪</div>
+                   
                     <h3>Gardrób</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
                 </div>
 
                 <div class="type" data-category="eloszoba">
-                    <div class="type-icon">🏠</div>
+                    
                     <h3>Előszobabútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
                 </div>
 
                 <div class="type" data-category="furdo">
-                    <div class="type-icon">🛁</div>
+                    
                     <h3>Fürdőszobabútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
                 </div>
 
                 <div class="type" data-category="nappali">
-                    <div class="type-icon">🛋️</div>
+                   
                     <h3>Nappali bútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
                 </div>
 
                 <div class="type" data-category="egyedi">
-                    <div class="type-icon">📐</div>
+                   
                     <h3>Egyedi bútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
                 </div>
