@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>HEPA Lapszabászat és Bútorgyártás</title>
-f
+
     <style>
         * {
             margin: 0;
@@ -848,6 +848,54 @@ f
     }
 
 }
+        /* =========================
+   HAMBURGER MENÜ
+========================= */
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+
+    header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+
+    nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: #12251f;
+        flex-direction: column;
+        gap: 0;
+        padding: 10px 0 20px;
+    }
+
+    nav.active {
+        display: flex;
+    }
+
+    nav a {
+        padding: 15px 20px;
+        text-align: center;
+    }
+
+}
     </style>
 </head>
 
@@ -855,18 +903,20 @@ f
 
     <!-- FEJLÉC -->
 
-    <header>
-        <div class="logo">
-            HEPA <span>LAPSZABÁSZAT</span>
-        </div>
+   <header>
+    <div class="logo">
+        HEPA <span>LAPSZABÁSZAT</span>
+    </div>
 
-        <nav>
-            <a href="#szolgaltatasok">Szolgáltatások</a>
-            <a href="#butorgyartas">Bútorgyártás</a>
-            <a href="#ajanlat">Árajánlat</a>
-            <a href="#kapcsolat">Kapcsolat</a>
-        </nav>
-    </header>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+
+    <nav id="main-nav">
+        <a href="#szolgaltatasok">Szolgáltatások</a>
+        <a href="#butorgyartas">Bútorgyártás</a>
+        <a href="#ajanlat">Árajánlat</a>
+        <a href="#kapcsolat">Kapcsolat</a>
+    </nav>
+</header>
 
 
     <!-- FŐ RÉSZ -->
@@ -1523,7 +1573,11 @@ f
             }
         });
 
-    </script>
+   <script>
+function toggleMenu() {
+    document.getElementById("main-nav").classList.toggle("active");
+}
+</script>
 
 </body>
 </html>
