@@ -462,54 +462,80 @@
     }
 
 }
-        /* STATISZTIKÁK */
+/* STATISZTIKÁK */
+
 .stats {
-    background: white;
-    padding: 50px 30px;
+    background: #ffffff;
+    padding: 90px 8%;
     text-align: center;
 }
 
+.stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
 .stats-title {
-    background: #b8732f;
+    display: inline-block;
+    background: #b7832f;
     color: white;
-    padding: 25px;
-    font-size: 26px;
+    padding: 12px 35px;
+    font-size: 20px;
     font-weight: bold;
+    margin-bottom: 45px;
+    border-radius: 4px;
 }
 
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    padding: 35px 0;
+    gap: 25px;
+}
+
+.stat {
+    padding: 25px 15px;
+}
+
+.stat-icon {
+    font-size: 42px;
+    margin-bottom: 15px;
 }
 
 .stat-number {
-    font-size: 32px;
+    font-size: 38px;
     font-weight: bold;
-    color: #222;
-    margin-bottom: 8px;
+    color: #b7832f;
+    margin-bottom: 5px;
 }
 
 .stat-text {
-    color: #777;
+    color: #666;
     font-size: 16px;
 }
 
-/* Mobil */
+/* STATISZTIKÁK MOBILON */
 
-@media (max-width: 768px) {
+@media (max-width: 800px) {
 
-    .furniture {
+    .stats {
         padding: 70px 20px;
     }
 
-    .intro h2 {
-        font-size: 32px;
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px 10px;
     }
 
-    .furniture-types {
-        grid-template-columns: 1fr;
+    .stat-number {
+        font-size: 28px;
+    }
+
+    .stat-icon {
+        font-size: 35px;
+    }
+
+    .stat-text {
+        font-size: 14px;
     }
 
 }
@@ -998,43 +1024,55 @@
     </div>
 
 </section>
-    <!-- STATISZTIKÁK -->
+   <!-- STATISZTIKÁK -->
 
-    <section class="stats">
+<section class="stats">
+
+    <div class="stats-container">
 
         <div class="stats-title">
-            2019 óta
+            2019 ÓTA
         </div>
 
         <div class="stats-grid">
 
             <div class="stat">
-                 <div class="stat-icon">🪓</div>
+                <div class="stat-icon">📐</div>
                 <div class="stat-number">100 000+</div>
-                <div class="stat-text">m² feldolgozott bútorlap</div>
+                <div class="stat-text">
+                    m² feldolgozott bútorlap
+                </div>
             </div>
 
             <div class="stat">
-                <div class="stat-icon">🗄️</div>
+                <div class="stat-icon">🪚</div>
                 <div class="stat-number">1 200+</div>
-                <div class="stat-text">elkészített bútor</div>
+                <div class="stat-text">
+                    elkészített bútor
+                </div>
             </div>
 
             <div class="stat">
                 <div class="stat-icon">🏠</div>
                 <div class="stat-number">600+</div>
-                <div class="stat-text">sikeres projekt</div>
+                <div class="stat-text">
+                    sikeres projekt
+                </div>
             </div>
 
             <div class="stat">
                 <div class="stat-icon">🤝</div>
                 <div class="stat-number">1 000+</div>
-                <div class="stat-text">elégedett ügyfél</div>
+                <div class="stat-text">
+                    elégedett ügyfél
+                </div>
             </div>
 
         </div>
 
-    </section>
+    </div>
+
+</section>
 
     <!-- ÁRAJÁNLAT -->
 
