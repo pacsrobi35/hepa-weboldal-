@@ -642,72 +642,102 @@
             font-weight: bold;
         }
 
-        /* KAPCSOLAT */
+  /* KAPCSOLAT */
 
-        .contact {
-            padding: 70px 8%;
-            text-align: center;
-            background: #f5f5f5;
-        }
+.contact {
+    padding: 90px 8%;
+    background: #f7f5f1;
+}
 
-        .contact h2 {
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
+.contact-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
 
-        .contact p {
-            margin: 8px 0;
-            font-size: 18px;
-        }
+.contact-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
 
-        footer {
-            background: #101b17;
-            color: #aaa;
-            text-align: center;
-            padding: 25px;
-        }
+.contact-header h2 {
+    font-size: 42px;
+    margin-bottom: 15px;
+    color: #2b2b2b;
+}
 
-        /* MOBIL */
+.contact-header p {
+    color: #666;
+    font-size: 18px;
+}
 
-        @media (max-width: 800px) {
+.contact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
 
-            header {
-                flex-direction: column;
-                gap: 15px;
-            }
+.contact-card {
+    background: white;
+    padding: 40px 25px;
+    text-align: center;
+    border: 1px solid #e3ddd3;
+    transition: 0.3s;
+}
 
-            nav a {
-                margin: 0 8px;
-                font-size: 14px;
-            }
+.contact-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
 
-            .hero h1 {
-                font-size: 40px;
-            }
+.contact-icon {
+    font-size: 42px;
+    margin-bottom: 18px;
+}
 
-            .cards,
-            .furniture-types,
-            .form-row {
-                grid-template-columns: 1fr;
-            }
+.contact-card h3 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: #b7832f;
+}
 
-            .services,
-            .furniture,
-            .quote-section {
-                padding: 60px 20px;
-            }
+.contact-card p {
+    color: #666;
+    margin-bottom: 20px;
+}
 
-            .quote-form {
-                padding: 25px 20px;
-            }
+.contact-btn {
+    display: inline-block;
+    background: #b7832f;
+    color: white;
+    text-decoration: none;
+    padding: 12px 22px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: 0.3s;
+}
 
-            .section-title,
-            .intro h2,
-            .quote-header h2 {
-                font-size: 30px;
-            }
-        }
+.contact-btn:hover {
+    background: #95691f;
+    transform: translateY(-2px);
+}
 
+/* KAPCSOLAT MOBILON */
+
+@media (max-width: 800px) {
+
+    .contact {
+        padding: 70px 20px;
+    }
+
+    .contact-header h2 {
+        font-size: 32px;
+    }
+
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
     </style>
 </head>
 
@@ -1229,22 +1259,90 @@
 
     </section>
 
+<!-- KAPCSOLAT -->
 
-    <!-- KAPCSOLAT -->
+<section class="contact" id="kapcsolat">
 
-    <section class="contact" id="kapcsolat">
+    <div class="contact-container">
 
-        <h2>Kapcsolat</h2>
+        <div class="contact-header">
 
-        <p>
-            📞 Telefonszám: Hamarosan
-        </p>
+            <h2>Vegye fel velünk a kapcsolatot!</h2>
 
-        <p>
-            ✉️ E-mail: Hamarosan
-        </p>
+            <p>
+                Kérdése van, árajánlatot szeretne vagy személyesen egyeztetne?
+                Keressen minket bizalommal!
+            </p>
 
-    </section>
+        </div>
+
+
+        <div class="contact-grid">
+
+
+            <!-- TELEFON -->
+
+            <div class="contact-card">
+
+                <div class="contact-icon">📞</div>
+
+                <h3>Telefon</h3>
+
+                <p>
+                    Hívjon minket nyitvatartási időben!
+                </p>
+
+                <a href="tel:+36301234567" class="contact-btn">
+                    Hívás
+                </a>
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="contact-card">
+
+                <div class="contact-icon">✉️</div>
+
+                <h3>E-mail</h3>
+
+                <p>
+                    Írjon nekünk, és hamarosan válaszolunk!
+                </p>
+
+                <a href="mailto:info@hepa.hu" class="contact-btn">
+                    E-mail írás
+                </a>
+
+            </div>
+
+
+            <!-- ÁRAJÁNLAT -->
+
+            <div class="contact-card">
+
+                <div class="contact-icon">📋</div>
+
+                <h3>Árajánlat</h3>
+
+                <p>
+                    Küldje el elképzelését, és segítünk megvalósítani!
+                </p>
+
+                <a href="#ajanlat" class="contact-btn">
+                    Árajánlatot kérek
+                </a>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</section>
+   
 
 
     <!-- LÁBLÉC -->
