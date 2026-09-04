@@ -132,6 +132,7 @@ create table if not exists public.cut_items (
 );
 
 create index if not exists cut_items_job_id_idx on public.cut_items(job_id);
+create index if not exists cut_items_material_id_idx on public.cut_items(material_id);
 
 create table if not exists public.attachments (
     id uuid primary key default gen_random_uuid(),
@@ -191,6 +192,7 @@ create table if not exists public.payments (
 );
 
 create index if not exists payments_job_id_idx on public.payments(job_id);
+create index if not exists payments_invoice_id_idx on public.payments(invoice_id);
 create index if not exists payments_status_due_date_idx on public.payments(status, due_date);
 
 create or replace function public.set_updated_at()
@@ -236,7 +238,7 @@ for each row execute function public.set_updated_at();
 create or replace function public.record_job_status_change()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 begin
@@ -270,7 +272,7 @@ create or replace function public.create_quote_request(
 )
 returns table (job_id uuid, job_number text)
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $$
 declare
@@ -384,23 +386,32 @@ revoke all on table public.attachments from anon, authenticated;
 revoke all on table public.invoices from anon, authenticated;
 revoke all on table public.payments from anon, authenticated;
 revoke all on table public.job_financial_summary from anon, authenticated;
+revoke execute on function public.set_updated_at() from public, anon, authenticated;
+revoke execute on function public.record_job_status_change() from public, anon, authenticated;
 revoke execute on function public.create_quote_request(
     uuid, text, text, text, text, text, text, text[], jsonb
 ) from public, anon, authenticated;
 
-grant all on table public.customers to service_role;
-grant all on table public.jobs to service_role;
-grant all on table public.job_status_history to service_role;
-grant all on table public.materials to service_role;
-grant all on table public.cut_items to service_role;
-grant all on table public.attachments to service_role;
-grant all on table public.invoices to service_role;
-grant all on table public.payments to service_role;
+grant select, insert, update on table public.customers to service_role;
+grant select, insert, update on table public.jobs to service_role;
+grant select, insert on table public.job_status_history to service_role;
+grant select, insert, update on table public.materials to service_role;
+grant select, insert, update, delete on table public.cut_items to service_role;
+grant select, insert, update, delete on table public.attachments to service_role;
+grant select, insert, update on table public.invoices to service_role;
+grant select, insert, update on table public.payments to service_role;
 grant select on table public.job_financial_summary to service_role;
 grant usage, select on sequence public.hepa_job_number_seq to service_role;
+grant usage, select on sequence public.job_status_history_id_seq to service_role;
 grant execute on function public.create_quote_request(
     uuid, text, text, text, text, text, text, text[], jsonb
 ) to service_role;
 
-commit;
+alter default privileges for role postgres in schema public
+    revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+alter default privileges for role postgres in schema public
+    revoke execute on functions from public, anon, authenticated, service_role;
+alter default privileges for role postgres in schema public
+    revoke usage, select on sequences from anon, authenticated, service_role;
 
+commit;
