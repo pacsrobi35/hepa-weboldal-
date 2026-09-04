@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Lapszabászat, élzárás és egyedi bútorgyártás Aszódon és Pest megyében, a tervezéstől a kész bútor beépítéséig.">
 
     <title>HEPA Lapszabászat és Bútorgyártás</title>
 
@@ -402,6 +403,10 @@
     color: white;
     font-size: 40px;
     cursor: pointer;
+    padding: 4px 10px;
+    border: 0;
+    background: transparent;
+    line-height: 1;
 }
 
 @media (max-width: 800px) {
@@ -1123,10 +1128,557 @@ input[type="file"]:hover {
     }
 }
 
+/* VIZUÁLIS FINOMÍTÁS */
+
+:root {
+    --green-950: #0d1f1a;
+    --green-900: #122720;
+    --green-800: #1a342b;
+    --gold-500: #c89236;
+    --gold-400: #daa651;
+    --paper: #f7f5f1;
+    --ink: #202522;
+    --muted: #69716d;
+}
+
+body {
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+}
+
+section[id],
+.reference-container {
+    scroll-margin-top: 90px;
+}
+
+.svg-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.line-icon {
+    width: 34px;
+    height: 34px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.card-icon,
+.contact-icon,
+.stat-icon {
+    color: var(--gold-500);
+    line-height: 1;
+}
+
+.card-icon .line-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.card {
+    border: 1px solid rgba(21, 37, 32, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(200, 146, 54, 0.35);
+    box-shadow: 0 18px 42px rgba(13, 31, 26, 0.12);
+}
+
+/* LAPSZABÁSZAT */
+
+.cutting-section {
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+    padding: 92px 8%;
+}
+
+.cutting-section::before {
+    content: "";
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    top: -210px;
+    right: -110px;
+    border: 1px solid rgba(200, 146, 54, 0.22);
+    border-radius: 50%;
+    box-shadow: 0 0 0 50px rgba(200, 146, 54, 0.04), 0 0 0 100px rgba(200, 146, 54, 0.025);
+    pointer-events: none;
+}
+
+.cutting-container {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.cutting-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+    gap: 70px;
+    align-items: end;
+    margin-bottom: 44px;
+}
+
+.section-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #9c6c1f;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+
+.section-kicker::before {
+    content: "";
+    width: 34px;
+    height: 1px;
+    background: var(--gold-500);
+}
+
+.cutting-intro h2 {
+    max-width: 650px;
+    font-size: clamp(36px, 4vw, 54px);
+    line-height: 1.08;
+    letter-spacing: -1.3px;
+}
+
+.cutting-copy p {
+    color: var(--muted);
+    font-size: 17px;
+    margin-bottom: 24px;
+}
+
+.cutting-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.cutting-card {
+    min-height: 230px;
+    padding: 28px 25px;
+    background: white;
+    border: 1px solid rgba(21, 37, 32, 0.09);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(13, 31, 26, 0.055);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.cutting-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(200, 146, 54, 0.4);
+    box-shadow: 0 18px 38px rgba(13, 31, 26, 0.1);
+}
+
+.cutting-icon {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 24px;
+    color: var(--gold-500);
+    background: rgba(200, 146, 54, 0.1);
+    border-radius: 50%;
+}
+
+.cutting-card h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.cutting-card p {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.materials-strip {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 28px;
+    align-items: center;
+    margin-top: 22px;
+    padding: 22px 26px;
+    color: white;
+    background: var(--green-900);
+    border-radius: 12px;
+}
+
+.materials-label {
+    color: var(--gold-400);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+}
+
+.material-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.material-list span {
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    color: #e4ebe8;
+    font-size: 14px;
+}
+
+/* KÉPES BÚTORKÁRTYÁK */
+
+.furniture-types {
+    gap: 18px;
+}
+
+button.type {
+    width: 100%;
+    min-height: 285px;
+    padding: 30px;
+    justify-content: flex-end;
+    align-items: flex-start;
+    text-align: left;
+    border: 1px solid rgba(21, 37, 32, 0.12);
+    border-radius: 12px;
+    font: inherit;
+    box-shadow: 0 12px 30px rgba(13, 31, 26, 0.08);
+}
+
+button.type::before {
+    background: linear-gradient(180deg, rgba(7, 18, 14, 0.05) 24%, rgba(7, 18, 14, 0.92) 100%);
+}
+
+button.type:hover::before,
+button.type:focus-visible::before {
+    background: linear-gradient(180deg, rgba(7, 18, 14, 0.02) 15%, rgba(7, 18, 14, 0.82) 100%);
+}
+
+button.type h3,
+button.type p {
+    color: white;
+    text-align: left;
+}
+
+button.type h3 {
+    margin-bottom: 7px;
+    font-size: 24px;
+    letter-spacing: -0.3px;
+}
+
+button.type p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 14px;
+}
+
+button.type:focus-visible {
+    outline: 3px solid var(--gold-400);
+    outline-offset: 3px;
+}
+
+button.type.active {
+    border-color: var(--gold-500);
+    box-shadow: 0 0 0 2px rgba(200, 146, 54, 0.22), 0 16px 38px rgba(13, 31, 26, 0.15);
+}
+
+.reference-container.active {
+    animation: referenceReveal 0.35s ease-out;
+}
+
+@keyframes referenceReveal {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* STATISZTIKA ÉS KAPCSOLAT */
+
+.stats-title {
+    display: inline-flex;
+    border-radius: 999px;
+}
+
+.stat-icon .line-icon,
+.contact-icon .line-icon {
+    width: 42px;
+    height: 42px;
+}
+
+.contact-card {
+    border-radius: 12px;
+    border-color: rgba(21, 37, 32, 0.1);
+}
+
+/* LÁBLÉC */
+
+.site-footer {
+    padding: 58px 8% 24px;
+    color: #d9e2de;
+    background: #0b1b16;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 0.8fr 1fr;
+    gap: 70px;
+    max-width: 1200px;
+    margin: 0 auto 42px;
+}
+
+.footer-brand {
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+}
+
+.footer-brand span,
+.footer-heading {
+    color: var(--gold-400);
+}
+
+.footer-about {
+    max-width: 420px;
+    color: #aebdb7;
+}
+
+.footer-heading {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+
+.footer-links,
+.footer-contact {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+}
+
+.site-footer a {
+    color: #d9e2de;
+    text-decoration: none;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+    color: var(--gold-400);
+}
+
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 22px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: #899a93;
+    font-size: 14px;
+}
+
+/* RESZPONZÍV FINOMÍTÁS */
+
+@media (max-width: 980px) {
+    .cutting-intro {
+        gap: 40px;
+    }
+
+    .cutting-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .furniture-types {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 42px;
+    }
+
+    .footer-main {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 760px) {
+    .cards,
+    .cutting-intro,
+    .furniture-types,
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .services,
+    .furniture,
+    .cutting-section,
+    .quote-section,
+    .contact {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .cutting-section {
+        padding-top: 72px;
+        padding-bottom: 72px;
+    }
+
+    .cutting-intro {
+        gap: 24px;
+        align-items: start;
+    }
+
+    .materials-strip {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    button.type {
+        min-height: 230px;
+    }
+
+    .quote-form {
+        padding: 28px 22px;
+    }
+}
+
+@media (max-width: 600px) {
+    header {
+        position: sticky;
+        padding: 15px 18px;
+    }
+
+    .logo {
+        max-width: calc(100% - 58px);
+        font-size: 18px;
+        line-height: 1.15;
+    }
+
+    nav a {
+        margin-left: 0;
+    }
+
+    .hero {
+        min-height: 520px;
+        padding: 70px 20px;
+    }
+
+    .hero h1 {
+        font-size: clamp(38px, 12vw, 48px);
+        line-height: 1.1;
+    }
+
+    .section-title,
+    .intro h2,
+    .process-header h2,
+    .quote-header h2,
+    .contact-header h2 {
+        font-size: 32px;
+        line-height: 1.16;
+    }
+
+    .card {
+        padding: 42px 26px;
+    }
+
+    .cutting-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cutting-card {
+        min-height: 0;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 34px 16px;
+    }
+
+    .stat-number {
+        font-size: 29px;
+    }
+
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .footer-main {
+        grid-column: auto;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+    }
+}
+
     </style>
 </head>
 
 <body>
+
+    <svg class="svg-defs" aria-hidden="true" focusable="false">
+        <symbol id="icon-ruler" viewBox="0 0 24 24">
+            <path d="M4 20 20 4l3 3L7 23 4 20Z"></path>
+            <path d="m14 6 4 4M11.5 8.5l2 2M9 11l4 4M6.5 13.5l2 2"></path>
+        </symbol>
+        <symbol id="icon-hammer" viewBox="0 0 24 24">
+            <path d="m14 5 5 5M11 8l5 5M13 3l8 8-3 3-8-8 3-3Z"></path>
+            <path d="m12 12-8 8M3 21l2-1"></path>
+        </symbol>
+        <symbol id="icon-layers" viewBox="0 0 24 24">
+            <path d="m12 3 9 5-9 5-9-5 9-5Z"></path>
+            <path d="m3 12 9 5 9-5M3 16l9 5 9-5"></path>
+        </symbol>
+        <symbol id="icon-board" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M8 4v16M16 4v16"></path>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m8 12 2.6 2.7L16.5 9"></path>
+        </symbol>
+        <symbol id="icon-phone" viewBox="0 0 24 24">
+            <path d="M8.5 4H5.8C4.8 4 4 4.8 4 5.8 4 13.6 10.4 20 18.2 20c1 0 1.8-.8 1.8-1.8v-2.7l-4-1-1.2 2a13.2 13.2 0 0 1-7.3-7.3l2-1.2-1-4Z"></path>
+        </symbol>
+        <symbol id="icon-mail" viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <path d="m4 7 8 6 8-6"></path>
+        </symbol>
+        <symbol id="icon-clipboard" viewBox="0 0 24 24">
+            <rect x="5" y="4" width="14" height="17" rx="2"></rect>
+            <path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 14h7M8.5 18H13"></path>
+        </symbol>
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="m3 11 9-8 9 8"></path>
+            <path d="M5 10v10h14V10M9 20v-6h6v6"></path>
+        </symbol>
+        <symbol id="icon-users" viewBox="0 0 24 24">
+            <circle cx="9" cy="8" r="3"></circle>
+            <path d="M3.5 20v-2a5.5 5.5 0 0 1 11 0v2M16 5.3a3 3 0 0 1 0 5.4M16.5 14a5 5 0 0 1 4 4.9V20"></path>
+        </symbol>
+    </svg>
 
     <!-- FEJLÉC -->
 
@@ -1135,7 +1687,7 @@ input[type="file"]:hover {
         HEPA <span>LAPSZABÁSZAT</span>
     </div>
 
-    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <button class="menu-toggle" type="button" aria-label="Menü megnyitása" aria-controls="main-nav" aria-expanded="false" onclick="toggleMenu()">☰</button>
 
     <nav id="main-nav">
         <a href="#szolgaltatasok">Szolgáltatások</a>
@@ -1188,7 +1740,7 @@ input[type="file"]:hover {
 
             <div class="card">
 
-                <div class="card-icon">📐</div>
+                <div class="card-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-ruler"></use></svg></div>
 
                 <h2>Lapszabászat</h2>
 
@@ -1206,7 +1758,7 @@ input[type="file"]:hover {
 
             <div class="card">
 
-                <div class="card-icon">🔨</div>
+                <div class="card-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-hammer"></use></svg></div>
 
                 <h2>Bútorgyártás</h2>
 
@@ -1270,31 +1822,61 @@ input[type="file"]:hover {
 
     <!-- LAPSZABÁSZAT -->
 
-    <section class="furniture" id="lapszabaszat">
+    <section class="cutting-section" id="lapszabaszat">
+        <div class="cutting-container">
+            <div class="cutting-intro">
+                <div>
+                    <span class="section-kicker">Lapszabászat • Aszód</span>
+                    <h2>Pontos méret. Tiszta élzárás. Gyártásra kész alkatrészek.</h2>
+                </div>
 
-        <div class="furniture-content">
-
-            <div class="intro">
-
-                <h2>📐 Lapszabászat</h2>
-
-                <p>
-                    Itt később elkészítjük a teljes online
-                    lapszabászati rendszert. Az ügyfél kiválaszthatja
-                    az anyagot, megadhatja a méreteket, feltöltheti
-                    a szabáslistát és leadhatja a rendelését.
-                </p>
-
-                <br>
-
-                <a href="#kapcsolat" class="btn">
-                    Hamarosan online rendelés
-                </a>
-
+                <div class="cutting-copy">
+                    <p>
+                        Bútorlapok méretre szabását és élzárását vállaljuk saját vagy hozott anyagból,
+                        egyedi megrendelőknek és asztalos partnereknek is.
+                    </p>
+                    <a href="#ajanlat" class="btn">Szabászati ajánlatot kérek</a>
+                </div>
             </div>
 
-        </div>
+            <div class="cutting-grid">
+                <article class="cutting-card">
+                    <div class="cutting-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-ruler"></use></svg></div>
+                    <h3>Méretre szabás</h3>
+                    <p>Pontos darabméretek és átgondolt szabáslista alapján készítjük elő az alkatrészeket.</p>
+                </article>
 
+                <article class="cutting-card">
+                    <div class="cutting-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-layers"></use></svg></div>
+                    <h3>ABS élzárás</h3>
+                    <p>Tartós, esztétikus élzárás többféle vastagságban, a választott dekorhoz igazítva.</p>
+                </article>
+
+                <article class="cutting-card">
+                    <div class="cutting-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-board"></use></svg></div>
+                    <h3>Anyagbeszerzés</h3>
+                    <p>Segítünk kiválasztani és beszerezni a bútorhoz megfelelő lapanyagot és dekorokat.</p>
+                </article>
+
+                <article class="cutting-card">
+                    <div class="cutting-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-check"></use></svg></div>
+                    <h3>Hozott anyag is</h3>
+                    <p>Saját beszerzésű bútorlap feldolgozását is vállaljuk előre egyeztetett szabáslista alapján.</p>
+                </article>
+            </div>
+
+            <div class="materials-strip">
+                <div class="materials-label">Gyakran használt anyagok és rendszerek</div>
+                <div class="material-list" aria-label="Gyakran használt anyagok és rendszerek">
+                    <span>Egger</span>
+                    <span>Kronospan</span>
+                    <span>AGT</span>
+                    <span>MDF</span>
+                    <span>Blum</span>
+                    <span>Fehér bútorlap</span>
+                </div>
+            </div>
+        </div>
     </section>
 
 
@@ -1320,41 +1902,41 @@ input[type="file"]:hover {
 
             <div class="furniture-types">
 
-                <div class="type" data-category="konyha">
+                <button class="type" type="button" data-category="konyha" aria-controls="konyha" aria-expanded="false">
                     
                     <h3>Konyhabútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
-                </div>
+                </button>
 
-                <div class="type" data-category="gardrob">
+                <button class="type" type="button" data-category="gardrob" aria-controls="gardrob" aria-expanded="false">
                    
                     <h3>Gardrób</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
-                </div>
+                </button>
 
-                <div class="type" data-category="eloszoba">
+                <button class="type" type="button" data-category="eloszoba" aria-controls="eloszoba" aria-expanded="false">
                     
                     <h3>Előszobabútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
-                </div>
+                </button>
 
-                <div class="type" data-category="furdo">
+                <button class="type" type="button" data-category="furdo" aria-controls="furdo" aria-expanded="false">
                     
                     <h3>Fürdőszobabútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
-                </div>
+                </button>
 
-                <div class="type" data-category="nappali">
+                <button class="type" type="button" data-category="nappali" aria-controls="nappali" aria-expanded="false">
                    
                     <h3>Nappali bútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
-                </div>
+                </button>
 
-                <div class="type" data-category="egyedi">
+                <button class="type" type="button" data-category="egyedi" aria-controls="egyedi" aria-expanded="false">
                    
                     <h3>Egyedi bútor</h3>
                     <p>Kattintson a referenciák megtekintéséhez.</p>
-                </div>
+                </button>
 
             </div>
 
@@ -1387,14 +1969,10 @@ input[type="file"]:hover {
 
     </section>
 
-    <div class="lightbox" id="lightbox">
-        <span class="lightbox-close">&times;</span>
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Referencia nagy méretben" aria-hidden="true">
+        <button class="lightbox-close" type="button" aria-label="Nagyított kép bezárása">&times;</button>
         <img src="" alt="Referencia nagy méretben">
     </div>
-
-        </div>
-
-    </section>
     <!-- RENDELÉS MENETE -->
 
 <section class="process" id="rendeles-menete">
@@ -1496,7 +2074,7 @@ input[type="file"]:hover {
         <div class="stats-grid">
 
             <div class="stat">
-                <div class="stat-icon">📐</div>
+                <div class="stat-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-ruler"></use></svg></div>
                 <div class="stat-number">100 000+</div>
                 <div class="stat-text">
                     m² feldolgozott bútorlap
@@ -1504,7 +2082,7 @@ input[type="file"]:hover {
             </div>
 
             <div class="stat">
-                <div class="stat-icon">🪚</div>
+                <div class="stat-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-hammer"></use></svg></div>
                 <div class="stat-number">1 200+</div>
                 <div class="stat-text">
                     elkészített bútor
@@ -1512,7 +2090,7 @@ input[type="file"]:hover {
             </div>
 
             <div class="stat">
-                <div class="stat-icon">🏠</div>
+                <div class="stat-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-home"></use></svg></div>
                 <div class="stat-number">600+</div>
                 <div class="stat-text">
                     sikeres projekt
@@ -1520,7 +2098,7 @@ input[type="file"]:hover {
             </div>
 
             <div class="stat">
-                <div class="stat-icon">🤝</div>
+                <div class="stat-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-users"></use></svg></div>
                 <div class="stat-number">1 000+</div>
                 <div class="stat-text">
                     elégedett ügyfél
@@ -1732,7 +2310,7 @@ input[type="file"]:hover {
 
 <div class="contact-card">
 
-    <div class="contact-icon">📞</div>
+    <div class="contact-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-phone"></use></svg></div>
 
     <h3>Telefon</h3>
 
@@ -1751,7 +2329,7 @@ input[type="file"]:hover {
 
 <div class="contact-card">
 
-    <div class="contact-icon">✉️</div>
+    <div class="contact-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-mail"></use></svg></div>
 
     <h3>E-mail</h3>
 
@@ -1770,7 +2348,7 @@ input[type="file"]:hover {
 
             <div class="contact-card">
 
-                <div class="contact-icon">📋</div>
+                <div class="contact-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-clipboard"></use></svg></div>
 
                 <h3>Árajánlat</h3>
 
@@ -1795,10 +2373,39 @@ input[type="file"]:hover {
 
     <!-- LÁBLÉC -->
 
-    <footer>
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div class="footer-main">
+                <div class="footer-brand">HEPA <span>LAPSZABÁSZAT</span></div>
+                <p class="footer-about">
+                    Lapszabászat és egyedi bútorgyártás, az első egyeztetéstől a pontos kivitelezésen át a kész bútor beépítéséig.
+                </p>
+            </div>
 
-        © 2026 HEPA Lapszabászat és Bútorgyártás
+            <div>
+                <h2 class="footer-heading">Gyors menü</h2>
+                <ul class="footer-links">
+                    <li><a href="#szolgaltatasok">Szolgáltatások</a></li>
+                    <li><a href="#lapszabaszat">Lapszabászat</a></li>
+                    <li><a href="#butorgyartas">Bútorgyártás</a></li>
+                    <li><a href="#ajanlat">Árajánlatkérés</a></li>
+                </ul>
+            </div>
 
+            <div>
+                <h2 class="footer-heading">Kapcsolat</h2>
+                <ul class="footer-contact">
+                    <li>2170 Aszód, Pesti út 27.</li>
+                    <li><a href="tel:+36706273722">+36 70 627 37 22</a></li>
+                    <li><a href="mailto:hepaconstructkft@gmail.com">hepaconstructkft@gmail.com</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <span>© 2026 HEPA Lapszabászat és Bútorgyártás</span>
+            <span>Aszód és környéke • Pest megye</span>
+        </div>
     </footer>
 
 
@@ -1832,9 +2439,11 @@ input[type="file"]:hover {
                 const category = this.dataset.category;
 
                 types.forEach(item => item.classList.remove("active"));
+                types.forEach(item => item.setAttribute("aria-expanded", "false"));
                 referenceContainers.forEach(item => item.classList.remove("active"));
 
                 this.classList.add("active");
+                this.setAttribute("aria-expanded", "true");
                 const selected = document.getElementById(category);
                 selected.classList.add("active");
 
@@ -1852,18 +2461,43 @@ input[type="file"]:hover {
             image.addEventListener("click", function() {
                 lightboxImage.src = this.src;
                 lightbox.classList.add("active");
+                lightbox.setAttribute("aria-hidden", "false");
             });
         });
 
+        function closeLightbox() {
+            lightbox.classList.remove("active");
+            lightbox.setAttribute("aria-hidden", "true");
+        }
+
         lightbox.addEventListener("click", function(event) {
             if (event.target === lightbox || event.target.classList.contains("lightbox-close")) {
-                lightbox.classList.remove("active");
+                closeLightbox();
+            }
+        });
+
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape" && lightbox.classList.contains("active")) {
+                closeLightbox();
             }
         });
 
         function toggleMenu() {
-            document.getElementById("main-nav").classList.toggle("active");
+            const nav = document.getElementById("main-nav");
+            const menuButton = document.querySelector(".menu-toggle");
+            const isOpen = nav.classList.toggle("active");
+            menuButton.setAttribute("aria-expanded", String(isOpen));
+            menuButton.setAttribute("aria-label", isOpen ? "Menü bezárása" : "Menü megnyitása");
         }
+
+        document.querySelectorAll("#main-nav a").forEach(link => {
+            link.addEventListener("click", function() {
+                document.getElementById("main-nav").classList.remove("active");
+                const menuButton = document.querySelector(".menu-toggle");
+                menuButton.setAttribute("aria-expanded", "false");
+                menuButton.setAttribute("aria-label", "Menü megnyitása");
+            });
+        });
     </script>
 
 </body>
