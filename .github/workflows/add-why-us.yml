@@ -14,8 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Add why us section
+        env:
+          CSS_B64: Lyo gTUnDiUlULVRFVCovCi53aHktdXMgewogICAgYmFja2dyb3VuZDogIzE1MjUyMDsKICAgIGNvbG9yOiB3aGl0ZTsKICAgIHBhZGRpbmc6IDkwcHggOCU7Cn0KCi53aHktdXMtY29udGFpbmVyIHsKICAgIG1heC13aWR0aDogMTIwMHB4OwogICAgbWFyZ2luOiAwIGF1dG87Cn0KCi53aHktdXMtaGVhZGVyIHsKICAgIG1heC13aWR0aDogNzIwcHg7CiAgICBtYXJnaW46IDAgYXV0byA1MHB4OwogICAgdGV4dC1hbGlnbjogY2VudGVyOwp9Cgoud2h5LXVzLWtpY2tlciB7CiAgICBkaXNwbGF5OiBpbmxpbmUtYmxvY2s7CiAgICBjb2xvcjogI2QzOWI0MjsKICAgIGZvbnQtc2l6ZTogMTRweDsKICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgbGV0dGVyLXNwYWNpbmc6IDJweDsKICAgIHRleHQtdHJhbnNmb3JtOiB1cHBlcmNhc2U7CiAgICBtYXJnaW4tYm90dG9tOiAxMnB4Owp9Cgoud2h5LXVzLWhlYWRlciBoMiB7CiAgICBmb250LXNpemU6IDQwcHg7CiAgICBsaW5lLWhlaWdodDogMS4yOwogICAgbWFyZ2luLWJvdHRvbTogMTZweDsKfQoKLndoeS11cy1oZWFkZXIgcCB7CiAgICBjb2xvcjogI2Q4ZGZkYzsKICAgIGZvbnQtc2l6ZTogMThweDsKfQoKLndoeS11cy1ncmlkIHsKICAgIGRpc3BsYXk6IGdyaWQ7CiAgICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6IHJlcGVhdCg0LCAxZnIpOwogICAgZ2FwOiAyMHB4Owp9Cgoud2h5LXVzLWNhcmQgewogICAgcG9zaXRpb246IHJlbGF0aXZlOwogICAgcGFkZGluZzogMzJweCAyNnB4IDMwcHg7CiAgICBib3JkZXI6IDFweCBzb2xpZCByZ2JhKDIxMSwgMTU1LCA2NiwgMC4zMik7CiAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgYmFja2dyb3VuZDogcmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA0KTsKICAgIHRyYW5zaXRpb246IHRyYW5zZm9ybSAwLjNzIGVhc2UsIGJhY2tncm91bmQgMC4zcyBlYXNlLCBib3JkZXItY29sb3IgMC4zcyBlYXNlOwp9Cgoud2h5LXVzLWNhcmQ6aG92ZXIgewogICAgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKC02cHgpOwogICAgYmFja2dyb3VuZDogcmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA3KTsKICAgIGJvcmRlci1jb2xvcjogcmdiYSgyMTEsIDE1NSwgNjYsIDAuNyk7Cn0KCi53aHktdXMtbnVtYmVyIHsKICAgIGNvbG9yOiAjZDM5YjQyOwogICAgZm9udC1zaXplOiAxNHB4OwogICAgZm9udC13ZWlnaHQ6IGJvbGQ7CiAgICBsZXR0ZXItc3BhY2luZzogMS41cHg7CiAgICBtYXJnaW4tYm90dG9tOiAyMnB4Owp9Cgoud2h5LXVzLWNhcmQgaDMgewogICAgZm9udC1zaXplOiAyMnB4OwogICAgbWFyZ2luLWJvdHRvbTogMTJweDsKICAgIGNvbG9yOiB3aGl0ZTsKfQoKLndoeS11cy1jYXJkIHAgewogICAgY29sb3I6ICNjYmQ0ZDA7CiAgICBsaW5lLWhlaWdodDogMS43OwogICAgZm9udC1zaXplOiAxNXB4Owp9CgpAbWVkaWEgKG1heC13aWR0aDogOTAwcHgpIHsKICAgIC53aHktdXMtZ3JpZCB7CiAgICAgICAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOiByZXBlYXQoMiwgMWZyKTsKICAgIH0KfQoKQG1lZGlhIChtYXgtd2lkdGg6IDYwMHB4KSB7CiAgICAud2h5LXVzIHsKICAgICAgICBwYWRkaW5nOiA3MHB4IDIwcHg7CiAgICB9CgogICAgLndoeS11cy1oZWFkZXIgaDIgewogICAgICAgIGZvbnQtc2l6ZTogMzJweDsKICAgIH0KCiAgICAud2h5LXVzLWdyaWQgewogICAgICAgIGdyaWQtdGVtcGxhdGUtY29sdW1uczogMWZyOwogICAgfQp9Cg==
+          SECTION_B64: ICAgIDwhLS0gTUnDiUlULVRFVCAtLT4KICAgIDxzZWN0aW9uIGNsYXNzPSJ3aHktdXMiIGlkPSJtaWVydC1taW5rZXQiPgogICAgICAgIDxkaXYgY2xhc3M9IndoeS11cy1jb250YWluZXIiPgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJ3aHktdXMtaGVhZGVyIj4KICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJ3aHktdXMta2lja2VyIj5IRVBBPC9zcGFuPgogICAgICAgICAgICAgICAgPGgyPk1pw6lydCBlcmRlbWVzIG1pbmtldCB2w6FsYXN6dGFuaT88L2gyPgogICAgICAgICAgICAgICAgPHA+CiAgICAgICAgICAgICAgICAgICAgQXogZWd5ZXp0ZXTDqXN0xZF0bCBhIGd5w6FydMOhc29uIMOhdCBhIGJlw6lww610w6lzaWcgZWd5IGvDqXpiZW4gdGFydGp1ayBhIGZvbHlhbWF0b3QsCiAgICAgICAgICAgICAgICAgICAgaG9neSBheiBlbGvDqXBaZWzDqXNib2wgcG9udG9zYW4gaWxsZXN6a2VkxZEsIGhhc3puw6FsaGF0w7MgYsO6dG9yIHN6w7x sZXNzZW4uCiAgICAgICAgICAgICAgICA8L3A+CiAgICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgICAgPGRpdiBjbGFzcz0id2h5LXVzLWdyaWQiPgogICAgICAgICAgICAgICAgPGFydGljbGUgY2xhc3M9IndoeS11cy1jYXJkIj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJ3aHktdXMtbnVtYmVyIj4wMTwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxoMz5TYWrDoXQgbcWx aGVseTwvaDM+CiAgICAgICAgICAgICAgICAgICAgPHA+QSBiw7p0b3JvayBnecOhcnTDqXPDqXQg w6lzIGVsw7Frw6lzesOtdMOpc8OpdCBzYWrDoXQgbcWx aGVsecO8bmt iZW4gdsOpZ2V6esO8aywgZWxsZW7FkXJ6w7Z0dCBtdW5rYWZvbHlhbWF0b2trYWwuPC9wPgogICAgICAgICAgICAgICAgPC9hcnRpY2xlPgoKICAgICAgICAgICAgICAgIDxhcnRpY2xlIGNsYXNzPSJ3aHktdXMtY2FyZCI+CiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0id2h5LXVzLW51bWJlciI+MDI8L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8aDM+UHJlY8OteiBraXZpdGVsZXrDqXM8L2gzPgogICAgICAgICAgICAgICAgICAgIDxwPkEgbcOpcmV0ZXrDqXN0xZF sIGEgbGFwc3phYsOhc29uIMOhdCBhIHN6ZXJlbMOp c2lnIG1pbmRlbiByw6lzemxldG7DqWwgYSBwb250b3MsIGlnw6lueWVzIG11bmvDoXJhIHTDtnJla3PDvG5rLjwvcD4KICAgICAgICAgICAgICAgIDwvYXJ0aWNsZT4KCiAgICAgICAgICAgICAgICA8YXJ0aWNsZSBjbGFzcz0id2h5LXVzLWNhcmQiPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9IndoeS11cy1udW1iZXIiPjAzPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgPGgzPkVneWVkaSBtZWdvbGTDqXNvazwvaDM+CiAgICAgICAgICAgICAgICAgICAgPHA+TmVtIHNhYmxvbm9rYsOzbCBkb2xnb3p1bms6IGEgYsO6dG9yIGVscmVuZGV6w6lzw6l0LCBtw6lyZXTDqXQg w6lzIGtpYWxha8OtdMOhc8OhdCBheiBhZ G90dCBoZWx5aGV6IMOpcyBpZ8OpbnloZXogaWdhesOtdGp1ay48L3A+CiAgICAgICAgICAgICAgICA8L2FydGljbGU+CgogICAgICAgICAgICAgICAgPGFydGljbGUgY2xhc3M9IndoeS11cy1jYXJkIj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJ3aHktdXMtbnVtYmVyIj4wNDwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxoMz5FZ3kga8Opei bZW4gYSBmb2x5YW1hdDwvaDM+CiAgICAgICAgICAgICAgICAgICAgPHA+RWd5ZXp0ZXTDqXMsIHRlcnZlesOpcywgZ3nDoXJ0w6FzLCBzesOhbGzDrXTDoXMg w6lzIHN6ZXJlbMOpcy4gQSB0ZWxqZXMgZm9seWFtYXRvdCB2w6lnaWcga8O2dmV0aGV0xZF lbiBrZXplbGrDvGsuPC9wPgogICAgICAgICAgICAgICAgPC9hcnRpY2xlPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgIDwvc2VjdGlvbj4K
         run: |
           python - <<'PY'
+          import os, base64
           from pathlib import Path
 
           path = Path('index.html')
@@ -25,151 +29,8 @@ jobs:
               print('Section already exists')
               raise SystemExit(0)
 
-          css = r'''
-
-/* MIÉRT MINKET */
-.why-us {
-    background: #152520;
-    color: white;
-    padding: 90px 8%;
-}
-
-.why-us-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.why-us-header {
-    max-width: 720px;
-    margin: 0 auto 50px;
-    text-align: center;
-}
-
-.why-us-kicker {
-    display: inline-block;
-    color: #d39b42;
-    font-size: 14px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-}
-
-.why-us-header h2 {
-    font-size: 40px;
-    line-height: 1.2;
-    margin-bottom: 16px;
-}
-
-.why-us-header p {
-    color: #d8dfdc;
-    font-size: 18px;
-}
-
-.why-us-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-}
-
-.why-us-card {
-    position: relative;
-    padding: 32px 26px 30px;
-    border: 1px solid rgba(211, 155, 66, 0.32);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
-}
-
-.why-us-card:hover {
-    transform: translateY(-6px);
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(211, 155, 66, 0.7);
-}
-
-.why-us-number {
-    color: #d39b42;
-    font-size: 14px;
-    font-weight: bold;
-    letter-spacing: 1.5px;
-    margin-bottom: 22px;
-}
-
-.why-us-card h3 {
-    font-size: 22px;
-    margin-bottom: 12px;
-    color: white;
-}
-
-.why-us-card p {
-    color: #cbd4d0;
-    line-height: 1.7;
-    font-size: 15px;
-}
-
-@media (max-width: 900px) {
-    .why-us-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 600px) {
-    .why-us {
-        padding: 70px 20px;
-    }
-
-    .why-us-header h2 {
-        font-size: 32px;
-    }
-
-    .why-us-grid {
-        grid-template-columns: 1fr;
-    }
-}
-'''
-
-          section = r'''
-
-    <!-- MIÉRT MINKET -->
-    <section class="why-us" id="miert-minket">
-        <div class="why-us-container">
-            <div class="why-us-header">
-                <span class="why-us-kicker">HEPA</span>
-                <h2>Miért érdemes minket választani?</h2>
-                <p>
-                    Az egyeztetéstől a gyártáson át a beépítésig egy kézben tartjuk a folyamatot,
-                    hogy az elképzelésből pontosan illeszkedő, használható bútor szülessen.
-                </p>
-            </div>
-
-            <div class="why-us-grid">
-                <article class="why-us-card">
-                    <div class="why-us-number">01</div>
-                    <h3>Saját műhely</h3>
-                    <p>A bútorok gyártását és előkészítését saját műhelyünkben végezzük, ellenőrzött munkafolyamatokkal.</p>
-                </article>
-
-                <article class="why-us-card">
-                    <div class="why-us-number">02</div>
-                    <h3>Precíz kivitelezés</h3>
-                    <p>A méretezéstől a lapszabáson át a szerelésig minden részletnél a pontos, igényes munkára törekszünk.</p>
-                </article>
-
-                <article class="why-us-card">
-                    <div class="why-us-number">03</div>
-                    <h3>Egyedi megoldások</h3>
-                    <p>Nem sablonokból dolgozunk: a bútor elrendezését, méretét és kialakítását az adott helyhez és igényhez igazítjuk.</p>
-                </article>
-
-                <article class="why-us-card">
-                    <div class="why-us-number">04</div>
-                    <h3>Egy kézben a folyamat</h3>
-                    <p>Egyeztetés, tervezés, gyártás, szállítás és szerelés. A teljes folyamatot végig követhetően kezeljük.</p>
-                </article>
-            </div>
-        </div>
-    </section>
-'''
+          css = base64.b64decode(os.environ['CSS_B64']).decode('utf-8')
+          section = base64.b64decode(os.environ['SECTION_B64']).decode('utf-8')
 
           if '</style>' not in html:
               raise RuntimeError('Closing style tag not found')
