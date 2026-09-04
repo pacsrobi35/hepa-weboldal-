@@ -1,0 +1,197 @@
+name: Add why us section
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update-page:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add why us section
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          html = path.read_text(encoding='utf-8')
+
+          if 'id="miert-minket"' in html:
+              print('Section already exists')
+              raise SystemExit(0)
+
+          css = r'''
+
+/* MIÉRT MINKET */
+.why-us {
+    background: #152520;
+    color: white;
+    padding: 90px 8%;
+}
+
+.why-us-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.why-us-header {
+    max-width: 720px;
+    margin: 0 auto 50px;
+    text-align: center;
+}
+
+.why-us-kicker {
+    display: inline-block;
+    color: #d39b42;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.why-us-header h2 {
+    font-size: 40px;
+    line-height: 1.2;
+    margin-bottom: 16px;
+}
+
+.why-us-header p {
+    color: #d8dfdc;
+    font-size: 18px;
+}
+
+.why-us-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.why-us-card {
+    position: relative;
+    padding: 32px 26px 30px;
+    border: 1px solid rgba(211, 155, 66, 0.32);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.why-us-card:hover {
+    transform: translateY(-6px);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(211, 155, 66, 0.7);
+}
+
+.why-us-number {
+    color: #d39b42;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    margin-bottom: 22px;
+}
+
+.why-us-card h3 {
+    font-size: 22px;
+    margin-bottom: 12px;
+    color: white;
+}
+
+.why-us-card p {
+    color: #cbd4d0;
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+@media (max-width: 900px) {
+    .why-us-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .why-us {
+        padding: 70px 20px;
+    }
+
+    .why-us-header h2 {
+        font-size: 32px;
+    }
+
+    .why-us-grid {
+        grid-template-columns: 1fr;
+    }
+}
+'''
+
+          section = r'''
+
+    <!-- MIÉRT MINKET -->
+    <section class="why-us" id="miert-minket">
+        <div class="why-us-container">
+            <div class="why-us-header">
+                <span class="why-us-kicker">HEPA</span>
+                <h2>Miért érdemes minket választani?</h2>
+                <p>
+                    Az egyeztetéstől a gyártáson át a beépítésig egy kézben tartjuk a folyamatot,
+                    hogy az elképzelésből pontosan illeszkedő, használható bútor szülessen.
+                </p>
+            </div>
+
+            <div class="why-us-grid">
+                <article class="why-us-card">
+                    <div class="why-us-number">01</div>
+                    <h3>Saját műhely</h3>
+                    <p>A bútorok gyártását és előkészítését saját műhelyünkben végezzük, ellenőrzött munkafolyamatokkal.</p>
+                </article>
+
+                <article class="why-us-card">
+                    <div class="why-us-number">02</div>
+                    <h3>Precíz kivitelezés</h3>
+                    <p>A méretezéstől a lapszabáson át a szerelésig minden részletnél a pontos, igényes munkára törekszünk.</p>
+                </article>
+
+                <article class="why-us-card">
+                    <div class="why-us-number">03</div>
+                    <h3>Egyedi megoldások</h3>
+                    <p>Nem sablonokból dolgozunk: a bútor elrendezését, méretét és kialakítását az adott helyhez és igényhez igazítjuk.</p>
+                </article>
+
+                <article class="why-us-card">
+                    <div class="why-us-number">04</div>
+                    <h3>Egy kézben a folyamat</h3>
+                    <p>Egyeztetés, tervezés, gyártás, szállítás és szerelés. A teljes folyamatot végig követhetően kezeljük.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+'''
+
+          if '</style>' not in html:
+              raise RuntimeError('Closing style tag not found')
+          html = html.replace('</style>', css + '\n    </style>', 1)
+
+          marker = '    <!-- LAPSZABÁSZAT -->'
+          if marker not in html:
+              marker = '<!-- LAPSZABÁSZAT -->'
+          if marker not in html:
+              raise RuntimeError('Lapszabaszat marker not found')
+          html = html.replace(marker, section + '\n\n' + marker, 1)
+
+          path.write_text(html, encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes needed"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "Miért minket szekció hozzáadása"
+            git push
+          fi
