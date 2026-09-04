@@ -1,0 +1,48 @@
+name: Repair compact why us
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair only why us styles
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          fixes = [
+            ('''.section-text {\n            text-align: center;\n            max-width: 700px;\n            margin: 0 auto 38px;''', '''.section-text {\n            text-align: center;\n            max-width: 700px;\n            margin: 0 auto 50px;'''),
+            ('''.stats {\n    background: #ffffff;\n    padding: 76px 8%;''', '''.stats {\n    background: #ffffff;\n    padding: 90px 8%;'''),
+            ('''.form-row {\n            display: grid;\n            grid-template-columns: repeat(2, 1fr);\n            gap: 18px;''', '''.form-row {\n            display: grid;\n            grid-template-columns: repeat(2, 1fr);\n            gap: 20px;'''),
+            ('''.contact-card h3 {\n    font-size: 20px;''', '''.contact-card h3 {\n    font-size: 22px;'''),
+            ('''.why-us {\n    background: #152520;\n    color: white;\n    padding: 90px 8%;''', '''.why-us {\n    background: #152520;\n    color: white;\n    padding: 76px 8%;'''),
+            ('''.why-us-header {\n    max-width: 720px;\n    margin: 0 auto 50px;''', '''.why-us-header {\n    max-width: 720px;\n    margin: 0 auto 38px;'''),
+            ('''.why-us-grid {\n    display: grid;\n    grid-template-columns: repeat(4, 1fr);\n    gap: 20px;''', '''.why-us-grid {\n    display: grid;\n    grid-template-columns: repeat(4, 1fr);\n    gap: 18px;'''),
+            ('''.why-us-card h3 {\n    font-size: 22px;''', '''.why-us-card h3 {\n    font-size: 20px;''')
+          ]
+
+          for old, new in fixes:
+              if old not in s:
+                  raise RuntimeError('Expected block not found:\n' + old)
+              s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit repair
+        run: |
+          if ! git diff --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add index.html
+            git commit -m 'Miért minket kompakt nézet pontosítása'
+            git push
+          fi
