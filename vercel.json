@@ -1,4 +1,0 @@
-{
-  "buildCommand": "node patch.js",
-  "outputDirectory": "dist"
-}
