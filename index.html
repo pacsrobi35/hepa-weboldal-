@@ -728,6 +728,26 @@
             font-weight: bold;
         }
 
+        #success-message.error {
+            background: #fdecec;
+            color: #9f2424;
+        }
+
+        .form-button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+            transform: none;
+        }
+
+        .form-honeypot {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+
   /* KAPCSOLAT */
 
 .contact {
@@ -2137,7 +2157,12 @@ button.type.active {
             </div>
 
 
-            <form class="quote-form" id="quoteForm">
+            <form class="quote-form" id="quoteForm" enctype="multipart/form-data">
+
+                <label class="form-honeypot" aria-hidden="true">
+                    Weboldal
+                    <input type="text" name="company_website" tabindex="-1" autocomplete="off">
+                </label>
 
                 <div class="form-row">
 
@@ -2147,6 +2172,7 @@ button.type.active {
 
                         <input
                             type="text"
+                            name="customer_name"
                             placeholder="Az Ön neve"
                             required
                         >
@@ -2160,6 +2186,7 @@ button.type.active {
 
                         <input
                             type="tel"
+                            name="phone"
                             placeholder="+36 ..."
                             required
                         >
@@ -2175,6 +2202,7 @@ button.type.active {
 
                     <input
                         type="email"
+                        name="email"
                         placeholder="pelda@email.hu"
                     >
 
@@ -2185,7 +2213,7 @@ button.type.active {
 
                     <label>Milyen bútort szeretne?</label>
 
-                    <select>
+                    <select name="project_type">
 
                         <option value="">
                             Válasszon...
@@ -2211,6 +2239,8 @@ button.type.active {
                     </label>
 
                     <textarea
+                        name="message"
+                        maxlength="4000"
                         placeholder="Például: Egy kb. 3 méteres gardróbot szeretnék tolóajtókkal..."
                     ></textarea>
 
@@ -2225,6 +2255,8 @@ button.type.active {
 
                     <input
                         type="text"
+                        name="approximate_dimensions"
+                        maxlength="500"
                         placeholder="Például: szélesség 300 cm, magasság 250 cm"
                     >
 
@@ -2243,7 +2275,8 @@ button.type.active {
 
     <input
         type="file"
-        accept="image/*,.pdf"
+        name="attachments"
+        accept=".jpg,.jpeg,.png,.webp,.pdf"
         multiple
     >
 
@@ -2258,17 +2291,17 @@ button.type.active {
                     <div class="checkbox-group">
 
                         <label class="checkbox-item">
-                            <input type="checkbox">
+                            <input type="checkbox" name="wants_callback">
                             Visszahívást kérek
                         </label>
 
                         <label class="checkbox-item">
-                            <input type="checkbox">
+                            <input type="checkbox" name="wants_quote" checked>
                             Árajánlatot kérek
                         </label>
 
                         <label class="checkbox-item">
-                            <input type="checkbox">
+                            <input type="checkbox" name="wants_consultation">
                             Személyes egyeztetést szeretnék
                         </label>
 
@@ -2276,12 +2309,20 @@ button.type.active {
 
                 </div>
 
+                <div class="form-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="consent" required>
+                        Hozzájárulok, hogy a megadott adataimat az ajánlatkérés kezelése
+                        és kapcsolatfelvétel céljából felhasználják. *
+                    </label>
+                </div>
 
-                <button type="submit" class="btn form-button">
+
+                <button type="submit" class="btn form-button" id="quoteSubmitButton">
                     Árajánlatot kérek
                 </button>
 
-                <div id="success-message">
+                <div id="success-message" role="status" aria-live="polite">
 
                     Köszönjük az érdeklődést!
                     Hamarosan felvesszük Önnel a kapcsolatot. ✓
@@ -2420,24 +2461,58 @@ button.type.active {
 
     <script>
 
-        document
-            .getElementById("quoteForm")
-            .addEventListener("submit", function(event) {
+        const quoteForm = document.getElementById("quoteForm");
+        const quoteSubmitButton = document.getElementById("quoteSubmitButton");
+        const quoteMessage = document.getElementById("success-message");
 
-                event.preventDefault();
+        quoteForm.addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const attachments = quoteForm.querySelector('[name="attachments"]').files;
 
-                document
-                    .getElementById("success-message")
-                    .style.display = "block";
+            if (attachments.length > 5 || Array.from(attachments).some(file => file.size > 10 * 1024 * 1024)) {
+                quoteMessage.textContent = "Legfeljebb 5 darab, fájlonként maximum 10 MB-os fájl tölthető fel.";
+                quoteMessage.classList.add("error");
+                quoteMessage.style.display = "block";
+                quoteMessage.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+            }
 
-                document
-                    .getElementById("success-message")
-                    .scrollIntoView({
-                        behavior: "smooth",
-                        block: "center"
-                    });
+            quoteSubmitButton.disabled = true;
+            quoteSubmitButton.textContent = "Küldés...";
+            quoteMessage.style.display = "none";
+            quoteMessage.classList.remove("error");
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 45000);
 
-            });
+            try {
+                const response = await fetch(
+                    "https://torczkyodukcvxwzutgf.supabase.co/functions/v1/submit-quote-request",
+                    {
+                        method: "POST",
+                        body: new FormData(quoteForm),
+                        signal: controller.signal
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error("Sikertelen beküldés");
+                }
+
+                quoteMessage.textContent = "Köszönjük az érdeklődést! Hamarosan felvesszük Önnel a kapcsolatot. ✓";
+                quoteForm.reset();
+            } catch (error) {
+                quoteMessage.textContent = error.name === "AbortError"
+                    ? "A küldés túl sokáig tartott. Kérjük, ellenőrizze az internetkapcsolatot, majd próbálja újra."
+                    : "Az ajánlatkérés küldése nem sikerült. Kérjük, próbálja újra.";
+                quoteMessage.classList.add("error");
+            } finally {
+                clearTimeout(timeout);
+                quoteSubmitButton.disabled = false;
+                quoteSubmitButton.textContent = "Árajánlatot kérek";
+                quoteMessage.style.display = "block";
+                quoteMessage.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        });
 
 
         const types = document.querySelectorAll(".type");
