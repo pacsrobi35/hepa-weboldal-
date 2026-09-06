@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hepa-weboldal.vercel.app/sitemap.xml
