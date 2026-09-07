@@ -2261,10 +2261,9 @@ textarea:focus {
                 <p>Néhány példa az általunk készített egyedi konyhákból.</p>
             </div>
 
-            <div class="gallery">
-                <button class="gallery-item" type="button" aria-label="Az első konyhabútor-referencia nagyítása"><img src="konyha-1.webp" alt="Tölgyhatású és matt szürke egyedi konyhabútor félszigettel" width="1200" height="900" loading="lazy" decoding="async"></button>
-                <button class="gallery-item" type="button" aria-label="A második konyhabútor-referencia nagyítása"><img src="konyha-2.webp" alt="Modern szürke-fehér konyhabútor pulttal és magas szekrényekkel" width="900" height="1200" loading="lazy" decoding="async"></button>
-                <button class="gallery-item" type="button" aria-label="A harmadik konyhabútor-referencia nagyítása"><img src="konyha-3.webp" alt="Szürke-fehér egyedi konyha márványhatású fallal és étkezőpulttal" width="900" height="1200" loading="lazy" decoding="async"></button>
+            <div class="empty-reference">
+                <h3>Referenciák betöltése…</h3>
+                <p>A képek rövidesen megjelennek.</p>
             </div>
         </div>
 
@@ -2886,20 +2885,81 @@ textarea:focus {
         const lightboxClose = lightbox.querySelector(".lightbox-close");
         let lightboxTrigger = null;
 
-        document.querySelectorAll(".gallery-item").forEach(button => {
-            button.addEventListener("click", function() {
-                const image = this.querySelector("img");
-                if (!image) return;
+        document.addEventListener("click", function(event) {
+            if (!(event.target instanceof Element)) return;
+            const button = event.target.closest(".gallery-item");
+            if (!button) return;
 
-                lightboxTrigger = this;
-                lightboxImage.src = image.currentSrc || image.src;
-                lightboxImage.alt = image.alt;
-                lightbox.classList.add("active");
-                lightbox.setAttribute("aria-hidden", "false");
-                document.body.classList.add("lightbox-open");
-                lightboxClose.focus();
-            });
+            const image = button.querySelector("img");
+            if (!image) return;
+
+            lightboxTrigger = button;
+            lightboxImage.src = image.currentSrc || image.src;
+            lightboxImage.alt = image.alt;
+            lightbox.classList.add("active");
+            lightbox.setAttribute("aria-hidden", "false");
+            document.body.classList.add("lightbox-open");
+            lightboxClose.focus();
         });
+
+        const referenceApiUrl = "https://torczkyodukcvxwzutgf.supabase.co/functions/v1/list-reference-images";
+        const referenceLabels = {
+            konyha: "Konyhabútor",
+            gardrob: "Gardrób",
+            eloszoba: "Előszobabútor",
+            furdo: "Fürdőszobabútor",
+            nappali: "Nappali bútor",
+            egyedi: "Egyedi bútor"
+        };
+
+        async function loadReferenceImages() {
+            try {
+                const response = await fetch(`${referenceApiUrl}?v=${Date.now()}`, {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: { "accept": "application/json" }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                if (!Array.isArray(payload.images)) return;
+
+                Object.keys(referenceLabels).forEach(category => {
+                    const categoryImages = payload.images.filter(image => image.category === category);
+                    if (!categoryImages.length) return;
+
+                    const container = document.getElementById(category);
+                    if (!container) return;
+
+                    const gallery = document.createElement("div");
+                    gallery.className = "gallery";
+
+                    categoryImages.forEach(reference => {
+                        const item = document.createElement("button");
+                        item.className = "gallery-item";
+                        item.type = "button";
+                        item.setAttribute("aria-label", `${reference.alt || referenceLabels[category]} nagyítása`);
+
+                        const image = document.createElement("img");
+                        image.src = reference.url;
+                        image.alt = reference.alt || `${referenceLabels[category]} referencia`;
+                        image.loading = "lazy";
+                        image.decoding = "async";
+
+                        item.appendChild(image);
+                        gallery.appendChild(item);
+                    });
+
+                    const previousContent = container.querySelector(".gallery, .empty-reference");
+                    if (previousContent) previousContent.replaceWith(gallery);
+                    else container.appendChild(gallery);
+                });
+            } catch {
+                // Hálózati hiba esetén az oldal többi része változatlanul használható marad.
+            }
+        }
+
+        loadReferenceImages();
 
         function closeLightbox() {
             if (!lightbox.classList.contains("active")) return;
