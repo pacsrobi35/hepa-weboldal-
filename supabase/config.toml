@@ -1,0 +1,8 @@
+[functions.submit-quote-request]
+verify_jwt = false
+
+[functions.list-reference-images]
+verify_jwt = false
+
+[functions.send-quote-offer]
+verify_jwt = true

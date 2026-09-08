@@ -1,14 +1,35 @@
 # HEPA Lapszabászat és Bútorgyártás
 
-A HEPA nyilvános weboldala és a készülő online ajánlatkérő rendszer alapja.
+A HEPA nyilvános weboldala és Supabase-alapú ajánlatkérő háttere.
 
-## Rendszerfelépítés
+## Jelenlegi rendszer
 
-- `index.html` – nyilvános weboldal
-- `supabase/functions/submit-quote-request/` – az ajánlatkérések biztonságos fogadása, ellenőrzése, fájlmentése és e-mail-értesítése
-- `supabase/migrations/` – az árajánlatok, rendelések, ügyfelek, szabásjegyzékek, csatolmányok és pénzügyek közös adatbázisa
-- `docs/adatbazis-alap.md` – állapotok, biztonsági elvek és bekapcsolási sorrend
+- `index.html` – a nyilvános, Vercelen futó weboldal és ajánlatkérő űrlap
+- `supabase/functions/submit-quote-request/` – ajánlatkérések ellenőrzése, mentése, fájlfeltöltése és e-mail-értesítése
+- `supabase/functions/list-reference-images/` – a közzétett referenciaképek biztonságos listázása
+- `supabase/functions/send-quote-offer/` – admin által készített árajánlat elküldése
+- `supabase/migrations/` – az élő adatmodell verziózott migrációs lánca
+- `docs/adatbazis-alap.md` – adatmodell, jogosultságok és üzemeltetési tudnivalók
 
-A nyilvános űrlap közvetlenül a `submit-quote-request` Supabase Edge Functiont hívja. Ez az egyetlen támogatott fogadóútvonal; a titkos adatbáziskulcs kizárólag a Supabase szerveroldali környezetében marad.
+Az adatbázis jelenleg az ügyfelektől érkező ajánlatkéréseket, csatolmányokat,
+árajánlatokat és referenciaképeket kezeli. Az online lapszabászat rendelési,
+anyag- és pénzügyi modellje egy későbbi, külön migrációban készül el.
 
-A Supabase titkos kulcsa soha nem kerülhet a repóba vagy böngészőben futó kódba. A szükséges változónevek az `.env.example` fájlban találhatók.
+## Biztonsági alapelvek
+
+- Titkos Supabase- vagy Resend-kulcs nem kerülhet Gitbe vagy böngészőben futó kódba.
+- A nyilvános ajánlatkérő kizárólag a `submit-quote-request` Edge Functionön keresztül írhat adatot.
+- Minden alkalmazástábla RLS-védelemmel működik.
+- A referencia API csak a közzétett képek szükséges, nem érzékeny mezőit olvashatja.
+- Az adminfunkciók bejelentkezett, az `admin_users` táblában engedélyezett felhasználóhoz kötöttek.
+
+A helyi fejlesztéshez szükséges változónevek az `.env.example` fájlban vannak;
+értéket és titkot ez a fájl nem tartalmaz.
+
+## Fejlesztés és telepítés
+
+A függvények JWT-beállításait a `supabase/config.toml` rögzíti. Új adatbázis-
+módosítás kizárólag új, időbélyeges migrációval készülhet. A termelési adatbázison
+`db reset` nem futtatható.
+
+Részletes leírás: [`docs/adatbazis-alap.md`](docs/adatbazis-alap.md).

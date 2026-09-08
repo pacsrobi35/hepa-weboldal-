@@ -2,8 +2,6 @@ import { createClient } from "npm:@supabase/supabase-js@2.115.0";
 
 const allowedOrigins = new Set([
   "https://hepa-weboldal.vercel.app",
-  "https://hepa-konyhabutor.hu",
-  "https://www.hepa-konyhabutor.hu",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ]);

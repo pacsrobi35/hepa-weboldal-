@@ -26,6 +26,20 @@ function publicObjectUrl(supabaseUrl: string, storagePath: string) {
   return `${supabaseUrl}/storage/v1/object/public/reference-images/${encodedPath}`;
 }
 
+function publishableKey() {
+  const modernKeys = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (modernKeys) {
+    try {
+      const parsed = JSON.parse(modernKeys) as Record<string, string>;
+      if (parsed.default) return parsed.default;
+    } catch {
+      console.error("SUPABASE_PUBLISHABLE_KEYS is not valid JSON");
+    }
+  }
+
+  return Deno.env.get("SUPABASE_ANON_KEY");
+}
+
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("origin") ?? "";
   if (!allowedOrigins.has(origin)) {
@@ -43,13 +57,13 @@ Deno.serve(async (request: Request) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !anonKey) {
+  const apiKey = publishableKey();
+  if (!supabaseUrl || !apiKey) {
     console.error("Supabase function secrets are unavailable");
     return json({ error: "configuration-error" }, 500, origin);
   }
 
-  const supabase = createClient(supabaseUrl, anonKey, {
+  const supabase = createClient(supabaseUrl, apiKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await supabase
