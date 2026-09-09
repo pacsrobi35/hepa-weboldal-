@@ -2992,6 +2992,9 @@ textarea:focus {
                     const gallery = document.createElement("div");
                     gallery.className = "gallery";
 
+                    const categoryCover = document.querySelector(`.type[data-category="${category}"] .type-image`);
+                    if (categoryCover) categoryCover.src = categoryImages[0].url;
+
                     categoryImages.forEach(reference => {
                         const item = document.createElement("button");
                         item.className = "gallery-item";
