@@ -4,27 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Egyedi konyhabútor, gardrób és beépített bútor ingyenes helyszíni felméréssel, 3D látványtervvel, saját gyártással és beépítéssel. Lapszabászat Aszódon.">
+    <meta name="robots" content="index,follow,max-image-preview:large">
     <link rel="canonical" href="https://hepabutor.hu/">
     <meta property="og:locale" content="hu_HU">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="HEPA Lapszabászat és Bútorgyártás">
+    <meta property="og:site_name" content="HEPA-Construct">
+    <meta property="og:title" content="Egyedi bútorgyártás és lapszabászat Aszódon | HEPA">
     <meta property="og:description" content="Egyedi bútor ingyenes helyszíni felméréssel, 3D látványtervvel, saját gyártással és beépítéssel. Lapszabászat Aszódon.">
     <meta property="og:url" content="https://hepabutor.hu/">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:image" content="https://hepabutor.hu/konyhabutor.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1536">
+    <meta property="og:image:height" content="1024">
+    <meta property="og:image:alt" content="Modern, egyedi tervezésű konyhabútor a HEPA-Constructtól">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Egyedi bútorgyártás és lapszabászat Aszódon | HEPA">
+    <meta name="twitter:description" content="Egyedi bútor 3D látványtervvel, saját gyártással és beépítéssel. Kérjen személyre szabott ajánlatot!">
+    <meta name="twitter:image" content="https://hepabutor.hu/konyhabutor.png">
+    <meta name="twitter:image:alt" content="Modern, egyedi tervezésű konyhabútor a HEPA-Constructtól">
     <meta name="theme-color" content="#152520">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="icon" href="hepa-logo-emblem.png" type="image/png" sizes="192x192">
     <link rel="apple-touch-icon" href="hepa-logo-emblem.png">
     <link rel="preload" href="konyhabutor-hero.webp" as="image" type="image/webp" fetchpriority="high">
 
-    <title>HEPA Lapszabászat és Bútorgyártás</title>
+    <title>Egyedi bútorgyártás és lapszabászat Aszódon | HEPA</title>
 
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
-        "@type": "LocalBusiness",
+        "@type": "HomeAndConstructionBusiness",
+        "@id": "https://hepabutor.hu/#vallalkozas",
         "name": "Hepa-Construct Kft.",
+        "description": "Egyedi konyhabútorok, gardróbok és beépített bútorok tervezése, gyártása és beépítése, valamint bútorlapszabászat és élzárás.",
         "url": "https://hepabutor.hu/",
         "logo": "https://hepabutor.hu/hepa-logo-full.webp",
+        "image": "https://hepabutor.hu/konyhabutor.png",
         "telephone": "+36 70 627 37 22",
         "email": "hepaconstructkft@gmail.com",
         "address": {
@@ -32,9 +47,40 @@
             "streetAddress": "Pesti út 27.",
             "postalCode": "2170",
             "addressLocality": "Aszód",
+            "addressRegion": "Pest",
             "addressCountry": "HU"
         },
-        "areaServed": "Pest megye"
+        "areaServed": {
+            "@type": "AdministrativeArea",
+            "name": "Pest megye"
+        },
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Szolgáltatások",
+            "itemListElement": [
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Egyedi bútorgyártás"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Konyhabútor és gardrób tervezése, gyártása és beépítése"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Bútorlapszabászat és élzárás"
+                    }
+                }
+            ]
+        }
     }
     </script>
 
@@ -207,7 +253,7 @@
             margin-bottom: 20px;
         }
 
-        .card h2 {
+        .card h3 {
             font-size: 32px;
             margin-bottom: 15px;
         }
@@ -967,6 +1013,8 @@
 
 .menu-toggle {
     display: none;
+    min-width: 44px;
+    min-height: 44px;
     background: none;
     border: none;
     color: white;
@@ -984,7 +1032,9 @@
     }
 
     .menu-toggle {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     nav {
@@ -1012,7 +1062,7 @@
         /* FÁJLFELTÖLTÉS */
 
 .upload-text {
-    color: #777;
+    color: #6f6f6f;
     font-size: 14px;
     margin-bottom: 12px;
 }
@@ -1243,7 +1293,7 @@ section[id],
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    color: #9c6c1f;
+    color: #865914;
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 1.8px;
@@ -2112,7 +2162,7 @@ textarea:focus {
 
                 <div class="card-icon" aria-hidden="true"><img class="service-card-icon" src="ikon-lapszabaszat.png" alt="" width="369" height="260"></div>
 
-                <h2>Online lapszabászat</h2>
+                <h3>Online lapszabászat</h3>
 
                 <p>
                     Online rendelési rendszerünk fejlesztés alatt áll.
@@ -2130,7 +2180,7 @@ textarea:focus {
 
                 <div class="card-icon" aria-hidden="true"><img class="service-card-icon" src="ikon-butorgyartas.png" alt="" width="289" height="260"></div>
 
-                <h2>Bútorgyártás</h2>
+                <h3>Bútorgyártás</h3>
 
                 <p>Megtervezzük, 3D-ben megmutatjuk, majd elkészítjük és beépítjük bútorát.</p>
 
