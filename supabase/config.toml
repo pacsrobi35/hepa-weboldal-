@@ -6,3 +6,12 @@ verify_jwt = false
 
 [functions.send-quote-offer]
 verify_jwt = true
+
+[functions.submit-cutting-quote-request]
+verify_jwt = false
+
+[functions.create-manual-quote-request]
+verify_jwt = true
+
+[functions.resend-quote-webhook]
+verify_jwt = false

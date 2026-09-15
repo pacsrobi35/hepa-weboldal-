@@ -113,6 +113,14 @@ h3 { font-size: 1.25rem; }
 .text-link { color: var(--green-700); font-weight: 800; text-underline-offset: 4px; }
 .microcopy { margin: 10px 0 0; color: inherit; opacity: .76; font-size: .85rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.website-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 
 /* Landing hero */
 .cutting-hero {

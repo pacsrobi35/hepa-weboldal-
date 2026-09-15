@@ -1,8 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.115.0";
 
-const MAX_REQUEST_BYTES = 55 * 1024 * 1024;
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_TOTAL_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 18 * 1024 * 1024;
+const MAX_FILE_BYTES = 6 * 1024 * 1024;
+const MAX_TOTAL_FILE_BYTES = 15 * 1024 * 1024;
 const MAX_FILES = 5;
 const MAX_PAYLOAD_BYTES = 1024 * 1024;
 
@@ -72,7 +72,7 @@ type PreferredContact = "email" | "phone";
 type SupabaseClient = ReturnType<typeof createClient>;
 
 type Contact = {
-  customerName: string;
+  name: string;
   companyName: string;
   email: string;
   phone: string;
@@ -83,7 +83,7 @@ type Logistics = {
   fulfillment: Fulfillment;
   postalCode: string;
   targetDate: string;
-  projectNote: string;
+  note: string;
 };
 
 type Material = {
@@ -133,13 +133,14 @@ type ValidatedPayload = {
   totals: Totals;
 };
 
-type FileFormat = "jpg" | "png" | "pdf" | "xlsx" | "xls" | "csv";
+type FileFormat = "jpg" | "png" | "pdf" | "xlsx" | "csv";
 
 type ValidatedFile = {
   file: File;
   extension: FileFormat;
   contentType: string;
   originalName: string;
+  contentHash: string;
 };
 
 class InputError extends Error {
@@ -261,10 +262,13 @@ function round(value: number, decimals = 3) {
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
-function parseContact(value: unknown): Contact {
+function parseContact(value: unknown, privacyConsent: unknown): Contact {
   const source = record(value, "kapcsolattartás");
-  const customerName = fieldText(source.customerName, "név", 100, 2);
+  const name = fieldText(source.name, "név", 100, 2);
   const companyName = fieldText(source.companyName, "cégnév", 100);
+  if (companyName && companyName.length < 2) {
+    fail("A cégnév legalább 2 karakter legyen.");
+  }
   const email = fieldText(source.email, "e-mail-cím", 254).toLowerCase();
   const phone = fieldText(source.phone, "telefonszám", 40);
 
@@ -272,8 +276,14 @@ function parseContact(value: unknown): Contact {
     fail("Kérjük, adjon meg érvényes e-mail-címet.");
   }
 
+  const compactPhone = phone.replace(/[\s().\/-]/g, "");
   const phoneDigits = phone.replace(/\D/g, "");
-  if (phone && (phoneDigits.length < 7 || phoneDigits.length > 15)) {
+  if (
+    phone &&
+    (!/^\+?\d+$/.test(compactPhone) ||
+      phoneDigits.length < 7 ||
+      phoneDigits.length > 15)
+  ) {
     fail("Kérjük, adjon meg érvényes telefonszámot.");
   }
   if (!email && !phone) {
@@ -291,11 +301,11 @@ function parseContact(value: unknown): Contact {
   if (preferredContact === "phone" && !phone) {
     fail("Telefonos kapcsolattartáshoz adja meg a telefonszámát.");
   }
-  if (source.consent !== true) {
+  if (privacyConsent !== true) {
     fail("Az adatkezelési hozzájárulás szükséges.");
   }
 
-  return { customerName, companyName, email, phone, preferredContact };
+  return { name, companyName, email, phone, preferredContact };
 }
 
 function parseLogistics(value: unknown): Logistics {
@@ -306,19 +316,19 @@ function parseLogistics(value: unknown): Logistics {
     "átvétel módja",
   );
   const postalCode = fieldText(source.postalCode, "irányítószám", 4);
-  if (fulfillment === "delivery" && !/^\d{4}$/.test(postalCode)) {
-    fail("Szállítás esetén adjon meg 4 számjegyű irányítószámot.");
+  if (fulfillment === "delivery" && !/^[1-9]\d{3}$/.test(postalCode)) {
+    fail("Szállítás esetén adjon meg érvényes, 4 számjegyű irányítószámot.");
   }
   const targetDate = validDate(source.targetDate, "kívánt időpont");
   if (targetDate && targetDate < budapestToday()) {
     fail("A kívánt időpont nem lehet korábbi a mai napnál.");
   }
-  const projectNote = fieldText(source.projectNote, "egyéb megjegyzés", 1000, 0, true);
+  const note = fieldText(source.note, "egyéb megjegyzés", 2000, 0, true);
   return {
     fulfillment,
     postalCode: fulfillment === "delivery" ? postalCode : "",
     targetDate,
-    projectNote,
+    note,
   };
 }
 
@@ -334,7 +344,7 @@ function parseManualData(source: Record<string, unknown>) {
   const materialPairs = new Set<string>();
   const materials = source.materials.map((raw, index): Material => {
     const item = record(raw, `${index + 1}. anyag`);
-    const clientId = fieldText(item.id, `${index + 1}. anyag azonosítója`, 80, 1);
+    const clientId = fieldText(item.clientId, `${index + 1}. anyag azonosítója`, 100, 1);
     if (!/^[A-Za-z0-9_-]+$/.test(clientId) || materialIds.has(clientId)) {
       fail(`A(z) ${index + 1}. anyag azonosítója hibás vagy nem egyedi.`);
     }
@@ -370,9 +380,9 @@ function parseManualData(source: Record<string, unknown>) {
   const items = source.items.map((raw, index): CuttingItem => {
     const item = record(raw, `${index + 1}. tétel`);
     const materialClientId = fieldText(
-      item.materialId,
+      item.materialClientId,
       `${index + 1}. tétel anyaga`,
-      80,
+      100,
       1,
     );
     if (!materialIds.has(materialClientId)) {
@@ -440,11 +450,9 @@ function parsePayload(value: unknown): ValidatedPayload {
   }
 
   const flow = enumValue<Flow>(source.flow, flows, "beküldési mód");
-  if (source.sizeBasis !== "finished") {
-    fail("A méreteket kész méretként, élzárással együtt kell megadni.");
-  }
+  const details = record(source.details, "ajánlat részletei");
+  const contact = parseContact(source.contact, source.privacyConsent);
 
-  const contact = parseContact(source.contact);
   let logistics: Logistics | null = null;
   let materialSource: MaterialSource | null = null;
   let upload: ValidatedPayload["upload"] = null;
@@ -452,38 +460,42 @@ function parsePayload(value: unknown): ValidatedPayload {
   let materials: Material[] = [];
   let items: CuttingItem[] = [];
   let totals: Totals = { rows: 0, pieces: 0, areaM2: 0, edgeM: 0 };
+  let sizeBasis: "finished" = "finished";
 
   if (flow === "manual" || flow === "upload") {
+    if (details.sizeBasis !== "finished") {
+      fail("A méreteket kész méretként, élzárással együtt kell megadni.");
+    }
     materialSource = enumValue<MaterialSource>(
-      source.materialSource,
+      details.materialSource,
       materialSources,
       "anyag forrása",
     );
     logistics = parseLogistics(source.logistics);
+  } else if (source.logistics !== null && source.logistics !== undefined) {
+    fail("Segítségkérésnél nem adható meg logisztikai adat.");
   }
 
   if (flow === "manual") {
-    const manual = parseManualData(source);
+    const manual = parseManualData(details);
     materials = manual.materials;
     items = manual.items;
     totals = manual.totals;
   }
 
   if (flow === "upload") {
-    const uploadSource = record(source.upload, "feltöltött szabászjegyzék");
     upload = {
-      material: fieldText(uploadSource.material, "anyag, dekor vagy lapfajta", 120),
-      thicknessMm: optionalNumber(uploadSource.thicknessMm, "lapvastagság", 1, 100),
-      note: fieldText(uploadSource.note, "fájl megjegyzése", 500, 0, true),
+      material: fieldText(details.materialHint, "anyag, dekor vagy lapfajta", 120),
+      thicknessMm: optionalNumber(details.thicknessMm, "lapvastagság", 1, 100),
+      note: fieldText(details.note, "fájl megjegyzése", 500, 0, true),
     };
   }
 
   if (flow === "help") {
-    const helpSource = record(source.help, "segítségkérés");
-    if (!Array.isArray(helpSource.topics) || helpSource.topics.length < 1) {
+    if (!Array.isArray(details.topics) || details.topics.length < 1) {
       fail("Válasszon legalább egy témát a segítségkéréshez.");
     }
-    const topics = helpSource.topics.map((topic) =>
+    const topics = details.topics.map((topic) =>
       enumValue<string>(topic, helpTopics, "segítségkérés témája")
     );
     if (new Set(topics).size !== topics.length) {
@@ -492,9 +504,9 @@ function parsePayload(value: unknown): ValidatedPayload {
     help = {
       topics,
       description: fieldText(
-        helpSource.description,
+        details.description,
         "segítségkérés leírása",
-        1500,
+        5000,
         20,
         true,
       ),
@@ -504,7 +516,7 @@ function parsePayload(value: unknown): ValidatedPayload {
   return {
     schemaVersion: 1,
     flow,
-    sizeBasis: "finished",
+    sizeBasis,
     contact,
     logistics,
     materialSource,
@@ -536,7 +548,6 @@ function extensionOf(name: string): FileFormat | null {
     extension === "png" ||
     extension === "pdf" ||
     extension === "xlsx" ||
-    extension === "xls" ||
     extension === "csv"
   ) {
     return extension;
@@ -550,7 +561,6 @@ function canonicalContentType(extension: FileFormat) {
     png: "image/png",
     pdf: "application/pdf",
     xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    xls: "application/vnd.ms-excel",
     csv: "text/csv",
   };
   return types[extension];
@@ -565,10 +575,6 @@ function compatibleMimeTypes(extension: FileFormat) {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/zip",
       "application/x-zip-compressed",
-    ]),
-    xls: new Set([
-      "application/vnd.ms-excel",
-      "application/x-ole-storage",
     ]),
     csv: new Set([
       "text/csv",
@@ -586,13 +592,38 @@ function hasTextLikeSignature(bytes: Uint8Array) {
     if (byte === 0) return false;
     if (byte < 9 || (byte > 13 && byte < 32) || byte === 127) controls += 1;
   }
-  return controls <= Math.max(2, Math.floor(bytes.length * 0.01));
+  if (controls > Math.max(2, Math.floor(bytes.length * 0.01))) return false;
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function containsAscii(bytes: Uint8Array, value: string) {
+  const needle = new TextEncoder().encode(value);
+  outer:
+  for (let start = 0; start <= bytes.length - needle.length; start += 1) {
+    for (let offset = 0; offset < needle.length; offset += 1) {
+      if (bytes[start + offset] !== needle[offset]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+async function sha256Bytes(bytes: Uint8Array) {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function validateFile(file: File, flow: Flow): Promise<ValidatedFile> {
   if (file.size < 1) fail(`${file.name || "A kiválasztott fájl"} üres.`);
   if (file.size > MAX_FILE_BYTES) {
-    fail(`${file.name || "A kiválasztott fájl"} nagyobb 10 MB-nál.`);
+    fail(`${file.name || "A kiválasztott fájl"} nagyobb 6 MB-nál.`);
   }
 
   const extension = extensionOf(file.name);
@@ -602,7 +633,7 @@ async function validateFile(file: File, flow: Flow): Promise<ValidatedFile> {
 
   const allowedForFlow = flow === "help"
     ? new Set<FileFormat>(["jpg", "png", "pdf"])
-    : new Set<FileFormat>(["jpg", "png", "pdf", "xlsx", "xls", "csv"]);
+    : new Set<FileFormat>(["jpg", "png", "pdf", "xlsx", "csv"]);
   if (!allowedForFlow.has(extension)) {
     fail(`${file.name} formátuma ennél a beküldési módnál nem támogatott.`);
   }
@@ -613,8 +644,7 @@ async function validateFile(file: File, flow: Flow): Promise<ValidatedFile> {
     fail(`${file.name} fájltípusa és kiterjesztése nem egyezik.`);
   }
 
-  const sampleSize = extension === "csv" ? Math.min(file.size, 64 * 1024) : 16;
-  const bytes = new Uint8Array(await file.slice(0, sampleSize).arrayBuffer());
+  const bytes = new Uint8Array(await file.arrayBuffer());
   let signatureValid = false;
 
   switch (extension) {
@@ -631,13 +661,10 @@ async function validateFile(file: File, flow: Flow): Promise<ValidatedFile> {
       signatureValid = startsWithBytes(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d]);
       break;
     case "xlsx":
-      signatureValid = startsWithBytes(bytes, [0x50, 0x4b, 0x03, 0x04]);
-      break;
-    case "xls":
-      signatureValid = startsWithBytes(
-        bytes,
-        [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1],
-      );
+      signatureValid =
+        startsWithBytes(bytes, [0x50, 0x4b, 0x03, 0x04]) &&
+        containsAscii(bytes, "[Content_Types].xml") &&
+        containsAscii(bytes, "xl/workbook.xml");
       break;
     case "csv":
       signatureValid = hasTextLikeSignature(bytes);
@@ -653,6 +680,7 @@ async function validateFile(file: File, flow: Flow): Promise<ValidatedFile> {
     extension,
     contentType: canonicalContentType(extension),
     originalName: cleanOriginalName(file.name, `feltoltes.${extension}`),
+    contentHash: await sha256Bytes(bytes),
   };
 }
 
@@ -675,7 +703,7 @@ async function parseFiles(formData: FormData, flow: Flow) {
 
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
   if (totalSize > MAX_TOTAL_FILE_BYTES) {
-    fail("A csatolmányok összmérete legfeljebb 50 MB lehet.");
+    fail("A csatolmányok összmérete legfeljebb 15 MB lehet.");
   }
 
   const validated: ValidatedFile[] = [];
@@ -767,8 +795,8 @@ function buildSummary(
     if (payload.logistics.targetDate) {
       lines.push(`Kívánt időpont: ${payload.logistics.targetDate}`);
     }
-    if (payload.logistics.projectNote) {
-      lines.push(`Egyéb megjegyzés: ${payload.logistics.projectNote}`);
+    if (payload.logistics.note) {
+      lines.push(`Egyéb megjegyzés: ${payload.logistics.note}`);
     }
   }
 
@@ -897,104 +925,132 @@ function rpcRow(value: unknown) {
   return isRecord(row) ? row : null;
 }
 
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function rpcArguments(
   payload: ValidatedPayload,
   files: ValidatedFile[],
   submissionToken: string,
   summary: string,
+  payloadHash: string,
   isPreview: boolean,
 ) {
   return {
-    p_submission_token: submissionToken,
-    p_parent: {
-      customer_name: payload.contact.customerName,
-      email: payload.contact.email || null,
-      phone: payload.contact.phone || null,
-      project_type: "other",
-      postcode: payload.logistics?.postalCode || null,
-      preferred_contact: payload.contact.preferredContact,
-      message: summary,
-      consent: true,
-      source: "website",
-      approximate_dimensions: approximateDimensions(payload, files),
-      wants_callback: payload.contact.preferredContact === "phone",
-      wants_quote: payload.flow !== "help",
-      wants_consultation: payload.flow === "help",
-    },
-    p_cutting: {
-      schema_version: payload.schemaVersion,
+    p_request: {
+      submissionToken,
       flow: payload.flow,
-      size_basis: payload.sizeBasis,
-      state: "ingesting",
-      material_source: payload.materialSource,
-      fulfillment: payload.logistics?.fulfillment || null,
-      postal_code: payload.logistics?.postalCode || null,
-      target_date: payload.logistics?.targetDate || null,
-      company_name: payload.contact.companyName || null,
-      project_note: payload.logistics?.projectNote || null,
-      upload_material: payload.upload?.material || null,
-      upload_thickness_mm: payload.upload?.thicknessMm ?? null,
-      upload_note: payload.upload?.note || null,
-      help_topics: payload.help?.topics || [],
-      help_description: payload.help?.description || null,
-      total_rows: payload.totals.rows,
-      total_pieces: payload.totals.pieces,
-      total_area_m2: payload.totals.areaM2,
-      total_edge_m: payload.totals.edgeM,
-      file_count: files.length,
-      is_test: isPreview,
+      contact: {
+        name: payload.contact.name,
+        companyName: payload.contact.companyName || null,
+        email: payload.contact.email || null,
+        phone: payload.contact.phone || null,
+        preferredContact: payload.contact.preferredContact,
+      },
+      details: {
+        materialSource: payload.materialSource,
+        sizeBasis: payload.flow === "help" ? null : payload.sizeBasis,
+        materialHint: payload.upload?.material || null,
+        thicknessMm: payload.upload?.thicknessMm ?? null,
+        topics: payload.help?.topics || [],
+        description: payload.help?.description || null,
+        materials: payload.materials.map((material) => ({
+          position: material.displayOrder,
+          client_id: material.clientId,
+          name: material.name,
+          thickness_mm: material.thicknessMm,
+        })),
+        items: payload.items.map((item) => ({
+          position: item.displayOrder,
+          material_client_id: item.materialClientId,
+          label: item.name || null,
+          length_mm: item.lengthMm,
+          width_mm: item.widthMm,
+          quantity: item.quantity,
+          edge_code: item.edgeCode,
+          edge_material_type: item.edgeMaterialType || null,
+          note: item.note || null,
+        })),
+      },
+      logistics: payload.logistics
+        ? {
+          fulfillment: payload.logistics.fulfillment,
+          postalCode: payload.logistics.postalCode || null,
+          targetDate: payload.logistics.targetDate || null,
+          note: payload.logistics.note || null,
+        }
+        : null,
+      message: summary,
+      approximateDimensions: approximateDimensions(payload, files),
+      payloadHash,
+      isTest: isPreview,
     },
-    p_materials: payload.materials.map((material) => ({
-      client_id: material.clientId,
-      name: material.name,
-      thickness_mm: material.thicknessMm,
-      display_order: material.displayOrder,
-    })),
-    p_items: payload.items.map((item) => ({
-      material_client_id: item.materialClientId,
-      name: item.name || null,
-      length_mm: item.lengthMm,
-      width_mm: item.widthMm,
-      quantity: item.quantity,
-      edge_code: item.edgeCode,
-      edge_material_type: item.edgeMaterialType || null,
-      note: item.note || null,
-      display_order: item.displayOrder,
-    })),
   };
 }
 
-async function markFailed(supabase: SupabaseClient, quoteRequestId: number) {
-  const { error } = await supabase
-    .from("cutting_quote_requests")
-    .update({ state: "failed" })
-    .eq("quote_request_id", quoteRequestId)
-    .eq("state", "ingesting");
-  if (error) console.error("cutting quote failed-state update failed", error.code);
-}
-
-async function cleanupUploadedFiles(
+async function markReconciliation(
   supabase: SupabaseClient,
   quoteRequestId: number,
-  paths: string[],
+  reason: string,
 ) {
-  if (!paths.length) return;
+  const { error } = await supabase.rpc("mark_cutting_quote_reconciliation", {
+    p_quote_request_id: quoteRequestId,
+    p_reason: reason.slice(0, 200),
+  });
+  if (error) {
+    console.error("cutting quote reconciliation marker failed", error.code);
+  }
+}
 
-  const { error: metadataError } = await supabase
-    .from("quote_request_files")
-    .delete()
+async function readCuttingState(
+  supabase: SupabaseClient,
+  quoteRequestId: number,
+) {
+  const { data, error } = await supabase
+    .from("cutting_quote_requests")
+    .select("submission_state")
     .eq("quote_request_id", quoteRequestId)
-    .in("storage_path", paths);
-  if (metadataError) {
-    console.error("cutting quote file metadata cleanup failed", metadataError.code);
+    .maybeSingle();
+
+  if (error) {
+    console.error("cutting quote state read-back failed", error.code);
+    return null;
+  }
+  return typeof data?.submission_state === "string"
+    ? data.submission_state
+    : null;
+}
+
+async function ensureFinalized(
+  supabase: SupabaseClient,
+  quoteRequestId: number,
+  fileRows: Array<Record<string, unknown>>,
+) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { data, error } = await supabase.rpc(
+      "finalize_cutting_quote_request",
+      {
+        p_quote_request_id: quoteRequestId,
+        p_files: fileRows,
+      },
+    );
+    const row = rpcRow(data);
+    if (!error && row?.state === "ready") return true;
+
+    console.error("cutting quote finalize RPC failed", error?.code || "invalid-state");
+    const state = await readCuttingState(supabase, quoteRequestId);
+    if (state === "ready") return true;
+    if (state !== "ingesting") return false;
   }
 
-  const { error: storageError } = await supabase.storage
-    .from("quote-request-files")
-    .remove(paths);
-  if (storageError) {
-    console.error("cutting quote storage cleanup failed", storageError.message);
-  }
+  return false;
 }
 
 function notificationRecipients() {
@@ -1014,7 +1070,13 @@ async function sendNotification(details: {
   isPreview: boolean;
 }) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  if (!apiKey) return { sent: false, error: "resend-api-key-missing" };
+  if (!apiKey) {
+    return {
+      sent: false,
+      error: "resend-api-key-missing",
+      providerMessageId: null,
+    };
+  }
 
   const contact = details.payload.contact;
   const body = trimMessage([
@@ -1023,7 +1085,7 @@ async function sendNotification(details: {
       : "Új lapszabászati ajánlatkérés érkezett a weboldalról.",
     "",
     `Azonosító: ${referenceFor(details.quoteRequestId)}`,
-    `Név: ${contact.customerName}`,
+    `Név: ${contact.name}`,
     `Cégnév: ${contact.companyName || "nincs megadva"}`,
     `Telefonszám: ${contact.phone || "nincs megadva"}`,
     `E-mail: ${contact.email || "nincs megadva"}`,
@@ -1038,6 +1100,7 @@ async function sendNotification(details: {
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${apiKey}`,
+        "idempotency-key": `hepa-cutting-new-${details.quoteRequestId}`,
       },
       body: JSON.stringify({
         from: Deno.env.get("QUOTE_NOTIFICATION_FROM") ||
@@ -1053,16 +1116,73 @@ async function sendNotification(details: {
     });
 
     if (!response.ok) {
-      return { sent: false, error: `resend-http-${response.status}` };
+      return {
+        sent: false,
+        error: `resend-http-${response.status}`,
+        providerMessageId: null,
+      };
     }
-    return { sent: true, error: null };
+
+    const responseBody = await response.json().catch(() => null);
+    const providerMessageId = isRecord(responseBody) &&
+        typeof responseBody.id === "string"
+      ? responseBody.id.trim()
+      : "";
+
+    if (!providerMessageId) {
+      return {
+        sent: false,
+        error: "resend-response-missing-id",
+        providerMessageId: null,
+      };
+    }
+
+    return { sent: true, error: null, providerMessageId };
   } catch (error) {
     return {
       sent: false,
       error: error instanceof DOMException && error.name === "TimeoutError"
         ? "resend-timeout"
         : "resend-request-failed",
+      providerMessageId: null,
     };
+  }
+}
+
+async function processNotification(
+  supabase: SupabaseClient,
+  details: {
+    quoteRequestId: number;
+    payload: ValidatedPayload;
+    files: ValidatedFile[];
+    summary: string;
+    isPreview: boolean;
+  },
+) {
+  const { data: claimData, error: claimError } = await supabase.rpc(
+    "claim_cutting_quote_notification",
+    { p_quote_request_id: details.quoteRequestId },
+  );
+  if (claimError) {
+    console.error("cutting quote notification claim failed", claimError.code);
+    return;
+  }
+
+  const claim = rpcRow(claimData);
+  if (claim?.state !== "send") return;
+
+  const notification = await sendNotification(details);
+  const { error: completionError } = await supabase.rpc(
+    "complete_cutting_quote_notification",
+    {
+      p_quote_request_id: details.quoteRequestId,
+      p_sent: notification.sent,
+      p_provider_message_id: notification.providerMessageId,
+      p_error: notification.error,
+    },
+  );
+  if (completionError) {
+    console.error("cutting quote notification completion failed", completionError.code);
   }
 }
 
@@ -1104,8 +1224,25 @@ async function handleRequest(request: Request) {
     );
   }
 
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+  const contentLengthHeader = request.headers.get("content-length");
+  if (!contentLengthHeader || !/^\d+$/.test(contentLengthHeader)) {
+    return errorResponse(
+      "length-required",
+      "A feltöltés mérete nem ellenőrizhető. Kérjük, próbálja újra friss böngészőből.",
+      411,
+      origin,
+    );
+  }
+  const contentLength = Number(contentLengthHeader);
+  if (!Number.isSafeInteger(contentLength) || contentLength < 1) {
+    return errorResponse(
+      "invalid-content-length",
+      "A feltöltés mérete hibás.",
+      400,
+      origin,
+    );
+  }
+  if (contentLength > MAX_REQUEST_BYTES) {
     return errorResponse(
       "request-too-large",
       "A feltöltés összmérete túl nagy.",
@@ -1213,9 +1350,18 @@ async function handleRequest(request: Request) {
 
   const isPreview = previewOrigins.has(origin);
   const summary = buildSummary(payload, files, isPreview);
+  const payloadHash = await sha256(JSON.stringify({
+    payload: rawPayload,
+    files: files.map((file) => ({
+      name: file.originalName,
+      size: file.file.size,
+      contentType: file.contentType,
+      sha256: file.contentHash,
+    })),
+  }));
   const { data: createdData, error: createError } = await supabase.rpc(
     "create_cutting_quote_request",
-    rpcArguments(payload, files, submissionToken, summary, isPreview),
+    rpcArguments(payload, files, submissionToken, summary, payloadHash, isPreview),
   );
 
   if (createError) {
@@ -1229,9 +1375,9 @@ async function handleRequest(request: Request) {
   }
 
   const createdRow = rpcRow(createdData);
-  const quoteRequestId = Number(createdRow?.quote_request_id);
+  const quoteRequestId = Number(createdRow?.quote_id);
   const ingestState = createdRow?.state;
-  const wasCreated = createdRow?.created === true;
+  const isDuplicate = createdRow?.duplicate === true;
 
   if (!Number.isSafeInteger(quoteRequestId) || quoteRequestId < 1) {
     console.error("create cutting quote RPC returned an invalid id");
@@ -1243,19 +1389,32 @@ async function handleRequest(request: Request) {
     );
   }
 
-  if (!wasCreated && ingestState === "ready") {
-    return success(quoteRequestId, origin, 200);
-  }
-  if (!wasCreated && ingestState === "ingesting") {
+  if (isDuplicate && ingestState === "conflict") {
     return errorResponse(
-      "submission-in-progress",
-      "Az ajánlatkérés feldolgozása már folyamatban van. Kérjük, próbálja újra néhány másodperc múlva.",
+      "submission-token-conflict",
+      "A korábbi küldési próbálkozás óta megváltoztak az adatok. Kérjük, frissítse az oldalt, és küldje el újra.",
       409,
       origin,
-      { "retry-after": "3" },
     );
   }
-  if (!wasCreated || ingestState !== "ingesting") {
+
+  if (isDuplicate && ingestState === "ready") {
+    await processNotification(supabase, {
+      quoteRequestId,
+      payload,
+      files,
+      summary,
+      isPreview,
+    });
+    return json({
+      ok: true,
+      duplicate: true,
+      message: "Ezt az ajánlatkérést már rögzítettük.",
+      reference: referenceFor(quoteRequestId),
+    }, 200, origin);
+  }
+
+  if (ingestState !== "ingesting") {
     console.error("create cutting quote RPC returned an invalid state");
     return errorResponse(
       "save-failed",
@@ -1265,106 +1424,64 @@ async function handleRequest(request: Request) {
     );
   }
 
-  const uploadedPaths: string[] = [];
   const fileRows: Array<Record<string, unknown>> = [];
   const filePurpose = payload.flow === "upload"
     ? "cutting_list"
-    : "supporting_document";
+    : "help_attachment";
 
-  for (const validatedFile of files) {
+  for (const [fileIndex, validatedFile] of files.entries()) {
     const storagePath =
-      `${quoteRequestId}/${crypto.randomUUID()}.${validatedFile.extension}`;
+      `cutting/${quoteRequestId}/${String(fileIndex + 1).padStart(2, "0")}-${validatedFile.contentHash.slice(0, 24)}.${validatedFile.extension}`;
     const { error: uploadError } = await supabase.storage
       .from("quote-request-files")
       .upload(storagePath, validatedFile.file, {
         contentType: validatedFile.contentType,
-        upsert: false,
+        upsert: true,
       });
 
     if (uploadError) {
       console.error("cutting quote file upload failed", uploadError.message);
-      await cleanupUploadedFiles(supabase, quoteRequestId, uploadedPaths);
-      await markFailed(supabase, quoteRequestId);
+      await markReconciliation(supabase, quoteRequestId, "file-upload-failed");
       return errorResponse(
         "file-upload-failed",
-        "A fájl feltöltése nem sikerült.",
-        500,
+        "A fájl feltöltése most nem sikerült. Az adatok megmaradtak; kérjük, próbálja újra.",
+        503,
         origin,
+        { "retry-after": "3" },
       );
     }
 
-    uploadedPaths.push(storagePath);
     fileRows.push({
-      quote_request_id: quoteRequestId,
       storage_path: storagePath,
       original_name: validatedFile.originalName,
       content_type: validatedFile.contentType,
       size_bytes: validatedFile.file.size,
       file_purpose: filePurpose,
+      content_sha256: validatedFile.contentHash,
     });
   }
 
-  if (fileRows.length) {
-    const { error: fileRowsError } = await supabase
-      .from("quote_request_files")
-      .insert(fileRows);
-    if (fileRowsError) {
-      console.error("cutting quote file metadata insert failed", fileRowsError.code);
-      await cleanupUploadedFiles(supabase, quoteRequestId, uploadedPaths);
-      await markFailed(supabase, quoteRequestId);
-      return errorResponse(
-        "file-metadata-failed",
-        "A fájl adatainak mentése nem sikerült.",
-        500,
-        origin,
-      );
-    }
-  }
-
-  const { data: readyRow, error: readyError } = await supabase
-    .from("cutting_quote_requests")
-    .update({ state: "ready" })
-    .eq("quote_request_id", quoteRequestId)
-    .eq("state", "ingesting")
-    .select("quote_request_id")
-    .maybeSingle();
-
-  if (readyError || !readyRow) {
-    console.error("cutting quote ready-state update failed", readyError?.code);
-    await cleanupUploadedFiles(supabase, quoteRequestId, uploadedPaths);
-    await markFailed(supabase, quoteRequestId);
+  if (!await ensureFinalized(supabase, quoteRequestId, fileRows)) {
+    await markReconciliation(supabase, quoteRequestId, "finalize-unconfirmed");
     return errorResponse(
-      "finalize-failed",
-      "Az ajánlatkérés véglegesítése nem sikerült.",
-      500,
+      "finalize-unconfirmed",
+      "Az ajánlatkérés véglegesítése még nem igazolható. Az adatok megmaradtak; kérjük, próbálja újra.",
+      503,
       origin,
+      { "retry-after": "3" },
     );
   }
 
-  const notification = await sendNotification({
+  await processNotification(supabase, {
     quoteRequestId,
     payload,
     files,
     summary,
     isPreview,
   });
-  const notificationUpdate = notification.sent
-    ? { notification_sent_at: new Date().toISOString(), notification_error: null }
-    : { notification_sent_at: null, notification_error: notification.error };
-  const { error: notificationUpdateError } = await supabase
-    .from("quote_requests")
-    .update(notificationUpdate)
-    .eq("id", quoteRequestId);
-  if (notificationUpdateError) {
-    console.error(
-      "cutting quote notification status update failed",
-      notificationUpdateError.code,
-    );
-  }
 
   return success(quoteRequestId, origin);
 }
-
 Deno.serve(async (request) => {
   try {
     return await handleRequest(request);

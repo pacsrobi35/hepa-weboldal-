@@ -12,7 +12,7 @@
 </head>
 <body class="form-page">
   <a class="skip-link" href="#main-content">Ugrás a fő tartalomra</a>
-  <div class="preview-bar">Működő fejlesztési demó · a beküldés nem küld valódi adatot</div>
+  <div class="preview-bar">Fejlesztési előnézet · a beküldés valódi, tesztként jelölt ajánlatkérést rögzít</div>
 
   <header class="site-header">
     <div class="header-inner">
@@ -100,6 +100,10 @@
           </div>
 
           <form id="cutting-form" novalidate>
+            <div class="website-field" aria-hidden="true">
+              <label for="company-website">Weboldal</label>
+              <input id="company-website" name="company_website" type="text" tabindex="-1" autocomplete="off">
+            </div>
             <div class="wizard-body">
               <div class="error-summary" id="error-summary" role="alert" tabindex="-1">
                 <h3>Kérjük, nézze át a jelzett mezőket</h3>
@@ -110,12 +114,12 @@
                 <div class="flow-panel" data-flow-panel="upload">
                   <p class="eyebrow">A lista és az anyag</p>
                   <h2 id="upload-details-title" tabindex="-1">Töltse fel a szabászjegyzéket</h2>
-                  <p class="step-lead">A demóban tervezett formátum: Excel, CSV, PDF vagy jól olvasható kép. Ha más formátuma van, akkor is kérhet segítséget.</p>
+                  <p class="step-lead">Elfogadott formátum: Excel, CSV, PDF vagy jól olvasható kép. Ha más formátuma van, akkor is kérhet segítséget.</p>
 
                   <div class="drop-zone" id="upload-drop-zone">
                     <strong>Húzza ide a fájlokat</strong>
-                    <p>XLSX, XLS, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 10 MB</p>
-                    <input id="upload-files" type="file" multiple aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
+                    <p>XLSX, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB · összesen max. 15 MB</p>
+                    <input id="upload-files" type="file" multiple aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
                     <label class="btn btn-small btn-ghost" for="upload-files">Fájl kiválasztása</label>
                   </div>
                   <div class="file-list" id="upload-file-list" aria-live="polite"></div>
@@ -179,7 +183,7 @@
                   </div>
                   <div class="drop-zone" id="help-drop-zone" style="margin-top:22px">
                     <strong>Kép vagy vázlat csatolása – opcionális</strong>
-                    <p>PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 10 MB</p>
+                    <p>PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB · összesen max. 15 MB</p>
                     <input id="help-files" type="file" multiple aria-describedby="help-files-error" accept=".pdf,.jpg,.jpeg,.png" data-file-input="help">
                     <label class="btn btn-small btn-ghost" for="help-files">Fájl kiválasztása</label>
                   </div>
@@ -346,7 +350,7 @@
               <div class="action-right">
                 <button class="btn btn-ghost" type="button" id="change-flow">Másik mód</button>
                 <button class="btn btn-primary" type="button" id="next-button">Tovább →</button>
-                <button class="btn btn-primary" type="submit" id="submit-button" hidden>Demó ajánlatkérés elküldése</button>
+                <button class="btn btn-primary" type="submit" id="submit-button" hidden>Ajánlatkérés elküldése</button>
               </div>
             </div>
           </form>
@@ -354,14 +358,14 @@
 
         <div class="success-panel" id="success-panel" tabindex="-1">
           <div class="success-icon" aria-hidden="true">✓</div>
-          <p class="eyebrow">Sikeres próba</p>
-          <h2>Köszönjük, a próba-ajánlatkérés elkészült</h2>
-          <p>Ez még fejlesztési előnézet, ezért személyes adatot és fájlt nem küldtünk el.</p>
-          <span class="demo-reference" id="demo-reference"></span>
-          <div class="success-review" id="success-review" aria-label="A tesztelt ajánlatkérés összegzése"></div>
+          <p class="eyebrow">Sikeres beküldés</p>
+          <h2>Köszönjük, az ajánlatkérés megérkezett</h2>
+          <p>A fejlesztési előnézetből küldött kérés tesztként került a HEPA rendszerébe.</p>
+          <span class="demo-reference" id="request-reference"></span>
+          <div class="success-review" id="success-review" aria-label="Az elküldött ajánlatkérés összegzése"></div>
           <div class="success-actions">
             <button class="btn btn-primary" type="button" id="print-summary">Összegzés nyomtatása</button>
-            <button class="btn btn-ghost" type="button" id="new-request">Új teszt indítása</button>
+            <button class="btn btn-ghost" type="button" id="new-request">Új ajánlatkérés</button>
           </div>
         </div>
       </section>
