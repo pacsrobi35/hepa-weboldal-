@@ -106,7 +106,7 @@ h3 { font-size: 1.25rem; }
 .btn-primary:hover { background: #e1ad55; }
 .btn-secondary { color: white; border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.06); }
 .btn-secondary:hover { background: rgba(255,255,255,.12); }
-.btn-ghost { color: var(--green-800); border-color: #cfc9bd; background: transparent; }
+.btn-ghost { color: var(--green-800); border-color: #7f8783; background: transparent; }
 .btn-ghost:hover { background: white; }
 .btn-danger { color: var(--danger); border-color: #e4b7b2; background: #fff7f6; }
 .btn-small { min-height: 44px; padding: 9px 13px; font-size: .88rem; }
@@ -245,7 +245,7 @@ h3 { font-size: 1.25rem; }
 .flow-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
 .flow-button {
   min-height: 225px; display: flex; flex-direction: column; align-items: flex-start; padding: 24px;
-  text-align: left; color: var(--ink); background: #fbfaf8; border: 2px solid #e5e0d7; border-radius: 14px;
+  text-align: left; color: var(--ink); background: #fbfaf8; border: 2px solid #8f9793; border-radius: 14px;
 }
 .flow-button:hover { border-color: var(--gold-500); background: #fffdf8; }
 .flow-button strong { margin: 22px 0 8px; font-size: 1.05rem; }
@@ -280,10 +280,10 @@ h3 { font-size: 1.25rem; }
 .required::after { content: " *"; color: var(--danger); }
 .field input:not([type="radio"]):not([type="checkbox"]):not([type="file"]), .field select, .field textarea {
   width: 100%; min-height: 48px; padding: 11px 13px; color: var(--ink); background: white;
-  border: 1px solid #bfc3c0; border-radius: 9px; box-shadow: inset 0 1px 1px rgba(0,0,0,.02);
+  border: 1px solid #7f8783; border-radius: 9px; box-shadow: inset 0 1px 1px rgba(0,0,0,.02);
 }
 .field textarea { min-height: 115px; resize: vertical; }
-.field input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):hover, .field select:hover, .field textarea:hover { border-color: #8d9691; }
+.field input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):hover, .field select:hover, .field textarea:hover { border-color: #59635e; }
 .field input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):focus, .field select:focus, .field textarea:focus { outline: 3px solid var(--gold-text); outline-offset: 1px; border-color: var(--gold-text); }
 .field input:not([type="radio"]):not([type="checkbox"]):not([type="file"])[aria-invalid="true"], .field select[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: var(--danger); background: #fffafa; }
 .field input[type="checkbox"]:focus-visible { outline-color: var(--gold-text); }
@@ -293,13 +293,13 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .radio-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .radio-card { position: relative; }
 .radio-card input { position: absolute; opacity: 0; pointer-events: none; }
-.radio-card label { min-height: 72px; display: flex; align-items: center; padding: 13px 14px; background: #fbfaf8; border: 2px solid #dedad2; border-radius: 10px; cursor: pointer; font-size: .86rem; font-weight: 800; }
-.radio-card input:checked + label { color: var(--green-900); background: #f8f1e4; border-color: var(--gold-500); }
-.radio-card input:focus-visible + label { outline: 3px solid var(--gold-400); outline-offset: 2px; }
+.radio-card label { min-height: 72px; display: flex; align-items: center; padding: 13px 14px; background: #fbfaf8; border: 2px solid #7f8783; border-radius: 10px; cursor: pointer; font-size: .86rem; font-weight: 800; }
+.radio-card input:checked + label { color: var(--green-900); background: #fff8e8; border-color: var(--gold-text); }
+.radio-card input:focus-visible + label { outline: 3px solid var(--gold-text); outline-offset: 2px; }
 .checkbox-row { display: flex; align-items: flex-start; gap: 11px; margin: 10px 0; }
 .checkbox-row input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--green-700); flex: 0 0 auto; }
 .checkbox-row label { font-size: .9rem; }
-.drop-zone { padding: 30px 20px; text-align: center; background: #fbfaf8; border: 2px dashed #bfc5c1; border-radius: 13px; transition: border-color .18s ease, background .18s ease; }
+.drop-zone { padding: 30px 20px; text-align: center; background: #fbfaf8; border: 2px dashed #7f8783; border-radius: 13px; transition: border-color .18s ease, background .18s ease; }
 .drop-zone.dragover { background: #f8f0df; border-color: var(--gold-500); }
 .drop-zone input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
 .drop-zone input:focus-visible + label { outline: 3px solid var(--gold-text); outline-offset: 3px; }
@@ -326,12 +326,12 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .item-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; background: #f7f5f1; }
 .item-head h3 { margin: 0; font-size: 1.02rem; }
 .item-actions { display: flex; gap: 7px; }
-.icon-button { min-width: 44px; min-height: 44px; padding: 7px 9px; color: var(--green-800); background: white; border: 1px solid #d5d1c9; border-radius: 8px; font-size: .78rem; font-weight: 850; }
+.icon-button { min-width: 44px; min-height: 44px; padding: 7px 9px; color: var(--green-800); background: white; border: 1px solid #7f8783; border-radius: 8px; font-size: .78rem; font-weight: 850; }
 .icon-button.delete { color: var(--danger); }
 .item-body { padding: 22px 18px; }
 .edge-editor { display: grid; grid-template-columns: minmax(240px, .9fr) minmax(250px, 1.1fr); gap: 28px; margin-top: 24px; align-items: center; }
 .edge-diagram { position: relative; width: min(100%, 320px); aspect-ratio: 1.55; margin: 22px auto; background: #ddbd8c; border: 3px solid #ad8a59; }
-.edge-control { position: absolute; display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; color: #53605a; background: white; border: 2px solid #aeb7b2; border-radius: 9px; font-weight: 950; z-index: 2; }
+.edge-control { position: absolute; display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; color: #53605a; background: white; border: 2px solid #7f8783; border-radius: 9px; font-weight: 950; z-index: 2; }
 .edge-control[aria-pressed="true"] { color: white; background: var(--green-700); border-color: var(--green-700); box-shadow: 0 0 0 4px rgba(218,166,81,.3); }
 .edge-control[aria-pressed="true"]::after { content: " ✓"; }
 .edge-control.edge-a { top: -25px; left: 50%; transform: translateX(-50%); }
@@ -342,7 +342,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .dimension-x { left: 50%; top: 50%; transform: translate(-50%,-50%); }
 .dimension-y { left: 8px; bottom: 5px; }
 .edge-presets { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
-.edge-presets button { min-height: 44px; padding: 8px 11px; color: var(--green-800); background: #f8f6f2; border: 1px solid #d5d1c9; border-radius: 8px; font-size: .76rem; font-weight: 800; }
+.edge-presets button { min-height: 44px; padding: 8px 11px; color: var(--green-800); background: #f8f6f2; border: 1px solid #7f8783; border-radius: 8px; font-size: .76rem; font-weight: 800; }
 .edge-fields { display: grid; gap: 15px; }
 .item-error { display: none; margin: 0 18px 18px; padding: 10px 12px; color: var(--danger); background: #fff2f0; border-radius: 8px; font-size: .82rem; font-weight: 750; }
 .item-card.invalid .item-error { display: block; }
@@ -355,7 +355,8 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .review-edit { color: var(--green-700); background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; font-size: .82rem; font-weight: 850; }
 .review-card dl { display: grid; grid-template-columns: minmax(130px, .36fr) 1fr; gap: 8px 18px; margin: 0; font-size: .86rem; }
 .review-card dt { color: var(--muted); }
-.review-card dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.review-card dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; white-space: pre-line; }
+.field select:disabled { color: #606a65; background: #efefec; cursor: not-allowed; opacity: 1; }
 .review-items { margin: 0; padding-left: 20px; }
 .review-items li + li { margin-top: 7px; }
 .legal-note { margin-top: 20px; padding: 16px; color: #415048; background: #edf4f0; border-radius: 9px; font-size: .86rem; }
