@@ -43,6 +43,8 @@
     edge: 'ABS élzárás',
     delivery: 'Átvétel vagy szállítás'
   };
+  const GRAIN_NAMES = { length: 'a hossz irányában', width: 'a szélesség irányában', none: 'mindegy / nincs szálirány' };
+  const EDGE_BAND_NAMES = { matching: 'dekorazonos ABS', different: 'eltérő színű ABS', customer: 'hozott élanyag', unknown: 'egyeztetendő' };
 
   const form = document.querySelector('#cutting-form');
   if (!form) return;
@@ -69,6 +71,7 @@
   let saveTimer = null;
   let restoredDraft = null;
   let files = { upload: [], help: [] };
+  let restoredFilesMeta = { upload: [], help: [] };
 
   const menuButton = document.querySelector('.menu-toggle');
   const menu = document.querySelector('.main-nav');
@@ -77,6 +80,20 @@
     menuButton.setAttribute('aria-expanded', String(open));
     menuButton.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
     menuButton.textContent = open ? '×' : '☰';
+  });
+  function closeMenu() {
+    if (!menu?.classList.contains('open')) return;
+    menu.classList.remove('open');
+    menuButton.setAttribute('aria-expanded', 'false');
+    menuButton.setAttribute('aria-label', 'Menü megnyitása');
+    menuButton.textContent = '☰';
+  }
+  menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menu?.classList.contains('open')) {
+      closeMenu();
+      menuButton.focus();
+    }
   });
 
   function escapeHtml(value) {
@@ -118,7 +135,7 @@
     return (flow === 'upload' ? uploadExtensions : helpExtensions).includes(extension);
   }
 
-  function renderFiles(flow, restoredMeta = null) {
+  function renderFiles(flow, restoredMeta = restoredFilesMeta[flow]) {
     const list = document.querySelector(`#${flow}-file-list`);
     if (!list) return;
     const currentFiles = files[flow];
@@ -148,6 +165,7 @@
     });
     const slots = Math.max(0, MAX_FILES - files[flow].length);
     if (accepted.length > slots) messages.push(`Legfeljebb ${MAX_FILES} fájl választható.`);
+    if (accepted.length) restoredFilesMeta[flow] = [];
     files[flow].push(...accepted.slice(0, slots));
     if (error) error.textContent = messages.join(' ');
     renderFiles(flow);
@@ -183,11 +201,12 @@
 
   function newItem(data = {}) {
     itemCounter += 1;
-    const id = data.id || `item-${Date.now()}-${itemCounter}`;
+    const id = `item-${Date.now()}-${itemCounter}`;
     const edges = data.edges || { A: false, B: false, C: false, D: false };
     const card = document.createElement('article');
     card.className = 'item-card';
     card.id = id;
+    card.tabIndex = -1;
     card.dataset.itemId = id;
     card.innerHTML = `
       <div class="item-head">
@@ -200,12 +219,12 @@
       <div class="item-body">
         <div class="field-grid three">
           <div class="field full"><label for="${id}-name">Alkatrész neve – opcionális</label><input id="${id}-name" data-item-field="name" type="text" maxlength="100" value="${escapeHtml(data.name)}" placeholder="Pl. oldallap vagy polc"></div>
-          <div class="field"><label class="required" for="${id}-material">Anyag / dekor</label><input id="${id}-material" data-item-field="material" type="text" maxlength="120" value="${escapeHtml(data.material)}" placeholder="Pl. Egger H3303"></div>
-          <div class="field"><label class="required" for="${id}-thickness">Vastagság (mm)</label><input id="${id}-thickness" data-item-field="thicknessMm" type="number" min="1" max="100" step="0.1" inputmode="decimal" value="${escapeHtml(data.thicknessMm)}" placeholder="18"></div>
-          <div class="field"><label class="required" for="${id}-quantity">Darabszám</label><input id="${id}-quantity" data-item-field="quantity" type="number" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity || 1)}"></div>
-          <div class="field"><label class="required" for="${id}-length">Hossz (mm)</label><input id="${id}-length" data-item-field="lengthMm" type="number" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="800"></div>
-          <div class="field"><label class="required" for="${id}-width">Szélesség (mm)</label><input id="${id}-width" data-item-field="widthMm" type="number" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="400"></div>
-          <div class="field"><label class="required" for="${id}-grain">Szálirány</label><select id="${id}-grain" data-item-field="grainDirection"><option value="">Válasszon...</option><option value="length" ${data.grainDirection === 'length' ? 'selected' : ''}>A hossz irányában</option><option value="width" ${data.grainDirection === 'width' ? 'selected' : ''}>A szélesség irányában</option><option value="none" ${data.grainDirection === 'none' ? 'selected' : ''}>Mindegy / nincs szálirány</option></select></div>
+          <div class="field"><label class="required" for="${id}-material">Anyag / dekor</label><input id="${id}-material" data-item-field="material" type="text" required aria-required="true" maxlength="120" value="${escapeHtml(data.material)}" placeholder="Pl. Egger H3303"></div>
+          <div class="field"><label class="required" for="${id}-thickness">Vastagság (mm)</label><input id="${id}-thickness" data-item-field="thicknessMm" type="number" required aria-required="true" min="1" max="100" step="0.1" inputmode="decimal" value="${escapeHtml(data.thicknessMm)}" placeholder="18"></div>
+          <div class="field"><label class="required" for="${id}-quantity">Darabszám</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
+          <div class="field"><label class="required" for="${id}-length">Hossz (mm)</label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="800"></div>
+          <div class="field"><label class="required" for="${id}-width">Szélesség (mm)</label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="400"></div>
+          <div class="field"><label class="required" for="${id}-grain">Szálirány</label><select id="${id}-grain" data-item-field="grainDirection" required aria-required="true"><option value="">Válasszon...</option><option value="length" ${data.grainDirection === 'length' ? 'selected' : ''}>A hossz irányában</option><option value="width" ${data.grainDirection === 'width' ? 'selected' : ''}>A szélesség irányában</option><option value="none" ${data.grainDirection === 'none' ? 'selected' : ''}>Mindegy / nincs szálirány</option></select></div>
         </div>
         <div class="edge-editor">
           <div>
@@ -217,16 +236,28 @@
             <div class="edge-presets"><button type="button" data-edge-preset="none">Nincs él</button><button type="button" data-edge-preset="long">A + B</button><button type="button" data-edge-preset="all">Mind a négy</button></div>
           </div>
           <div class="edge-fields">
-            <div class="field"><label for="${id}-edge-band">Élanyag</label><select id="${id}-edge-band" data-item-field="edgeBand"><option value="">Nincs / még nem tudom</option><option value="matching" ${data.edgeBand === 'matching' ? 'selected' : ''}>Dekorazonos ABS</option><option value="different" ${data.edgeBand === 'different' ? 'selected' : ''}>Eltérő színű ABS</option><option value="customer" ${data.edgeBand === 'customer' ? 'selected' : ''}>Saját élanyagot hozok</option><option value="unknown" ${data.edgeBand === 'unknown' ? 'selected' : ''}>Segítséget kérek</option></select></div>
-            <div class="field"><label for="${id}-edge-thickness">Élvastagság</label><select id="${id}-edge-thickness" data-item-field="edgeThickness"><option value="">Nincs / még nem tudom</option><option value="0.4" ${data.edgeThickness === '0.4' ? 'selected' : ''}>0,4 mm</option><option value="0.6" ${data.edgeThickness === '0.6' ? 'selected' : ''}>0,6 mm</option><option value="1" ${data.edgeThickness === '1' ? 'selected' : ''}>1 mm</option><option value="2" ${data.edgeThickness === '2' ? 'selected' : ''}>2 mm</option><option value="other" ${data.edgeThickness === 'other' ? 'selected' : ''}>Más / egyeztetendő</option></select></div>
+            <div class="field"><label class="edge-required-label" for="${id}-edge-band">Élanyag</label><select id="${id}-edge-band" data-item-field="edgeBand"><option value="">Nincs / még nem tudom</option><option value="matching" ${data.edgeBand === 'matching' ? 'selected' : ''}>Dekorazonos ABS</option><option value="different" ${data.edgeBand === 'different' ? 'selected' : ''}>Eltérő színű ABS</option><option value="customer" ${data.edgeBand === 'customer' ? 'selected' : ''}>Saját élanyagot hozok</option><option value="unknown" ${data.edgeBand === 'unknown' ? 'selected' : ''}>Segítséget kérek</option></select></div>
+            <div class="field"><label class="edge-required-label" for="${id}-edge-thickness">Élvastagság</label><select id="${id}-edge-thickness" data-item-field="edgeThickness"><option value="">Nincs / még nem tudom</option><option value="0.4" ${data.edgeThickness === '0.4' ? 'selected' : ''}>0,4 mm</option><option value="0.6" ${data.edgeThickness === '0.6' ? 'selected' : ''}>0,6 mm</option><option value="1" ${data.edgeThickness === '1' ? 'selected' : ''}>1 mm</option><option value="2" ${data.edgeThickness === '2' ? 'selected' : ''}>2 mm</option><option value="other" ${data.edgeThickness === 'other' ? 'selected' : ''}>Más / egyeztetendő</option></select></div>
             <div class="field"><label for="${id}-note">Tétel megjegyzése</label><textarea id="${id}-note" data-item-field="note" maxlength="500" placeholder="Egyedi kérés vagy pontosítás">${escapeHtml(data.note)}</textarea></div>
           </div>
         </div>
       </div>
-      <p class="item-error"></p>`;
+      <p class="item-error" id="${id}-error" role="alert"></p>`;
     itemList.append(card);
+    syncEdgeRequirements(card);
     renumberItems();
     return card;
+  }
+
+  function syncEdgeRequirements(card) {
+    const hasEdge = [...card.querySelectorAll('[data-edge]')].some((control) => control.getAttribute('aria-pressed') === 'true');
+    ['edgeBand', 'edgeThickness'].forEach((fieldName) => {
+      const control = card.querySelector(`[data-item-field="${fieldName}"]`);
+      control.required = hasEdge;
+      if (hasEdge) control.setAttribute('aria-required', 'true');
+      else control.removeAttribute('aria-required');
+      control.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
+    });
   }
 
   function readItem(card) {
@@ -284,6 +315,7 @@
       const pressed = edge.getAttribute('aria-pressed') !== 'true';
       edge.setAttribute('aria-pressed', String(pressed));
       edge.setAttribute('aria-label', `${edge.dataset.edge} oldal ${pressed ? 'élzárt' : 'nincs élzárva'}`);
+      syncEdgeRequirements(card);
       updateItemSummary(); queueSave(); return;
     }
     const preset = event.target.closest('[data-edge-preset]');
@@ -294,6 +326,7 @@
         control.setAttribute('aria-pressed', String(pressed));
         control.setAttribute('aria-label', `${control.dataset.edge} oldal ${pressed ? 'élzárt' : 'nincs élzárva'}`);
       });
+      syncEdgeRequirements(card);
       updateItemSummary(); queueSave(); return;
     }
     const action = event.target.closest('[data-item-action]')?.dataset.itemAction;
@@ -313,6 +346,7 @@
     form.querySelectorAll('.field-error').forEach((node) => { if (!node.id.endsWith('files-error')) node.textContent = ''; });
     form.querySelectorAll('[aria-invalid="true"]').forEach((node) => node.removeAttribute('aria-invalid'));
     form.querySelectorAll('.item-card.invalid').forEach((node) => node.classList.remove('invalid'));
+    form.querySelectorAll('.item-error').forEach((node) => { node.textContent = ''; });
   }
 
   function addError(errors, controlId, message, errorId = `${controlId}-error`) {
@@ -320,8 +354,11 @@
     const messageNode = document.getElementById(errorId);
     if (control) {
       control.setAttribute('aria-invalid', 'true');
-      control.setAttribute('aria-describedby', errorId);
+      const describedBy = new Set((control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+      describedBy.add(errorId);
+      control.setAttribute('aria-describedby', [...describedBy].join(' '));
     }
+    messageNode?.closest('fieldset')?.setAttribute('aria-invalid', 'true');
     if (messageNode) messageNode.textContent = message;
     errors.push({ id: controlId, message });
   }
@@ -355,22 +392,34 @@
     cards.forEach((card, index) => {
       const item = readItem(card);
       const messages = [];
-      if (item.material.length < 2) messages.push('anyag/dekor');
+      const invalidControls = [];
+      const mark = (field, label) => {
+        messages.push(label);
+        const control = card.querySelector(`[data-item-field="${field}"]`);
+        if (control) invalidControls.push(control);
+      };
+      if (item.material.length < 2) mark('material', 'anyag/dekor');
       const thickness = Number(item.thicknessMm);
-      if (!thickness || thickness < 1 || thickness > 100) messages.push('vastagság');
+      if (!thickness || thickness < 1 || thickness > 100) mark('thicknessMm', 'vastagság');
       const length = Number(item.lengthMm);
-      if (!length || length < 10 || length > 5000) messages.push('hossz');
+      if (!length || length < 10 || length > 5000) mark('lengthMm', 'hossz');
       const width = Number(item.widthMm);
-      if (!width || width < 10 || width > 5000) messages.push('szélesség');
+      if (!width || width < 10 || width > 5000) mark('widthMm', 'szélesség');
       const quantity = Number(item.quantity);
-      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) messages.push('darabszám');
-      if (!item.grainDirection) messages.push('szálirány');
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
+      if (!item.grainDirection) mark('grainDirection', 'szálirány');
       const hasEdge = Object.values(item.edges).some(Boolean);
-      if (hasEdge && (!item.edgeBand || !item.edgeThickness)) messages.push('élanyag és élvastagság');
+      if (hasEdge && !item.edgeBand) mark('edgeBand', 'élanyag');
+      if (hasEdge && !item.edgeThickness) mark('edgeThickness', 'élvastagság');
       if (messages.length) {
         card.classList.add('invalid');
+        const errorId = `${card.id}-error`;
         card.querySelector('.item-error').textContent = `Ellenőrizze: ${messages.join(', ')}.`;
-        errors.push({ id: card.id, message: `${index + 1}. tétel: ${messages.join(', ')}.` });
+        invalidControls.forEach((control) => {
+          control.setAttribute('aria-invalid', 'true');
+          control.setAttribute('aria-describedby', errorId);
+        });
+        errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. tétel: ${messages.join(', ')}.` });
       }
     });
   }
@@ -378,7 +427,7 @@
   function validateLogistics(errors) {
     const fulfillment = fieldValue('fulfillment');
     if (!fulfillment) addError(errors, 'fulfillment-pickup', 'Válassza ki az átvétel módját.', 'fulfillment-error');
-    if (fulfillment === 'delivery' && fieldValue('postal_code').length < 3) addError(errors, 'postal-code', 'Adja meg a szállítási irányítószámot.');
+    if (fulfillment === 'delivery' && !/^\d{4}$/.test(fieldValue('postal_code'))) addError(errors, 'postal-code', 'Adja meg a 4 számjegyű irányítószámot.');
     const target = fieldValue('target_date');
     if (target) {
       const selected = new Date(`${target}T12:00:00`);
@@ -399,6 +448,8 @@
       addError(errors, 'customer-email', 'Az e-mail vagy a telefonszám közül legalább az egyik szükséges.');
       addError(errors, 'customer-phone', 'Az e-mail vagy a telefonszám közül legalább az egyik szükséges.');
     }
+    if (email && !phone) document.querySelector('#contact-email').checked = true;
+    if (phone && !email) document.querySelector('#contact-phone').checked = true;
     const preferred = fieldValue('preferred_contact');
     if (preferred === 'email' && !email) addError(errors, 'customer-email', 'E-mailes kapcsolattartáshoz adja meg az e-mail címét.');
     if (preferred === 'phone' && !phone) addError(errors, 'customer-phone', 'Telefonos kapcsolattartáshoz adja meg a telefonszámát.');
@@ -445,13 +496,15 @@
     const review = document.querySelector('#review-list');
     const cards = [];
     if (activeFlow === 'upload') {
+      const uploadThickness = fieldValue('upload_thickness');
       cards.push(reviewCard('Szabászjegyzék', 'details', [
         ['Beküldési mód', FLOW_NAMES.upload],
         ['Fájlok', files.upload.map((file) => file.name).join(', ')],
         ['Anyag biztosítása', MATERIAL_SOURCE_NAMES[fieldValue('upload_material_source')]],
         ['Anyag / dekor', fieldValue('upload_material')],
-        ['Vastagság', fieldValue('upload_thickness') ? `${fieldValue('upload_thickness')} mm` : 'A fájlban / egyeztetendő'],
-        ['Méretértelmezés', SIZE_BASIS_NAMES[fieldValue('upload_size_basis')]]
+        ['Vastagság', uploadThickness === 'other' ? 'Más / egyeztetendő' : uploadThickness ? `${uploadThickness} mm` : 'A fájlban / egyeztetendő'],
+        ['Méretértelmezés', SIZE_BASIS_NAMES[fieldValue('upload_size_basis')]],
+        ['Megjegyzés', fieldValue('upload_note')]
       ]));
     } else if (activeFlow === 'manual') {
       cards.push(reviewCard('Anyag és méret', 'details', [
@@ -464,7 +517,8 @@
       const totals = itemTotals();
       const items = readItems().map((item, index) => {
         const edges = Object.entries(item.edges).filter(([, selected]) => selected).map(([edge]) => edge).join(', ') || 'nincs';
-        return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${item.lengthMm} × ${item.widthMm} mm, ${item.quantity} db, élek: ${edges}`;
+        const edgeData = edges === 'nincs' ? 'élzárás nélkül' : `élek: ${edges}; ${EDGE_BAND_NAMES[item.edgeBand] || 'élanyag egyeztetendő'}, ${item.edgeThickness === 'other' ? 'egyedi vastagság' : `${item.edgeThickness} mm`}`;
+        return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${item.material}, ${item.thicknessMm} mm; ${item.lengthMm} × ${item.widthMm} mm, ${item.quantity} db; szálirány: ${GRAIN_NAMES[item.grainDirection] || 'egyeztetendő'}; ${edgeData}${item.note ? `; megjegyzés: ${item.note}` : ''}`;
       }).join(' | ');
       cards.push(reviewCard('Tételek', 'items', [
         ['Összesítés', `${totals.rows} tétel, ${totals.pieces} darab, ${totals.area.toFixed(2)} m², kb. ${totals.edge.toFixed(1)} fm él`],
@@ -478,19 +532,23 @@
       ]));
     }
     if (activeFlow !== 'help') {
+      const fulfillment = fieldValue('fulfillment');
       cards.push(reviewCard('Átvétel és időzítés', 'logistics', [
-        ['Átvétel', FULFILLMENT_NAMES[fieldValue('fulfillment')]],
-        ['Irányítószám', fieldValue('postal_code')],
+        ['Átvétel', FULFILLMENT_NAMES[fulfillment]],
+        ['Irányítószám', fulfillment === 'delivery' ? fieldValue('postal_code') : 'Nem szükséges'],
         ['Kívánt időpont', fieldValue('target_date')],
         ['Megjegyzés', fieldValue('project_note')]
       ]));
     }
+    const email = fieldValue('customer_email');
+    const phone = fieldValue('customer_phone');
+    const preferredContact = email && !phone ? 'email' : phone && !email ? 'phone' : fieldValue('preferred_contact');
     cards.push(reviewCard('Kapcsolattartás', 'contact', [
       ['Név', fieldValue('customer_name')],
       ['Cégnév', fieldValue('company_name')],
-      ['E-mail', fieldValue('customer_email')],
-      ['Telefon', fieldValue('customer_phone')],
-      ['Elsődleges kapcsolat', fieldValue('preferred_contact') === 'phone' ? 'Telefon' : 'E-mail']
+      ['E-mail', email],
+      ['Telefon', phone],
+      ['Elsődleges kapcsolat', preferredContact === 'phone' ? 'Telefon' : 'E-mail']
     ]));
     review.innerHTML = cards.join('');
     review.querySelectorAll('[data-edit-step]').forEach((button) => button.addEventListener('click', () => {
@@ -514,13 +572,16 @@
     clearErrors();
     queueSave();
     window.scrollTo({ top: document.querySelector('.form-card').offsetTop - 100, behavior: 'smooth' });
+    const activePanel = document.querySelector(`.step-panel[data-step="${activeStep}"]`);
+    const heading = activeStep === 'details' ? activePanel.querySelector('.flow-panel.active h2') : activePanel.querySelector('h2');
+    requestAnimationFrame(() => heading?.focus({ preventScroll: true }));
   }
 
   function startFlow(flow, draft = null) {
     if (!FLOW_STEPS[flow]) return;
     activeFlow = flow;
-    stepIndex = Number(draft?.stepIndex) || 0;
-    if (stepIndex >= FLOW_STEPS[flow].length) stepIndex = 0;
+    const requestedStep = Number(draft?.stepIndex);
+    stepIndex = Number.isInteger(requestedStep) && requestedStep >= 0 && requestedStep < FLOW_STEPS[flow].length ? requestedStep : 0;
     flowChoice.style.display = 'none';
     wizard.classList.add('active');
     successPanel.classList.remove('active');
@@ -556,7 +617,12 @@
   });
 
   document.querySelectorAll('input[name="fulfillment"]').forEach((control) => control.addEventListener('change', () => {
-    document.querySelector('#postcode-field').hidden = fieldValue('fulfillment') !== 'delivery';
+    const delivery = fieldValue('fulfillment') === 'delivery';
+    document.querySelector('#postcode-field').hidden = !delivery;
+    const postcode = document.querySelector('#postal-code');
+    postcode.required = delivery;
+    if (delivery) postcode.setAttribute('aria-required', 'true');
+    else postcode.removeAttribute('aria-required');
   }));
 
   function collectDraft() {
@@ -574,8 +640,8 @@
       fields,
       items: readItems(),
       filesMeta: {
-        upload: files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })),
-        help: files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified }))
+        upload: files.upload.length ? files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.upload,
+        help: files.help.length ? files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.help
       },
       updatedAt: new Date().toISOString()
     };
@@ -603,7 +669,9 @@
   function readDraft() {
     try {
       const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
-      if (!draft || draft.schemaVersion !== 1 || !draft.updatedAt || Date.now() - new Date(draft.updatedAt).getTime() > DRAFT_MAX_AGE) {
+      const updatedAt = Date.parse(draft?.updatedAt);
+      const validStep = Number.isInteger(Number(draft?.stepIndex)) && Number(draft.stepIndex) >= 0 && Number(draft.stepIndex) < (FLOW_STEPS[draft?.flow]?.length || 0);
+      if (!draft || draft.schemaVersion !== 1 || !FLOW_STEPS[draft.flow] || !Number.isFinite(updatedAt) || Date.now() - updatedAt > DRAFT_MAX_AGE || Date.now() < updatedAt || !validStep || (draft.items && !Array.isArray(draft.items))) {
         localStorage.removeItem(DRAFT_KEY);
         return null;
       }
@@ -619,9 +687,14 @@
     document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
     itemList.innerHTML = '';
     (draft.items?.length ? draft.items : [{}]).forEach((item) => newItem(item));
-    renderFiles('upload', draft.filesMeta?.upload);
-    renderFiles('help', draft.filesMeta?.help);
-    document.querySelector('#postcode-field').hidden = fieldValue('fulfillment') !== 'delivery';
+    restoredFilesMeta = { upload: Array.isArray(draft.filesMeta?.upload) ? draft.filesMeta.upload : [], help: Array.isArray(draft.filesMeta?.help) ? draft.filesMeta.help : [] };
+    renderFiles('upload');
+    renderFiles('help');
+    const delivery = fieldValue('fulfillment') === 'delivery';
+    document.querySelector('#postcode-field').hidden = !delivery;
+    document.querySelector('#postal-code').required = delivery;
+    if (delivery) document.querySelector('#postal-code').setAttribute('aria-required', 'true');
+    else document.querySelector('#postal-code').removeAttribute('aria-required');
     draftBanner.classList.remove('visible');
     startFlow(draft.flow, draft);
   }
@@ -640,7 +713,12 @@
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    if (!activeFlow) return;
     const steps = FLOW_STEPS[activeFlow];
+    if (stepIndex !== steps.length - 1) {
+      nextButton.click();
+      return;
+    }
     for (let index = 0; index < steps.length - 1; index += 1) {
       const errors = validateStep(steps[index], false);
       if (errors.length) {
@@ -654,7 +732,11 @@
     const date = now.toISOString().slice(0, 10).replaceAll('-', '');
     const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
     document.querySelector('#demo-reference').textContent = `DEMO-${date}-${suffix}`;
+    document.querySelector('#success-review').innerHTML = document.querySelector('#review-list').innerHTML;
+    clearTimeout(saveTimer);
+    saveTimer = null;
     localStorage.removeItem(DRAFT_KEY);
+    activeFlow = null;
     wizard.classList.remove('active');
     successPanel.classList.add('active');
     successPanel.focus();
@@ -666,7 +748,11 @@
     form.reset();
     itemList.innerHTML = '';
     files = { upload: [], help: [] };
+    restoredFilesMeta = { upload: [], help: [] };
     renderFiles('upload'); renderFiles('help');
+    document.querySelector('#postcode-field').hidden = true;
+    document.querySelector('#postal-code').required = false;
+    document.querySelector('#success-review').innerHTML = '';
     returnToChoice();
   });
 
