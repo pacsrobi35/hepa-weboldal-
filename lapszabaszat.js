@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const DRAFT_KEY = 'hepa_cutting_quote_draft_v3';
+  const DRAFT_KEY = 'hepa_cutting_quote_draft_v4';
+  const V3_DRAFT_KEY = 'hepa_cutting_quote_draft_v3';
   const V2_DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
   const V1_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
   const DRAFT_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
@@ -33,11 +34,6 @@
     pickup: 'Személyes átvétel Aszódon',
     delivery: 'Szállítást kérek',
     unknown: 'Még nem tudom'
-  };
-  const SIZE_BASIS_NAMES = {
-    finished: 'Készméret, éllel együtt',
-    cut: 'Vágási méret, él nélkül',
-    unknown: 'Nem vagyok benne biztos'
   };
   const HELP_TOPIC_NAMES = {
     material: 'Anyag vagy dekor',
@@ -395,11 +391,11 @@
       <div class="item-main-grid">
         <div class="item-index"><span>Tétel</span><strong class="item-number"></strong></div>
         <div class="field item-material"><label class="required" for="${id}-material">Anyag</label><select id="${id}-material" data-item-field="materialId" required aria-required="true"></select></div>
-        <div class="field item-name"><label for="${id}-name">Megnevezés</label><input id="${id}-name" data-item-field="name" type="text" maxlength="100" value="${escapeHtml(data.name)}" placeholder="Pl. oldallap"></div>
+        <div class="field item-name"><label for="${id}-name">Elnevezés</label><input id="${id}-name" data-item-field="name" type="text" maxlength="100" value="${escapeHtml(data.name)}" placeholder="Pl. oldallap"></div>
         <div class="field item-length"><label for="${id}-length"><span class="required">Hossz (mm)</span><small>Szálirány</small></label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" aria-label="Hossz milliméterben, szálirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="Szálirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-width"><label for="${id}-width"><span class="required">Szélesség (mm)</span><small>Keresztirány</small></label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" aria-label="Szélesség milliméterben, keresztirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="Keresztirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-quantity"><label class="required" for="${id}-quantity">Mennyiség</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
-        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa / anyaga</label><select id="${id}-edge-material" data-item-field="edgeMaterialType">${edgeMaterialOptionsMarkup(data.edgeMaterialType)}</select></div>
+        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa</label><select id="${id}-edge-material" data-item-field="edgeMaterialType">${edgeMaterialOptionsMarkup(data.edgeMaterialType)}</select></div>
         <div class="field item-edge-code"><label class="required" for="${id}-edge-code">Élzárás kódja</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview')}</div></div>
         <div class="field item-note"><label for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
         <div class="item-actions">
@@ -564,7 +560,6 @@
 
   function validateItems(errors) {
     if (!fieldValue('manual_material_source')) addError(errors, 'manual-source-hepa', 'Jelölje meg, honnan legyen az anyag.', 'manual-material-source-error');
-    if (!fieldValue('manual_size_basis')) addError(errors, 'manual-size-finished', 'Jelölje meg, milyen méretet ad meg.', 'manual-size-basis-error');
     const materialCards = [...materialList.querySelectorAll('.material-card')];
     const seenMaterialPairs = new Set();
     if (!materialCards.length) errors.push({ id: 'add-material', message: 'Vegyen fel legalább egy anyagot.' });
@@ -715,7 +710,7 @@
         ['Anyag biztosítása', MATERIAL_SOURCE_NAMES[fieldValue('upload_material_source')]],
         ['Anyag / dekor', fieldValue('upload_material')],
         ['Vastagság', uploadThickness === 'other' ? 'Más / egyeztetendő' : uploadThickness ? `${uploadThickness} mm` : 'A fájlban / egyeztetendő'],
-        ['Méretértelmezés', SIZE_BASIS_NAMES[fieldValue('upload_size_basis')]],
+        ['Méret', 'Kész méret, élzárással együtt'],
         ['Megjegyzés', fieldValue('upload_note')]
       ]));
     } else if (activeFlow === 'manual') {
@@ -723,7 +718,7 @@
       cards.push(reviewCard('Munka alapadatai', 'items', [
         ['Beküldési mód', FLOW_NAMES.manual],
         ['Anyag biztosítása', MATERIAL_SOURCE_NAMES[fieldValue('manual_material_source')]],
-        ['Méretértelmezés', SIZE_BASIS_NAMES[fieldValue('manual_size_basis')]],
+        ['Méret', 'Kész méret, élzárással együtt'],
         ['Anyagok', materials.map((material, index) => materialDisplayName(material, index)).join('\n')]
       ]));
       const totals = itemTotals();
@@ -864,7 +859,7 @@
       fields[control.name] = control.type === 'checkbox' && control.name === 'privacy_consent' ? control.checked : fieldValue(control.name);
     });
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       flow: activeFlow,
       stepIndex,
       fields,
@@ -882,6 +877,7 @@
     if (!activeFlow) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
+      localStorage.removeItem(V3_DRAFT_KEY);
       localStorage.removeItem(V2_DRAFT_KEY);
       localStorage.removeItem(V1_DRAFT_KEY);
       const time = new Intl.DateTimeFormat('hu-HU', { hour: '2-digit', minute: '2-digit' }).format(new Date());
@@ -969,10 +965,31 @@
     return { ...draft, schemaVersion: 3, materialProfiles, items };
   }
 
+  function migrateV3ToV4(draft) {
+    if (draft?.schemaVersion !== 3) return draft;
+    const fields = draft.fields && typeof draft.fields === 'object' ? draft.fields : {};
+    const previousSizeBasis = draft.flow === 'manual'
+      ? fields.manual_size_basis
+      : draft.flow === 'upload'
+        ? fields.upload_size_basis
+        : 'finished';
+    if (previousSizeBasis !== 'finished') return null;
+    return {
+      ...draft,
+      schemaVersion: 4,
+      fields: {
+        ...fields,
+        manual_size_basis: 'finished',
+        upload_size_basis: 'finished'
+      }
+    };
+  }
+
   function migrateDraft(draft) {
     let migrated = draft;
     if (migrated?.schemaVersion === 1) migrated = migrateV1ToV2(migrated);
     if (migrated?.schemaVersion === 2) migrated = migrateV2ToV3(migrated);
+    if (migrated?.schemaVersion === 3) migrated = migrateV3ToV4(migrated);
     return migrated;
   }
 
@@ -989,7 +1006,9 @@
     const validItems = Array.isArray(items) && items.every((item) => item && typeof item === 'object');
     const validManualCollections = draft?.flow !== 'manual' || (validMaterials && materials.length > 0 && validItems);
     return Boolean(draft)
-      && draft.schemaVersion === 3
+      && draft.schemaVersion === 4
+      && draft.fields?.manual_size_basis === 'finished'
+      && draft.fields?.upload_size_basis === 'finished'
       && Boolean(FLOW_STEPS[draft.flow])
       && Number.isFinite(updatedAt)
       && Date.now() - updatedAt <= DRAFT_MAX_AGE
@@ -1002,7 +1021,7 @@
   }
 
   function readDraft() {
-    for (const key of [DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
+    for (const key of [DRAFT_KEY, V3_DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       try {
@@ -1012,6 +1031,7 @@
           continue;
         }
         if (key !== DRAFT_KEY) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        localStorage.removeItem(V3_DRAFT_KEY);
         localStorage.removeItem(V2_DRAFT_KEY);
         localStorage.removeItem(V1_DRAFT_KEY);
         return draft;
@@ -1025,7 +1045,12 @@
   function applyDraft(draft) {
     form.reset();
     files = { upload: [], help: [] };
-    Object.entries(draft.fields || {}).forEach(([name, value]) => setFieldValue(name, value));
+    Object.entries(draft.fields || {}).forEach(([name, value]) => {
+      if (name === 'manual_size_basis' || name === 'upload_size_basis') return;
+      setFieldValue(name, value);
+    });
+    setFieldValue('manual_size_basis', 'finished');
+    setFieldValue('upload_size_basis', 'finished');
     document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
     materialList.innerHTML = '';
     itemList.innerHTML = '';
@@ -1053,6 +1078,7 @@
   document.querySelector('#restore-draft').addEventListener('click', () => applyDraft(restoredDraft));
   document.querySelector('#delete-draft').addEventListener('click', () => {
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V3_DRAFT_KEY);
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);
     restoredDraft = null;
@@ -1084,6 +1110,7 @@
     clearTimeout(saveTimer);
     saveTimer = null;
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V3_DRAFT_KEY);
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);
     activeFlow = null;
