@@ -25,13 +25,23 @@ Gitben is rögzített állapotát írja le.
 6. A szabászjegyzékek és segédletek a meglévő privát bucketbe kerülnek, külön fájlcéllal.
 7. A fejlesztési Vercel-originről érkező kérések automatikusan tesztjelölést kapnak.
 
+### HEPA Műhely
+
+- A nem linkelt `/muhely` felület e-mail/jelszó után TOTP MFA-t és `aal2` szintet követel.
+- Csak az `admin_users` táblában engedélyezett felhasználó láthat adatot.
+- Az első kiadás csak olvas: listázza az ajánlatkéréseket, megmutatja a strukturált lapszabászati anyagokat, kész méreteket, élkódokat és összesítéseket.
+- A privát csatolmányokhoz kattintáskor 5 percig érvényes aláírt Storage-hivatkozás készül.
+- A belépési munkamenet csak az aktuális böngészőlap idejére marad meg, és 30 perc inaktivitás után automatikusan lezárul.
+- A felület nincs a nyilvános navigációban, és külön noindex, no-store, CSP és frame-tiltó fejléceket kap.
+- Az állapotmódosítás csak külön, naplózott szerverműveletként kerülhet egy későbbi kiadásba.
+
 ### Referenciák
 
 - A képek a nyilvános `reference-images` bucketben találhatók.
 - A leíró adatok a `reference_images` táblában vannak.
 - A `list-reference-images` Edge Function csak a közzétett képeket és a
   megjelenítéshez szükséges mezőket adja vissza.
-- A feltöltő/admin kezelőfelület még nem része a repónak; ez a következő fejlesztési szelet.
+- A referenciafeltöltő kezelőfelület még nem része a repónak; ez egy későbbi fejlesztési szelet.
 
 ### Árajánlatok
 
@@ -72,7 +82,7 @@ kapcsolhatók anélkül, hogy az ügyfélnek újra fel kellene vinnie a szabász
 | Szerepkör | Engedély |
 | --- | --- |
 | `anon` | csak a közzétett referenciák hét biztonságos mezőjének olvasása |
-| `authenticated` | saját profil; admin-tagság esetén ajánlatkérések, ajánlatok és referenciák kezelése |
+| `authenticated` | saját profil; AAL2 és admin-tagság esetén a belső adatok policyk szerinti elérése |
 | `service_role` | szerveroldali teljes DML-hozzáférés; jelenleg az ajánlatkérő használja |
 
 Minden alkalmazástáblán aktív a Row Level Security. A két belső lapszabászati
@@ -168,15 +178,13 @@ visszafelé kompatibilis tartalék. A modern `SUPABASE_PUBLISHABLE_KEYS` és
    `admin_users` tagságot. Ezt csak tulajdonosi SQL-munkamenetből szabad megtenni.
 4. Állítsd be a szükséges Resend-változókat az Edge Function Secrets résznél.
 5. Telepítsd az Edge Functionöket a `supabase/config.toml` beállításaival.
-6. Az adminfelület használata előtt állíts be erős, egyedi jelszót és TOTP MFA-t,
+6. A Műhely első belépésekor állíts be erős, egyedi jelszót és TOTP MFA-t,
    majd ellenőrizd külön a nyilvános ajánlatkérést, a referencialistát és az adminbelépést.
 
 ## Következő biztonságos lépések
 
-1. Az admin belépésnél nyilvános regisztráció tiltása, erős egyedi jelszó és TOTP MFA.
-2. A privát HEPA Műhely felület és a referenciafeltöltő elkészítése; ekkor kap
-   böngészős CORS/OPTIONS-kezelést a `send-quote-offer` végpont is.
+1. A nyilvános regisztráció tiltásának fenntartása, az adminfiókok és TOTP faktorok időszakos felülvizsgálata.
+2. Naplózott állapotmódosítás, ajánlatkészítés és referenciafeltöltő hozzáadása a HEPA Műhelyhez; ekkor kap böngészős CORS/OPTIONS-kezelést a `send-quote-offer` végpont is.
 3. Adatmegőrzési/törlési művelet az ajánlatkérésekhez és csatolmányokhoz.
 4. A saját domain CORS-, canonical-, sitemap- és robots-beállítása.
-5. A HEPA Műhely részletnézetének kiegészítése külön „Lapszabászat” jelvénnyel és strukturált tételtáblával.
-6. A minimális rendelési érték, anyagkínálat, vállalási idő és szállítási díjszabás jóváhagyása az éles átváltás előtt.
+5. A minimális rendelési érték, anyagkínálat, vállalási idő és szállítási díjszabás jóváhagyása az éles átváltás előtt.
