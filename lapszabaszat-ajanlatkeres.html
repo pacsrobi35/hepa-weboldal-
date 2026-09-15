@@ -137,18 +137,19 @@
                       <p class="field-hint" id="upload-material-hint">Ha nem tudja, hagyja üresen és egyeztetünk.</p>
                     </div>
                     <div class="field">
-                      <label for="upload-thickness">Lapvastagság</label>
-                      <input id="upload-thickness" name="upload_thickness" type="number" min="1" max="100" step="0.1" inputmode="decimal" aria-describedby="upload-thickness-error" placeholder="Pl. 18; ha nem tudja, maradjon üresen">
+                      <label for="upload-thickness">Lapvastagság (mm)</label>
+                      <input id="upload-thickness" name="upload_thickness" type="number" min="1" max="100" step="0.1" inputmode="decimal" aria-describedby="upload-thickness-hint upload-thickness-error" placeholder="Pl. 18">
+                      <p class="field-hint" id="upload-thickness-hint">Ha nem tudja, hagyja üresen és egyeztetünk.</p>
                       <p class="field-error" id="upload-thickness-error"></p>
                     </div>
-                    <fieldset class="field full">
-                      <legend class="fieldset-label">A fájlban megadott méretek</legend>
-                      <div class="radio-cards">
-                        <div class="radio-card"><input id="upload-size-finished" type="radio" name="upload_size_basis" value="finished"><label for="upload-size-finished">Készméretek, éllel együtt</label></div>
-                        <div class="radio-card"><input id="upload-size-cut" type="radio" name="upload_size_basis" value="cut"><label for="upload-size-cut">Vágási méretek, él nélkül</label></div>
-                        <div class="radio-card"><input id="upload-size-unknown" type="radio" name="upload_size_basis" value="unknown" checked><label for="upload-size-unknown">Nem vagyok benne biztos</label></div>
+                    <div class="finished-size-rule full" role="note" aria-label="A feltöltött méretek szabálya">
+                      <input type="hidden" name="upload_size_basis" value="finished">
+                      <span class="finished-size-icon" aria-hidden="true">✓</span>
+                      <div>
+                        <strong>A feltöltött listán is kész méreteket adjon meg</strong>
+                        <p>A hossz és a szélesség az elkészült darab végleges mérete legyen, élzárással együtt. Az ABS vastagságát ne vonja le; ezt mi vesszük figyelembe.</p>
                       </div>
-                    </fieldset>
+                    </div>
                     <div class="field full">
                       <label for="upload-note">Megjegyzés a fájlhoz</label>
                       <textarea id="upload-note" name="upload_note" maxlength="500" placeholder="Például: a pirossal jelölt élekre kérek ABS-t."></textarea>
@@ -195,7 +196,7 @@
                 <div class="project-settings">
                   <div class="workspace-section-head">
                     <span class="workspace-step">1</span>
-                    <div><h3>Munka alapadatai</h3><p>Ez a két beállítás az egész szabászjegyzékre vonatkozik.</p></div>
+                    <div><h3>Munka alapadatai</h3><p>Jelölje meg az anyag forrását; a méreteknél mindig a kész darab méretét kérjük.</p></div>
                   </div>
                   <div class="project-settings-grid">
                     <fieldset class="field" data-field="manual-material-source" aria-required="true" aria-describedby="manual-material-source-error">
@@ -207,15 +208,14 @@
                       </div>
                       <p class="field-error" id="manual-material-source-error"></p>
                     </fieldset>
-                    <fieldset class="field" data-field="manual-size-basis" aria-required="true" aria-describedby="manual-size-basis-error">
-                      <legend class="fieldset-label required">Milyen méretet ad meg?</legend>
-                      <div class="radio-cards compact">
-                        <div class="radio-card"><input id="manual-size-finished" type="radio" name="manual_size_basis" value="finished" required><label for="manual-size-finished">Készméret, éllel együtt</label></div>
-                        <div class="radio-card"><input id="manual-size-cut" type="radio" name="manual_size_basis" value="cut"><label for="manual-size-cut">Vágási méret, él nélkül</label></div>
-                        <div class="radio-card"><input id="manual-size-unknown" type="radio" name="manual_size_basis" value="unknown"><label for="manual-size-unknown">Nem vagyok benne biztos</label></div>
+                    <div class="finished-size-rule" role="note" aria-label="A megadott méretek szabálya">
+                      <input type="hidden" name="manual_size_basis" value="finished">
+                      <span class="finished-size-icon" aria-hidden="true">✓</span>
+                      <div>
+                        <strong>Mindig kész méretet adjon meg</strong>
+                        <p>A Hossz és Szélesség mezőkbe az elkészült darab végleges méretét írja, élzárással együtt. Az ABS vastagságát ne vonja le; ezt mi vesszük figyelembe.</p>
                       </div>
-                      <p class="field-error" id="manual-size-basis-error"></p>
-                    </fieldset>
+                    </div>
                   </div>
                 </div>
 
@@ -246,13 +246,13 @@
 
                 <div class="workspace-section-head list-heading">
                   <span class="workspace-step">3</span>
-                  <div><h3>Szabászjegyzék</h3><p>A hossz a szálirány, a szélesség a keresztirány. Azonos darabokból egy sort vegyen fel, és adja meg a darabszámot.</p></div>
+                  <div><h3>Szabászjegyzék</h3><p>A hossz a szálirány, a szélesség a keresztirány. Mindig a kész darab méretét adja meg, élzárással együtt; az ABS vastagságát ne vonja le.</p></div>
                 </div>
                 <div class="items-toolbar">
                   <div><strong class="items-summary" id="items-summary">0 tétel</strong><small>Előzetes mennyiségi összesítés. Az árat az ellenőrzött ajánlatban küldjük.</small></div>
                   <button class="btn btn-small btn-primary" type="button" id="add-item" data-add-item>+ Új sor</button>
                 </div>
-                <div class="item-table-head" aria-hidden="true"><span>#</span><span>Anyag</span><span>Megnevezés</span><span>Hossz (mm)<small>Szálirány</small></span><span>Szélesség (mm)<small>Keresztirány</small></span><span>Db</span><span>Élzáró típusa</span><span>Élzárás kódja</span><span>Megjegyzés</span><span>Műveletek</span></div>
+                <div class="item-table-head" aria-hidden="true"><span>#</span><span>Anyag</span><span>Elnevezés</span><span>Hossz (mm)<small>Szálirány</small></span><span>Szélesség (mm)<small>Keresztirány</small></span><span>Db</span><span>Élzáró típusa</span><span>Élzárás kódja</span><span>Megjegyzés</span><span>Műveletek</span></div>
                 <div class="item-list" id="item-list" aria-label="Szabászjegyzék tételei"></div>
                 <div class="items-footer"><button class="btn btn-small btn-ghost" type="button" data-add-item>+ Új sor a lista végére</button></div>
               </section>
