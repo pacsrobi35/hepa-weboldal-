@@ -227,10 +227,10 @@
           <div class="field"><label class="required" for="${id}-grain">Szálirány</label><select id="${id}-grain" data-item-field="grainDirection" required aria-required="true"><option value="">Válasszon...</option><option value="length" ${data.grainDirection === 'length' ? 'selected' : ''}>A hossz irányában</option><option value="width" ${data.grainDirection === 'width' ? 'selected' : ''}>A szélesség irányában</option><option value="none" ${data.grainDirection === 'none' ? 'selected' : ''}>Mindegy / nincs szálirány</option></select></div>
         </div>
         <div class="edge-editor">
-          <div>
-            <span class="fieldset-label">Élzárandó oldalak</span>
+          <div role="group" aria-labelledby="${id}-edges-label">
+            <span class="fieldset-label" id="${id}-edges-label">Élzárandó oldalak</span>
             <div class="edge-diagram" aria-label="Élzárandó oldalak kiválasztása">
-              ${['A','B','C','D'].map((edge) => `<button class="edge-control edge-${edge.toLowerCase()}" type="button" data-edge="${edge}" aria-pressed="${Boolean(edges[edge])}" aria-label="${edge} oldal ${edges[edge] ? 'élzárt' : 'nincs élzárva'}">${edge}</button>`).join('')}
+              ${['A','B','C','D'].map((edge) => `<button class="edge-control edge-${edge.toLowerCase()}" type="button" data-edge="${edge}" aria-pressed="${Boolean(edges[edge])}" aria-label="${edge} él">${edge}</button>`).join('')}
               <span class="dimension-x">Hossz</span><span class="dimension-y">Szélesség</span>
             </div>
             <div class="edge-presets"><button type="button" data-edge-preset="none">Nincs él</button><button type="button" data-edge-preset="long">A + B</button><button type="button" data-edge-preset="all">Mind a négy</button></div>
@@ -254,8 +254,12 @@
     ['edgeBand', 'edgeThickness'].forEach((fieldName) => {
       const control = card.querySelector(`[data-item-field="${fieldName}"]`);
       control.required = hasEdge;
+      control.disabled = !hasEdge;
       if (hasEdge) control.setAttribute('aria-required', 'true');
-      else control.removeAttribute('aria-required');
+      else {
+        control.removeAttribute('aria-required');
+        control.value = '';
+      }
       control.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
     });
   }
@@ -274,7 +278,11 @@
   function renumberItems() {
     [...itemList.querySelectorAll('.item-card')].forEach((card, index) => {
       card.querySelector('.item-number').textContent = String(index + 1);
-      card.querySelector('[data-item-action="delete"]').disabled = itemList.children.length === 1;
+      const copyButton = card.querySelector('[data-item-action="duplicate"]');
+      const deleteButton = card.querySelector('[data-item-action="delete"]');
+      copyButton.setAttribute('aria-label', `${index + 1}. tétel másolása`);
+      deleteButton.setAttribute('aria-label', `${index + 1}. tétel törlése`);
+      deleteButton.disabled = itemList.children.length === 1;
     });
     updateItemSummary();
   }
@@ -314,7 +322,6 @@
     if (edge) {
       const pressed = edge.getAttribute('aria-pressed') !== 'true';
       edge.setAttribute('aria-pressed', String(pressed));
-      edge.setAttribute('aria-label', `${edge.dataset.edge} oldal ${pressed ? 'élzárt' : 'nincs élzárva'}`);
       syncEdgeRequirements(card);
       updateItemSummary(); queueSave(); return;
     }
@@ -324,7 +331,6 @@
       card.querySelectorAll('[data-edge]').forEach((control) => {
         const pressed = mode === 'all' || (mode === 'long' && ['A','B'].includes(control.dataset.edge));
         control.setAttribute('aria-pressed', String(pressed));
-        control.setAttribute('aria-label', `${control.dataset.edge} oldal ${pressed ? 'élzárt' : 'nincs élzárva'}`);
       });
       syncEdgeRequirements(card);
       updateItemSummary(); queueSave(); return;
@@ -451,8 +457,8 @@
     if (email && !phone) document.querySelector('#contact-email').checked = true;
     if (phone && !email) document.querySelector('#contact-phone').checked = true;
     const preferred = fieldValue('preferred_contact');
-    if (preferred === 'email' && !email) addError(errors, 'customer-email', 'E-mailes kapcsolattartáshoz adja meg az e-mail címét.');
-    if (preferred === 'phone' && !phone) addError(errors, 'customer-phone', 'Telefonos kapcsolattartáshoz adja meg a telefonszámát.');
+    if ((email || phone) && preferred === 'email' && !email) addError(errors, 'customer-email', 'E-mailes kapcsolattartáshoz adja meg az e-mail címét.');
+    if ((email || phone) && preferred === 'phone' && !phone) addError(errors, 'customer-phone', 'Telefonos kapcsolattartáshoz adja meg a telefonszámát.');
     if (!document.querySelector('#privacy-consent').checked) addError(errors, 'privacy-consent', 'Az ajánlatkéréshez el kell fogadnia az adatkezelési tájékoztatót.');
   }
 
@@ -519,7 +525,7 @@
         const edges = Object.entries(item.edges).filter(([, selected]) => selected).map(([edge]) => edge).join(', ') || 'nincs';
         const edgeData = edges === 'nincs' ? 'élzárás nélkül' : `élek: ${edges}; ${EDGE_BAND_NAMES[item.edgeBand] || 'élanyag egyeztetendő'}, ${item.edgeThickness === 'other' ? 'egyedi vastagság' : `${item.edgeThickness} mm`}`;
         return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${item.material}, ${item.thicknessMm} mm; ${item.lengthMm} × ${item.widthMm} mm, ${item.quantity} db; szálirány: ${GRAIN_NAMES[item.grainDirection] || 'egyeztetendő'}; ${edgeData}${item.note ? `; megjegyzés: ${item.note}` : ''}`;
-      }).join(' | ');
+      }).join('\n');
       cards.push(reviewCard('Tételek', 'items', [
         ['Összesítés', `${totals.rows} tétel, ${totals.pieces} darab, ${totals.area.toFixed(2)} m², kb. ${totals.edge.toFixed(1)} fm él`],
         ['Részletek', items]
@@ -598,6 +604,7 @@
     stepIndex = 0;
     history.replaceState(null, '', location.pathname);
     window.scrollTo({ top: document.querySelector('.form-card').offsetTop - 100, behavior: 'smooth' });
+    requestAnimationFrame(() => document.querySelector('#flow-choice-title')?.focus({ preventScroll: true }));
   }
 
   document.querySelectorAll('[data-flow]').forEach((button) => button.addEventListener('click', () => {
