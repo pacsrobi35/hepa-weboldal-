@@ -39,8 +39,8 @@
       <div class="container hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">Lapszabászat • Aszód</p>
-          <h1>Pontos méret.<br><span>Tiszta él.</span><br>Egyszerű ajánlatkérés.</h1>
-          <p class="lead">Bútorlapok méretre szabása és ABS élzárása saját vagy hozott anyagból, magánszemélyeknek és cégeknek.</p>
+          <h1>Lapszabászat és <span>ABS élzárás</span> Aszódon</h1>
+          <p class="lead"><strong>Pontos méret. Tiszta él. Egyszerű ajánlatkérés.</strong><br>Bútorlapok méretre szabása saját vagy hozott anyagból, magánszemélyeknek és cégeknek.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="lapszabaszat-ajanlatkeres.html">Szabászati ajánlatot kérek <span aria-hidden="true">→</span></a>
             <a class="btn btn-secondary" href="lapszabaszat-ajanlatkeres.html?ut=help">Segítséget kérek</a>
@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <div class="board-visual" aria-label="Bútorlap négy külön jelölhető éllel">
+        <div class="board-visual" role="img" aria-label="Bútorlap négy külön jelölhető éllel">
           <div class="board-sheet">
             <span class="edge-tag edge-a">A</span>
             <span class="edge-tag edge-b">B</span>
@@ -91,7 +91,7 @@
           <a class="choice-card" href="lapszabaszat-ajanlatkeres.html?ut=help">
             <span class="choice-number">03</span>
             <h3>Segítséget szeretnék</h3>
-            <p>Nem biztos az anyagban, a méretben vagy az élzárásban? Kérjen visszahívást.</p>
+            <p>Nem biztos az anyagban, a méretben vagy az élzárásban? Írja meg röviden, és segítünk.</p>
             <strong>Segítséget kérek →</strong>
           </a>
         </div>
@@ -272,6 +272,20 @@
       menuButton.setAttribute('aria-expanded', String(open));
       menuButton.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
       menuButton.textContent = open ? '×' : '☰';
+    });
+    function closeMenu() {
+      if (!menu?.classList.contains('open')) return;
+      menu.classList.remove('open');
+      menuButton.setAttribute('aria-expanded', 'false');
+      menuButton.setAttribute('aria-label', 'Menü megnyitása');
+      menuButton.textContent = '☰';
+    }
+    menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && menu?.classList.contains('open')) {
+        closeMenu();
+        menuButton.focus();
+      }
     });
   </script>
 </body>
