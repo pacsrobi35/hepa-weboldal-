@@ -75,7 +75,10 @@ kapcsolhatók anélkül, hogy az ügyfélnek újra fel kellene vinnie a szabász
 | `authenticated` | saját profil; admin-tagság esetén ajánlatkérések, ajánlatok és referenciák kezelése |
 | `service_role` | szerveroldali teljes DML-hozzáférés; jelenleg az ajánlatkérő használja |
 
-Minden alkalmazástáblán aktív a Row Level Security. Az adatbázis-függvények
+Minden alkalmazástáblán aktív a Row Level Security. A két belső lapszabászati
+értesítési és helyreállítási táblán is aktív az RLS; böngészős szerepkör nem kapott
+rájuk policyt, a szerveroldali `service_role` hozzáférés továbbra is működik.
+Az adatbázis-függvények
 `security invoker` módban, rögzített üres `search_path` beállítással futnak.
 Az új `public` objektumok nem kapnak automatikusan API-jogosultságot; minden új
 migrációban külön kell megadni a szükséges engedélyeket.
@@ -116,6 +119,7 @@ Az aktív lánc sorrendben:
 14. `20260914230339_harden_quote_offer_delivery.sql`
 15. `20260915093719_add_quote_offer_delivery_tracking.sql`
 16. `20260915192823_add_cutting_quote_intake.sql`
+17. `20260915202534_harden_cutting_quote_intake_security.sql`
 
 Az első és a hetedik fájl korábban közvetlenül létrehozott termelési objektumokat
 rögzít utólag. Az élő projekt migrációs előzményeiben alkalmazottként szerepelnek,
