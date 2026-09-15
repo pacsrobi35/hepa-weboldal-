@@ -50,6 +50,7 @@
           <ul class="aside-list">
             <li>Nem kell regisztrálnia</li>
             <li>Visszalépéskor megmaradnak az adatok</li>
+            <li>A piszkozat ezen az eszközön legfeljebb 30 napig marad meg</li>
             <li>Mobilon is könnyen kitölthető</li>
             <li>A beküldés még nem megrendelés</li>
           </ul>
@@ -68,7 +69,7 @@
           </div>
 
           <p class="eyebrow">Első lépés</p>
-          <h2>Mivel érkezett?</h2>
+          <h2 id="flow-choice-title" tabindex="-1">Mivel érkezett?</h2>
           <p>Válassza azt az utat, amelyik most a legkevesebb munkát jelenti Önnek.</p>
           <div class="flow-grid">
             <button class="flow-button" type="button" data-flow="upload">
@@ -109,12 +110,12 @@
                 <div class="flow-panel" data-flow-panel="upload">
                   <p class="eyebrow">A lista és az anyag</p>
                   <h2 id="upload-details-title" tabindex="-1">Töltse fel a szabászjegyzéket</h2>
-                  <p class="step-lead">A fájl lehet Excel, CSV, PDF vagy jól olvasható kép. Ha más formátuma van, akkor is kérhet segítséget.</p>
+                  <p class="step-lead">A demóban tervezett formátum: Excel, CSV, PDF vagy jól olvasható kép. Ha más formátuma van, akkor is kérhet segítséget.</p>
 
                   <div class="drop-zone" id="upload-drop-zone">
                     <strong>Húzza ide a fájlokat</strong>
                     <p>XLSX, XLS, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 10 MB</p>
-                    <input id="upload-files" type="file" multiple required aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
+                    <input id="upload-files" type="file" multiple aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
                     <label class="btn btn-small btn-ghost" for="upload-files">Fájl kiválasztása</label>
                   </div>
                   <div class="file-list" id="upload-file-list" aria-live="polite"></div>
@@ -267,7 +268,7 @@
 
               <section class="step-panel" data-step="contact" aria-labelledby="contact-title">
                 <p class="eyebrow">Kapcsolattartás</p>
-                <h2 id="contact-title" tabindex="-1">Hová küldhetjük az ajánlatot?</h2>
+                <h2 id="contact-title" tabindex="-1">Hogyan érhetjük el?</h2>
                 <p class="step-lead">Csak az ajánlat elkészítéséhez és a szükséges pontosításhoz használjuk az adatokat.</p>
                 <div class="field-grid">
                   <div class="field">
@@ -300,8 +301,9 @@
                   <div class="field full">
                     <div class="checkbox-row">
                       <input id="privacy-consent" name="privacy_consent" type="checkbox" required aria-required="true" aria-describedby="privacy-consent-error">
-                      <label class="required" for="privacy-consent">Elolvastam az <a class="text-link" href="adatkezeles.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, és hozzájárulok az adataim ajánlatkéréshez kapcsolódó kezeléséhez.</label>
+                      <label class="required" for="privacy-consent">Elolvastam az adatkezelési tájékoztatót, és hozzájárulok az adataim ajánlatkéréshez kapcsolódó kezeléséhez.</label>
                     </div>
+                    <p class="field-hint"><a class="text-link" href="adatkezeles.html" target="_blank" rel="noopener">Adatkezelési tájékoztató megnyitása új lapon</a></p>
                     <p class="field-error" id="privacy-consent-error"></p>
                   </div>
                 </div>
@@ -329,9 +331,9 @@
 
         <div class="success-panel" id="success-panel" tabindex="-1">
           <div class="success-icon" aria-hidden="true">✓</div>
-          <p class="eyebrow">Demó sikeres</p>
-          <h2>Az ajánlatkérő működése rendben lefutott</h2>
-          <p>Ez fejlesztési előnézet volt, ezért sem személyes adat, sem fájl nem került elküldésre.</p>
+          <p class="eyebrow">Sikeres próba</p>
+          <h2>Köszönjük, a próba-ajánlatkérés elkészült</h2>
+          <p>Ez még fejlesztési előnézet, ezért személyes adatot és fájlt nem küldtünk el.</p>
           <span class="demo-reference" id="demo-reference"></span>
           <div class="success-review" id="success-review" aria-label="A tesztelt ajánlatkérés összegzése"></div>
           <div class="success-actions">
