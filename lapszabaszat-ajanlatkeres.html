@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Szabászati ajánlatkérés | HEPA-CONSTRUCT</title>
+  <meta name="description" content="Kérjen ajánlatot bútorlap szabására és ABS élzárására. Töltse fel szabászjegyzékét, vagy adja meg a tételeket online.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#152520">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="lapszabaszat.css">
+</head>
+<body class="form-page">
+  <a class="skip-link" href="#main-content">Ugrás a fő tartalomra</a>
+  <div class="preview-bar">Működő fejlesztési demó · a beküldés nem küld valódi adatot</div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="lapszabaszat.html" aria-label="HEPA-CONSTRUCT lapszabászat">
+        <span class="brand-mark" aria-hidden="true">H</span>
+        <span class="brand-copy">
+          <span class="brand-name">HEPA-<span>CONSTRUCT</span></span>
+          <span class="brand-service">Lapszabászat • Bútorgyártás</span>
+        </span>
+      </a>
+      <button class="menu-toggle" type="button" aria-label="Menü megnyitása" aria-controls="main-nav" aria-expanded="false">☰</button>
+      <nav class="main-nav" id="main-nav" aria-label="Főmenü">
+        <a href="lapszabaszat.html">Lapszabászat</a>
+        <a href="lapszabaszat.html#folyamat">Hogyan működik?</a>
+        <a href="index.html">Bútorgyártás</a>
+        <a href="index.html#kapcsolat">Kapcsolat</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="form-hero">
+      <div class="container">
+        <p class="eyebrow">Szabászati ajánlatkérés</p>
+        <h1>Kezdje úgy, ahogy Önnek a legegyszerűbb</h1>
+        <p class="lead">Feltöltheti kész listáját, megadhatja a darabokat az oldalon, vagy kérhet segítséget. Az ajánlatkérés nem jelent megrendelést.</p>
+      </div>
+    </section>
+
+    <div class="form-shell">
+      <aside class="form-aside" aria-label="Segítség és fontos információk">
+        <div class="aside-card">
+          <h2>Nyugodtan elkezdheti</h2>
+          <p>Az ajánlat előtt minden adatot műszakilag átnézünk, és ha valami nem egyértelmű, egyeztetünk.</p>
+          <ul class="aside-list">
+            <li>Nem kell regisztrálnia</li>
+            <li>Visszalépéskor megmaradnak az adatok</li>
+            <li>Mobilon is könnyen kitölthető</li>
+            <li>A beküldés még nem megrendelés</li>
+          </ul>
+        </div>
+        <a class="aside-phone" href="tel:+36706273699"><span aria-hidden="true">☎</span><span><small>Inkább telefonon?</small><br>+36 70 627 36 99</span></a>
+      </aside>
+
+      <section class="form-card" aria-label="Ajánlatkérő űrlap">
+        <div class="flow-choice" id="flow-choice">
+          <div class="draft-banner" id="draft-banner" role="status">
+            <p><strong>Találtunk egy korábbi piszkozatot.</strong><br><span id="draft-time"></span></p>
+            <div class="draft-actions">
+              <button class="btn btn-small btn-primary" type="button" id="restore-draft">Folytatom</button>
+              <button class="btn btn-small btn-ghost" type="button" id="delete-draft">Törlés</button>
+            </div>
+          </div>
+
+          <p class="eyebrow">Első lépés</p>
+          <h2>Mivel érkezett?</h2>
+          <p>Válassza azt az utat, amelyik most a legkevesebb munkát jelenti Önnek.</p>
+          <div class="flow-grid">
+            <button class="flow-button" type="button" data-flow="upload">
+              <span class="flow-icon" aria-hidden="true">↑</span>
+              <strong>Feltöltöm a szabászjegyzéket</strong>
+              <span>A kész listámat szeretném elküldeni.</span>
+            </button>
+            <button class="flow-button" type="button" data-flow="manual">
+              <span class="flow-icon" aria-hidden="true">＋</span>
+              <strong>Itt adom meg a darabokat</strong>
+              <span>Nincs kész fájlom, az oldalon töltöm ki.</span>
+            </button>
+            <button class="flow-button help" type="button" data-flow="help">
+              <span class="flow-icon" aria-hidden="true">?</span>
+              <strong>Segítséget kérek</strong>
+              <span>Nem tudom pontosan az anyagot vagy a méreteket.</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="wizard" id="wizard">
+          <div class="wizard-head">
+            <div class="wizard-meta">
+              <span class="step-label" id="step-label">1/4. lépés</span>
+              <span class="save-status" id="save-status" aria-live="polite">A piszkozat automatikusan mentődik</span>
+            </div>
+            <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar"></div></div>
+          </div>
+
+          <form id="cutting-form" novalidate>
+            <div class="wizard-body">
+              <div class="error-summary" id="error-summary" role="alert" tabindex="-1">
+                <h3>Kérjük, nézze át a jelzett mezőket</h3>
+                <ul id="error-list"></ul>
+              </div>
+
+              <section class="step-panel" data-step="details" aria-labelledby="details-title">
+                <div class="flow-panel" data-flow-panel="upload">
+                  <p class="eyebrow">A lista és az anyag</p>
+                  <h2 id="details-title">Töltse fel a szabászjegyzéket</h2>
+                  <p class="step-lead">A fájl lehet Excel, CSV, PDF vagy jól olvasható kép. Ha más formátuma van, akkor is kérhet segítséget.</p>
+
+                  <div class="drop-zone" id="upload-drop-zone">
+                    <strong>Húzza ide a fájlokat</strong>
+                    <p>XLSX, XLS, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl</p>
+                    <label class="btn btn-small btn-ghost" for="upload-files">Fájl kiválasztása</label>
+                    <input id="upload-files" type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
+                  </div>
+                  <div class="file-list" id="upload-file-list" aria-live="polite"></div>
+                  <p class="field-error" id="upload-files-error"></p>
+
+                  <div class="field-grid" style="margin-top:28px">
+                    <fieldset class="field full" data-field="upload-material-source">
+                      <legend class="fieldset-label required">Honnan legyen az anyag?</legend>
+                      <div class="radio-cards">
+                        <div class="radio-card"><input id="upload-source-hepa" type="radio" name="upload_material_source" value="hepa"><label for="upload-source-hepa">A HEPA szerezze be</label></div>
+                        <div class="radio-card"><input id="upload-source-own" type="radio" name="upload_material_source" value="own"><label for="upload-source-own">Saját anyagot hozok</label></div>
+                        <div class="radio-card"><input id="upload-source-unknown" type="radio" name="upload_material_source" value="unknown"><label for="upload-source-unknown">Még nem tudom</label></div>
+                      </div>
+                      <p class="field-error" id="upload-material-source-error"></p>
+                    </fieldset>
+                    <div class="field">
+                      <label for="upload-material">Anyag, dekor vagy lapfajta</label>
+                      <input id="upload-material" name="upload_material" type="text" maxlength="120" placeholder="Pl. Egger H3303 vagy fehér bútorlap">
+                      <p class="field-hint">Ha nem tudja, hagyja üresen és egyeztetünk.</p>
+                    </div>
+                    <div class="field">
+                      <label for="upload-thickness">Lapvastagság</label>
+                      <select id="upload-thickness" name="upload_thickness">
+                        <option value="">Nem tudom / a fájlban szerepel</option>
+                        <option value="8">8 mm</option><option value="10">10 mm</option><option value="12">12 mm</option>
+                        <option value="16">16 mm</option><option value="18">18 mm</option><option value="19">19 mm</option>
+                        <option value="22">22 mm</option><option value="25">25 mm</option><option value="28">28 mm</option>
+                        <option value="38">38 mm</option><option value="other">Más vastagság</option>
+                      </select>
+                    </div>
+                    <fieldset class="field full">
+                      <legend class="fieldset-label">A fájlban megadott méretek</legend>
+                      <div class="radio-cards">
+                        <div class="radio-card"><input id="upload-size-finished" type="radio" name="upload_size_basis" value="finished"><label for="upload-size-finished">Készméretek, éllel együtt</label></div>
+                        <div class="radio-card"><input id="upload-size-cut" type="radio" name="upload_size_basis" value="cut"><label for="upload-size-cut">Vágási méretek, él nélkül</label></div>
+                        <div class="radio-card"><input id="upload-size-unknown" type="radio" name="upload_size_basis" value="unknown" checked><label for="upload-size-unknown">Nem vagyok benne biztos</label></div>
+                      </div>
+                    </fieldset>
+                    <div class="field full">
+                      <label for="upload-note">Megjegyzés a fájlhoz</label>
+                      <textarea id="upload-note" name="upload_note" maxlength="500" placeholder="Például: a pirossal jelölt élekre kérek ABS-t."></textarea>
+                    </div>
+                  </div>
+                  <div class="notice"><strong>Fontos:</strong> a feltöltött lista az ajánlat alapja. A gyártás csak az ellenőrzött és közösen visszaigazolt változatból indul.</div>
+                </div>
+
+                <div class="flow-panel" data-flow-panel="manual">
+                  <p class="eyebrow">Anyag és méretértelmezés</p>
+                  <h2>Adja meg az alapadatokat</h2>
+                  <p class="step-lead">Ezeket az értékeket automatikusan betöltjük az első tételbe, de darabonként később módosíthatók.</p>
+                  <div class="field-grid">
+                    <fieldset class="field full" data-field="manual-material-source">
+                      <legend class="fieldset-label required">Honnan legyen az anyag?</legend>
+                      <div class="radio-cards">
+                        <div class="radio-card"><input id="manual-source-hepa" type="radio" name="manual_material_source" value="hepa"><label for="manual-source-hepa">A HEPA szerezze be</label></div>
+                        <div class="radio-card"><input id="manual-source-own" type="radio" name="manual_material_source" value="own"><label for="manual-source-own">Saját anyagot hozok</label></div>
+                        <div class="radio-card"><input id="manual-source-unknown" type="radio" name="manual_material_source" value="unknown"><label for="manual-source-unknown">Még nem tudom</label></div>
+                      </div>
+                      <p class="field-error" id="manual-material-source-error"></p>
+                    </fieldset>
+                    <div class="field">
+                      <label class="required" for="manual-material">Anyag, dekor vagy lapfajta</label>
+                      <input id="manual-material" name="manual_material" type="text" maxlength="120" placeholder="Pl. Egger H3303 vagy fehér bútorlap">
+                      <p class="field-hint">Ha nem tudja, írja be: „egyeztetést kérek”.</p>
+                      <p class="field-error" id="manual-material-error"></p>
+                    </div>
+                    <div class="field">
+                      <label class="required" for="manual-thickness">Lapvastagság</label>
+                      <input id="manual-thickness" name="manual_thickness" type="number" min="1" max="100" step="0.1" inputmode="decimal" placeholder="Pl. 18">
+                      <p class="field-error" id="manual-thickness-error"></p>
+                    </div>
+                    <fieldset class="field full" data-field="manual-size-basis">
+                      <legend class="fieldset-label required">Milyen méretet fog megadni?</legend>
+                      <div class="radio-cards">
+                        <div class="radio-card"><input id="manual-size-finished" type="radio" name="manual_size_basis" value="finished"><label for="manual-size-finished">Készméretet, éllel együtt</label></div>
+                        <div class="radio-card"><input id="manual-size-cut" type="radio" name="manual_size_basis" value="cut"><label for="manual-size-cut">Vágási méretet, él nélkül</label></div>
+                        <div class="radio-card"><input id="manual-size-unknown" type="radio" name="manual_size_basis" value="unknown"><label for="manual-size-unknown">Nem vagyok benne biztos</label></div>
+                      </div>
+                      <p class="field-error" id="manual-size-basis-error"></p>
+                    </fieldset>
+                  </div>
+                </div>
+
+                <div class="flow-panel" data-flow-panel="help">
+                  <p class="eyebrow">Rövid segítségkérés</p>
+                  <h2>Írja meg, miben segíthetünk</h2>
+                  <p class="step-lead">Nem kell műszaki nyelven fogalmaznia. Elég röviden leírnia, hol akadt el.</p>
+                  <fieldset class="field" data-field="help-topics">
+                    <legend class="fieldset-label required">Miben kér segítséget?</legend>
+                    <div class="field-grid">
+                      <div class="checkbox-row"><input id="help-material" type="checkbox" name="help_topics" value="material"><label for="help-material">Anyag vagy dekor kiválasztása</label></div>
+                      <div class="checkbox-row"><input id="help-size" type="checkbox" name="help_topics" value="size"><label for="help-size">Méretek és szabászjegyzék</label></div>
+                      <div class="checkbox-row"><input id="help-edge" type="checkbox" name="help_topics" value="edge"><label for="help-edge">ABS élzárás</label></div>
+                      <div class="checkbox-row"><input id="help-delivery" type="checkbox" name="help_topics" value="delivery"><label for="help-delivery">Átvétel vagy szállítás</label></div>
+                    </div>
+                    <p class="field-error" id="help-topics-error"></p>
+                  </fieldset>
+                  <div class="field" style="margin-top:20px">
+                    <label class="required" for="help-description">Röviden az elképzeléséről</label>
+                    <textarea id="help-description" name="help_description" minlength="20" maxlength="1500" placeholder="Például: három polchoz szeretnék anyagot és élzárást, de nem tudom, milyen lapot válasszak."></textarea>
+                    <p class="field-error" id="help-description-error"></p>
+                  </div>
+                  <div class="drop-zone" id="help-drop-zone" style="margin-top:22px">
+                    <strong>Kép vagy vázlat csatolása – opcionális</strong>
+                    <p>PDF, JPG vagy PNG · legfeljebb 5 fájl</p>
+                    <label class="btn btn-small btn-ghost" for="help-files">Fájl kiválasztása</label>
+                    <input id="help-files" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" data-file-input="help">
+                  </div>
+                  <div class="file-list" id="help-file-list" aria-live="polite"></div>
+                </div>
+              </section>
+
+              <section class="step-panel" data-step="items" aria-labelledby="items-title">
+                <p class="eyebrow">Alkatrészek</p>
+                <h2 id="items-title">Adja meg a darabokat</h2>
+                <p class="step-lead">Egy tétel egyféle méretű és élzárású alkatrészt jelent. Azonos darabokból elég egy tételt felvenni a megfelelő mennyiséggel.</p>
+                <div class="items-toolbar">
+                  <span class="items-summary" id="items-summary">0 tétel</span>
+                  <button class="btn btn-small btn-ghost" type="button" id="add-item">+ Új tétel</button>
+                </div>
+                <div class="item-list" id="item-list"></div>
+              </section>
+
+              <section class="step-panel" data-step="logistics" aria-labelledby="logistics-title">
+                <p class="eyebrow">Átvétel és időzítés</p>
+                <h2 id="logistics-title">Hogyan szeretné átvenni?</h2>
+                <p class="step-lead">A szállítás lehetőségét és díját az ajánlatban pontosítjuk.</p>
+                <div class="field-grid">
+                  <fieldset class="field full" data-field="fulfillment">
+                    <legend class="fieldset-label required">Átvétel módja</legend>
+                    <div class="radio-cards">
+                      <div class="radio-card"><input id="fulfillment-pickup" type="radio" name="fulfillment" value="pickup"><label for="fulfillment-pickup">Személyesen Aszódon</label></div>
+                      <div class="radio-card"><input id="fulfillment-delivery" type="radio" name="fulfillment" value="delivery"><label for="fulfillment-delivery">Szállítást kérek</label></div>
+                      <div class="radio-card"><input id="fulfillment-unknown" type="radio" name="fulfillment" value="unknown"><label for="fulfillment-unknown">Még nem tudom</label></div>
+                    </div>
+                    <p class="field-error" id="fulfillment-error"></p>
+                  </fieldset>
+                  <div class="field" id="postcode-field" hidden>
+                    <label class="required" for="postal-code">Szállítási irányítószám</label>
+                    <input id="postal-code" name="postal_code" type="text" inputmode="numeric" maxlength="10" placeholder="Pl. 2100">
+                    <p class="field-error" id="postal-code-error"></p>
+                  </div>
+                  <div class="field">
+                    <label for="target-date">Mikorra lenne rá szüksége?</label>
+                    <input id="target-date" name="target_date" type="date">
+                    <p class="field-hint">Tájékoztató igény; a vállalási időt az ajánlatban igazoljuk vissza.</p>
+                    <p class="field-error" id="target-date-error"></p>
+                  </div>
+                  <div class="field full">
+                    <label for="project-note">Egyéb megjegyzés</label>
+                    <textarea id="project-note" name="project_note" maxlength="1000" placeholder="Például: az anyagot előzetes egyeztetéssel munkaidőn kívül tudom bevinni."></textarea>
+                  </div>
+                </div>
+              </section>
+
+              <section class="step-panel" data-step="contact" aria-labelledby="contact-title">
+                <p class="eyebrow">Kapcsolattartás</p>
+                <h2 id="contact-title">Hová küldhetjük az ajánlatot?</h2>
+                <p class="step-lead">Csak az ajánlat elkészítéséhez és a szükséges pontosításhoz használjuk az adatokat.</p>
+                <div class="field-grid">
+                  <div class="field">
+                    <label class="required" for="customer-name">Név</label>
+                    <input id="customer-name" name="customer_name" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Az Ön neve">
+                    <p class="field-error" id="customer-name-error"></p>
+                  </div>
+                  <div class="field">
+                    <label for="company-name">Cégnév – opcionális</label>
+                    <input id="company-name" name="company_name" type="text" autocomplete="organization" maxlength="100" placeholder="Vállalkozás neve">
+                  </div>
+                  <div class="field">
+                    <label for="customer-email">E-mail cím</label>
+                    <input id="customer-email" name="customer_email" type="email" autocomplete="email" maxlength="254" placeholder="pelda@email.hu">
+                    <p class="field-error" id="customer-email-error"></p>
+                  </div>
+                  <div class="field">
+                    <label for="customer-phone">Telefonszám</label>
+                    <input id="customer-phone" name="customer_phone" type="tel" autocomplete="tel" maxlength="40" placeholder="+36 30 123 4567">
+                    <p class="field-hint">Az e-mail vagy a telefonszám közül legalább az egyik szükséges.</p>
+                    <p class="field-error" id="customer-phone-error"></p>
+                  </div>
+                  <fieldset class="field full">
+                    <legend class="fieldset-label">Melyiken keressük elsősorban?</legend>
+                    <div class="radio-cards">
+                      <div class="radio-card"><input id="contact-email" type="radio" name="preferred_contact" value="email" checked><label for="contact-email">E-mailben</label></div>
+                      <div class="radio-card"><input id="contact-phone" type="radio" name="preferred_contact" value="phone"><label for="contact-phone">Telefonon</label></div>
+                    </div>
+                  </fieldset>
+                  <div class="field full">
+                    <div class="checkbox-row">
+                      <input id="privacy-consent" name="privacy_consent" type="checkbox">
+                      <label class="required" for="privacy-consent">Elolvastam az <a class="text-link" href="adatkezeles.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, és hozzájárulok az adataim ajánlatkéréshez kapcsolódó kezeléséhez.</label>
+                    </div>
+                    <p class="field-error" id="privacy-consent-error"></p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="step-panel" data-step="review" aria-labelledby="review-title">
+                <p class="eyebrow">Utolsó ellenőrzés</p>
+                <h2 id="review-title">Minden rendben van?</h2>
+                <p class="step-lead">Beküldés előtt még visszaléphet és bármit módosíthat.</p>
+                <div class="review-list" id="review-list"></div>
+                <div class="legal-note"><strong>Az ajánlatkérés elküldése nem minősül megrendelésnek.</strong> A gyártás csak a műszaki tartalom, az ár és a határidő külön jóváhagyása után indul.</div>
+              </section>
+            </div>
+
+            <div class="wizard-actions">
+              <button class="btn btn-ghost" type="button" id="back-button">Vissza</button>
+              <div class="action-right">
+                <button class="btn btn-ghost" type="button" id="change-flow">Másik mód</button>
+                <button class="btn btn-primary" type="button" id="next-button">Tovább →</button>
+                <button class="btn btn-primary" type="submit" id="submit-button" hidden>Demó ajánlatkérés elküldése</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="success-panel" id="success-panel" tabindex="-1">
+          <div class="success-icon" aria-hidden="true">✓</div>
+          <p class="eyebrow">Demó sikeres</p>
+          <h2>Az ajánlatkérő működése rendben lefutott</h2>
+          <p>Ez fejlesztési előnézet volt, ezért sem személyes adat, sem fájl nem került elküldésre.</p>
+          <span class="demo-reference" id="demo-reference"></span>
+          <div class="success-actions">
+            <button class="btn btn-primary" type="button" id="print-summary">Összegzés nyomtatása</button>
+            <button class="btn btn-ghost" type="button" id="new-request">Új teszt indítása</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div><div class="footer-brand">HEPA-<span>CONSTRUCT</span></div><p class="footer-about">Lapszabászat és egyedi bútorok, pontosan az Ön igényeire szabva.</p></div>
+        <div><h2 class="footer-heading">Gyors menü</h2><ul class="footer-list"><li><a href="lapszabaszat.html">Lapszabászat</a></li><li><a href="index.html">Főoldal</a></li><li><a href="adatkezeles.html">Adatkezelés</a></li></ul></div>
+        <div><h2 class="footer-heading">Kapcsolat</h2><ul class="footer-list"><li>2170 Aszód, Pesti út 27.</li><li><a href="tel:+36706273699">+36 70 627 36 99</a></li><li><a href="mailto:hepaconstructkft@gmail.com">hepaconstructkft@gmail.com</a></li></ul></div>
+      </div>
+      <div class="footer-bottom"><span>© 2026 HEPA Lapszabászat és Bútorgyártás</span><span>H–P 7:00–16:00</span></div>
+    </div>
+  </footer>
+
+  <script src="lapszabaszat.js" defer></script>
+</body>
+</html>
