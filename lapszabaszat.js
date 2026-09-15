@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
-  const LEGACY_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
+  const DRAFT_KEY = 'hepa_cutting_quote_draft_v3';
+  const V2_DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
+  const V1_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
   const DRAFT_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
   const MAX_FILES = 5;
   const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -13,7 +14,7 @@
   };
   const STEP_NAMES = {
     details: 'Az ajánlat tartalma',
-    items: 'Alkatrészek',
+    items: 'Tételek',
     logistics: 'Átvétel és időzítés',
     contact: 'Kapcsolattartás',
     review: 'Ellenőrzés'
@@ -44,8 +45,15 @@
     edge: 'ABS élzárás',
     delivery: 'Átvétel vagy szállítás'
   };
-  const GRAIN_NAMES = { length: 'a hossz irányában', width: 'a szélesség irányában', none: 'mindegy / nincs szálirány' };
   const EDGE_BAND_NAMES = { matching: 'dekorazonos ABS', different: 'eltérő színű ABS', customer: 'hozott élanyag', unknown: 'egyeztetendő' };
+  const EDGE_MATERIAL_OPTIONS = [
+    'Dekorazonos ABS · 0,4 mm',
+    'Dekorazonos ABS · 0,6 mm',
+    'Dekorazonos ABS · 1 mm',
+    'Dekorazonos ABS · 2 mm',
+    'Saját / hozott élanyag',
+    'Más / egyeztetést kérek'
+  ];
   const EDGE_CODES = ['0-0', '0-1', '0-2', '1-0', '1-1', '1-2', '2-0', '2-1', '2-2'];
   const EDGE_CODE_NAMES = {
     '0-0': 'nincs élzárás',
@@ -73,6 +81,7 @@
   const submitButton = document.querySelector('#submit-button');
   const errorSummary = document.querySelector('#error-summary');
   const errorList = document.querySelector('#error-list');
+  const materialList = document.querySelector('#material-list');
   const itemList = document.querySelector('#item-list');
   const itemSummary = document.querySelector('#items-summary');
   const draftBanner = document.querySelector('#draft-banner');
@@ -80,6 +89,7 @@
 
   let activeFlow = null;
   let stepIndex = 0;
+  let materialCounter = 0;
   let itemCounter = 0;
   let saveTimer = null;
   let restoredDraft = null;
@@ -230,16 +240,151 @@
     return EDGE_BAND_NAMES[value] || value || '';
   }
 
+  function canonicalThickness(value) {
+    const raw = String(value ?? '').trim().replace(',', '.');
+    const numeric = Number(raw);
+    return raw && Number.isFinite(numeric) ? String(numeric) : raw;
+  }
+
+  function materialPairKey(name, thicknessMm) {
+    const normalizedName = String(name ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('hu-HU');
+    return `${normalizedName}\u001f${canonicalThickness(thicknessMm)}`;
+  }
+
+  function swapEdgeCode(code) {
+    if (!EDGE_CODES.includes(code)) return code;
+    const [longEdges, shortEdges] = code.split('-');
+    return `${shortEdges}-${longEdges}`;
+  }
+
   function edgePreviewMarkup(code, extraClass = '') {
     const [longEdges, shortEdges] = edgeCodeParts(code);
     return `<span class="part l-${longEdges} s-${shortEdges} ${extraClass}" aria-hidden="true"><i class="top"></i><i class="right"></i><i class="bottom"></i><i class="left"></i></span>`;
   }
 
+  function edgeMaterialOptionsMarkup(selectedValue) {
+    const selected = String(selectedValue || '').trim();
+    const options = ['<option value="">Válasszon…</option>'];
+    EDGE_MATERIAL_OPTIONS.forEach((value) => {
+      options.push(`<option value="${escapeHtml(value)}" ${selected === value ? 'selected' : ''}>${escapeHtml(value)}</option>`);
+    });
+    if (selected && !EDGE_MATERIAL_OPTIONS.includes(selected)) {
+      options.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)} · korábbi adat</option>`);
+    }
+    return options.join('');
+  }
+
+  function materialDisplayName(material, index) {
+    const name = String(material?.name || '').trim();
+    const thickness = String(material?.thicknessMm || '').trim();
+    if (!name && !thickness) return `${index + 1}. anyag – még nincs kitöltve`;
+    if (!name) return `${index + 1}. anyag – ${thickness} mm`;
+    return thickness ? `${name} – ${thickness} mm` : `${name} – vastagság nélkül`;
+  }
+
+  function readMaterial(card) {
+    const data = { id: card.dataset.materialId };
+    card.querySelectorAll('[data-material-field]').forEach((control) => { data[control.dataset.materialField] = control.value.trim(); });
+    return data;
+  }
+
+  function readMaterials() {
+    return [...materialList.querySelectorAll('.material-card')].map(readMaterial);
+  }
+
+  function getMaterialProfile(materialId) {
+    return readMaterials().find((material) => material.id === materialId) || null;
+  }
+
+  function updateMaterialOptions() {
+    const materials = readMaterials();
+    itemList.querySelectorAll('[data-item-field="materialId"]').forEach((select) => {
+      const selectedId = select.value;
+      const placeholder = new Option('Válasszon anyagot…', '');
+      select.replaceChildren(placeholder);
+      materials.forEach((material, index) => select.add(new Option(materialDisplayName(material, index), material.id)));
+      if (materials.some((material) => material.id === selectedId)) select.value = selectedId;
+      else if (materials.length === 1) select.value = materials[0].id;
+    });
+  }
+
+  function updateMaterialUsageState() {
+    const cards = [...materialList.querySelectorAll('.material-card')];
+    const usedIds = new Set(readItems().filter(isMeaningfulItem).map((item) => item.materialId).filter(Boolean));
+    cards.forEach((card, index) => {
+      const button = card.querySelector('[data-material-action="delete"]');
+      const onlyMaterial = cards.length === 1;
+      const inUse = usedIds.has(card.dataset.materialId);
+      button.disabled = onlyMaterial || inUse;
+      button.title = onlyMaterial
+        ? 'Legalább egy anyag szükséges.'
+        : inUse
+          ? 'Ezt az anyagot használja egy tételsor. Előbb válasszon ott másikat.'
+          : `${index + 1}. anyag törlése`;
+    });
+  }
+
+  function renumberMaterials() {
+    [...materialList.querySelectorAll('.material-card')].forEach((card, index) => {
+      card.querySelector('.material-number').textContent = String(index + 1);
+      card.querySelector('.material-number-a11y').textContent = String(index + 1);
+      card.querySelector('[data-material-action="delete"]').setAttribute('aria-label', `${index + 1}. anyag törlése`);
+    });
+    updateMaterialOptions();
+    updateMaterialUsageState();
+  }
+
+  function newMaterial(data = {}) {
+    materialCounter += 1;
+    const domId = `material-profile-${Date.now()}-${materialCounter}`;
+    const usedIds = new Set(readMaterials().map((material) => material.id));
+    const preferredId = String(data.id || '').trim();
+    const materialId = preferredId && !usedIds.has(preferredId) ? preferredId : `material-${Date.now()}-${materialCounter}`;
+    const card = document.createElement('article');
+    card.className = 'material-card';
+    card.id = domId;
+    card.tabIndex = -1;
+    card.dataset.materialId = materialId;
+    card.innerHTML = `
+      <h4 class="sr-only"><span class="material-number-a11y"></span>. anyag</h4>
+      <div class="material-grid">
+        <div class="material-index"><span>Anyag</span><strong class="material-number"></strong></div>
+        <div class="field material-profile-name"><label class="required" for="${domId}-name">Anyag / dekor vagy lapfajta</label><input id="${domId}-name" data-material-field="name" type="text" required aria-required="true" maxlength="120" value="${escapeHtml(data.name)}" placeholder="Pl. Egger H3303 ST10"></div>
+        <div class="field material-profile-thickness"><label class="required" for="${domId}-thickness">Vastagság (mm)</label><input id="${domId}-thickness" data-material-field="thicknessMm" type="number" required aria-required="true" min="1" max="100" step="0.1" inputmode="decimal" value="${escapeHtml(data.thicknessMm)}" placeholder="18"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="material-actions"><button class="icon-button delete" type="button" data-material-action="delete">Törlés</button></div>
+      </div>
+      <p class="material-error" id="${domId}-error" role="alert"></p>`;
+    materialList.append(card);
+    renumberMaterials();
+    return card;
+  }
+
+  document.querySelector('#add-material').addEventListener('click', () => {
+    const card = newMaterial();
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.querySelector('[data-material-field="name"]').focus();
+    queueSave();
+  });
+
+  materialList.addEventListener('click', (event) => {
+    const card = event.target.closest('.material-card');
+    if (!card || !event.target.closest('[data-material-action="delete"]')) return;
+    const isUsed = readItems().filter(isMeaningfulItem).some((item) => item.materialId === card.dataset.materialId);
+    if (materialList.children.length <= 1 || isUsed) return;
+    card.remove();
+    renumberMaterials();
+    queueSave();
+  });
+
+  materialList.addEventListener('input', () => {
+    updateMaterialOptions();
+    queueSave();
+  });
+
   function newItem(data = {}) {
     itemCounter += 1;
     const id = `item-${Date.now()}-${itemCounter}`;
     const edgeCode = edgeCodeFromData(data);
-    const edgeBand = legacyEdgeBandValue(data.edgeBand);
     const card = document.createElement('article');
     card.className = 'item-card';
     card.id = id;
@@ -249,29 +394,25 @@
       <h3 class="sr-only"><span class="item-number-a11y"></span>. szabászjegyzék-tétel</h3>
       <div class="item-main-grid">
         <div class="item-index"><span>Tétel</span><strong class="item-number"></strong></div>
+        <div class="field item-material"><label class="required" for="${id}-material">Anyag</label><select id="${id}-material" data-item-field="materialId" required aria-required="true"></select></div>
         <div class="field item-name"><label for="${id}-name">Megnevezés</label><input id="${id}-name" data-item-field="name" type="text" maxlength="100" value="${escapeHtml(data.name)}" placeholder="Pl. oldallap"></div>
-        <div class="field item-material"><label class="required" for="${id}-material">Anyag / dekor</label><input id="${id}-material" data-item-field="material" type="text" required aria-required="true" maxlength="120" value="${escapeHtml(data.material)}" placeholder="Pl. Egger H3303"></div>
-        <div class="field item-thickness"><label class="required" for="${id}-thickness">Vastagság</label><input id="${id}-thickness" data-item-field="thicknessMm" type="number" required aria-required="true" min="1" max="100" step="0.1" inputmode="decimal" value="${escapeHtml(data.thicknessMm)}" placeholder="18"><span class="input-unit">mm</span></div>
-        <div class="field item-length"><label class="required" for="${id}-length">Hossz</label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="800"><span class="input-unit">mm</span></div>
-        <div class="field item-width"><label class="required" for="${id}-width">Szélesség</label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="400"><span class="input-unit">mm</span></div>
-        <div class="field item-quantity"><label class="required" for="${id}-quantity">Darab</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
-        <div class="field item-edge-code"><label class="required" for="${id}-edge-code">Élkód</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview')}</div></div>
+        <div class="field item-length"><label for="${id}-length"><span class="required">Hossz (mm)</span><small>Szálirány</small></label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" aria-label="Hossz milliméterben, szálirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="Szálirány"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="field item-width"><label for="${id}-width"><span class="required">Szélesség (mm)</span><small>Keresztirány</small></label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" aria-label="Szélesség milliméterben, keresztirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="Keresztirány"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="field item-quantity"><label class="required" for="${id}-quantity">Mennyiség</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
+        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa / anyaga</label><select id="${id}-edge-material" data-item-field="edgeMaterialType">${edgeMaterialOptionsMarkup(data.edgeMaterialType)}</select></div>
+        <div class="field item-edge-code"><label class="required" for="${id}-edge-code">Élzárás kódja</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview')}</div></div>
+        <div class="field item-note"><label for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
         <div class="item-actions">
           <button class="icon-button" type="button" data-item-action="duplicate">Másolás</button>
           <button class="icon-button delete" type="button" data-item-action="delete">Törlés</button>
         </div>
       </div>
-      <details class="item-more">
-        <summary>További adatok: szálirány, ABS és megjegyzés</summary>
-        <div class="item-secondary-grid">
-          <div class="field"><label class="required" for="${id}-grain">Szálirány</label><select id="${id}-grain" data-item-field="grainDirection" required aria-required="true"><option value="">Válasszon...</option><option value="length" ${data.grainDirection === 'length' ? 'selected' : ''}>Hossz irányában</option><option value="width" ${data.grainDirection === 'width' ? 'selected' : ''}>Szélesség irányában</option><option value="none" ${data.grainDirection === 'none' ? 'selected' : ''}>Mindegy / nincs</option></select></div>
-          <div class="field"><label class="edge-required-label" for="${id}-edge-thickness">Élvastagság</label><select id="${id}-edge-thickness" data-item-field="edgeThickness"><option value="">Válasszon...</option><option value="0.4" ${data.edgeThickness === '0.4' ? 'selected' : ''}>0,4 mm</option><option value="0.6" ${data.edgeThickness === '0.6' ? 'selected' : ''}>0,6 mm</option><option value="1" ${data.edgeThickness === '1' ? 'selected' : ''}>1 mm</option><option value="2" ${data.edgeThickness === '2' ? 'selected' : ''}>2 mm</option><option value="other" ${data.edgeThickness === 'other' ? 'selected' : ''}>Más / egyeztetendő</option></select></div>
-          <div class="field"><label class="edge-required-label" for="${id}-edge-band">ABS színe / dekorkódja</label><input id="${id}-edge-band" data-item-field="edgeBand" type="text" maxlength="120" value="${escapeHtml(edgeBand)}" placeholder="Pl. dekorazonos ABS vagy H3303"></div>
-          <div class="field item-note"><label for="${id}-note">Megjegyzés</label><textarea id="${id}-note" data-item-field="note" maxlength="500" placeholder="Egyedi kérés vagy pontosítás">${escapeHtml(data.note)}</textarea></div>
-        </div>
-      </details>
       <p class="item-error" id="${id}-error" role="alert"></p>`;
     itemList.append(card);
+    updateMaterialOptions();
+    const materialSelect = card.querySelector('[data-item-field="materialId"]');
+    const requestedMaterialId = String(data.materialId || '');
+    if ([...materialSelect.options].some((option) => option.value === requestedMaterialId)) materialSelect.value = requestedMaterialId;
     syncEdgeRequirements(card);
     renumberItems();
     return card;
@@ -281,20 +422,16 @@
     const edgeCodeControl = card.querySelector('[data-item-field="edgeCode"]');
     const edgeCode = edgeCodeControl?.value || '';
     const hasEdge = EDGE_CODES.includes(edgeCode) && edgeCode !== '0-0';
+    const explicitlyNoEdge = edgeCode === '0-0';
     const [longEdges, shortEdges] = edgeCodeParts(edgeCode);
     const preview = card.querySelector('.edge-row-preview');
     if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
-    ['edgeBand', 'edgeThickness'].forEach((fieldName) => {
-      const control = card.querySelector(`[data-item-field="${fieldName}"]`);
-      control.required = hasEdge;
-      control.disabled = !hasEdge;
-      if (hasEdge) control.setAttribute('aria-required', 'true');
-      else {
-        control.removeAttribute('aria-required');
-        control.value = '';
-      }
-      control.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
-    });
+    const control = card.querySelector('[data-item-field="edgeMaterialType"]');
+    control.required = hasEdge;
+    control.disabled = explicitlyNoEdge;
+    if (hasEdge) control.setAttribute('aria-required', 'true');
+    else control.removeAttribute('aria-required');
+    control.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
   }
 
   function readItem(card) {
@@ -318,12 +455,16 @@
       deleteButton.disabled = itemList.children.length === 1;
     });
     updateItemSummary();
+    updateMaterialUsageState();
+  }
+
+  function isMeaningfulItem(item) {
+    return [item.name, item.lengthMm, item.widthMm, item.note].some(Boolean);
   }
 
   function itemTotals() {
     return readItems().reduce((totals, item) => {
-      const meaningful = [item.name, item.material, item.thicknessMm, item.lengthMm, item.widthMm, item.grainDirection, item.edgeCode, item.edgeBand, item.edgeThickness, item.note].some(Boolean);
-      if (!meaningful) return totals;
+      if (!isMeaningfulItem(item)) return totals;
       const quantity = Number(item.quantity) || 0;
       const length = Number(item.lengthMm) || 0;
       const width = Number(item.widthMm) || 0;
@@ -341,13 +482,15 @@
     itemSummary.textContent = `${totals.rows} tétel · ${totals.pieces} darab · ${totals.area.toFixed(2)} m² · kb. ${totals.edge.toFixed(1)} fm él`;
   }
 
-  document.querySelector('#add-item').addEventListener('click', () => {
+  function addItemRow() {
     const previous = readItems().at(-1) || {};
-    const card = newItem({ material: previous.material, thicknessMm: previous.thicknessMm, quantity: 1, grainDirection: previous.grainDirection, edgeCode: previous.edgeCode, edgeBand: previous.edgeBand, edgeThickness: previous.edgeThickness });
+    const card = newItem({ materialId: previous.materialId, quantity: 1, edgeMaterialType: previous.edgeCode === '0-0' ? '' : previous.edgeMaterialType });
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    card.querySelector(previous.material ? '[data-item-field="name"]' : '[data-item-field="material"]').focus();
+    card.querySelector(previous.materialId ? '[data-item-field="name"]' : '[data-item-field="materialId"]').focus();
     queueSave();
-  });
+  }
+
+  document.querySelectorAll('[data-add-item]').forEach((button) => button.addEventListener('click', addItemRow));
 
   itemList.addEventListener('click', (event) => {
     const card = event.target.closest('.item-card');
@@ -365,14 +508,28 @@
     const card = event.target.closest('.item-card');
     if (card && event.target.matches('[data-item-field="edgeCode"]')) syncEdgeRequirements(card);
     updateItemSummary();
+    updateMaterialUsageState();
     queueSave();
   });
+
+  function moveToNextManualField(event, selector, fallback) {
+    if (event.key !== 'Enter' || event.isComposing || !event.target.matches('input')) return;
+    event.preventDefault();
+    const controls = [...document.querySelectorAll(selector)].filter((control) => !control.disabled && control.offsetParent !== null);
+    const next = controls[controls.indexOf(event.target) + 1];
+    (next || document.querySelector(fallback))?.focus();
+  }
+
+  materialList.addEventListener('keydown', (event) => moveToNextManualField(event, '#material-list [data-material-field]', '#item-list [data-item-field="materialId"]'));
+  itemList.addEventListener('keydown', (event) => moveToNextManualField(event, '#item-list [data-item-field]', '.items-footer [data-add-item]'));
 
   function clearErrors() {
     errorSummary.classList.remove('visible');
     errorList.innerHTML = '';
     form.querySelectorAll('.field-error').forEach((node) => { if (!node.id.endsWith('files-error')) node.textContent = ''; });
     form.querySelectorAll('[aria-invalid="true"]').forEach((node) => node.removeAttribute('aria-invalid'));
+    form.querySelectorAll('.material-card.invalid').forEach((node) => node.classList.remove('invalid'));
+    form.querySelectorAll('.material-error').forEach((node) => { node.textContent = ''; });
     form.querySelectorAll('.item-card.invalid').forEach((node) => node.classList.remove('invalid'));
     form.querySelectorAll('.item-error').forEach((node) => { node.textContent = ''; });
   }
@@ -408,6 +565,37 @@
   function validateItems(errors) {
     if (!fieldValue('manual_material_source')) addError(errors, 'manual-source-hepa', 'Jelölje meg, honnan legyen az anyag.', 'manual-material-source-error');
     if (!fieldValue('manual_size_basis')) addError(errors, 'manual-size-finished', 'Jelölje meg, milyen méretet ad meg.', 'manual-size-basis-error');
+    const materialCards = [...materialList.querySelectorAll('.material-card')];
+    const seenMaterialPairs = new Set();
+    if (!materialCards.length) errors.push({ id: 'add-material', message: 'Vegyen fel legalább egy anyagot.' });
+    materialCards.forEach((card, index) => {
+      const material = readMaterial(card);
+      const messages = [];
+      const invalidControls = [];
+      const mark = (field, label) => {
+        messages.push(label);
+        const control = card.querySelector(`[data-material-field="${field}"]`);
+        if (control) invalidControls.push(control);
+      };
+      if (material.name.length < 2) mark('name', 'anyag / dekor vagy lapfajta');
+      const thickness = Number(material.thicknessMm);
+      if (!thickness || thickness < 1 || thickness > 100) mark('thicknessMm', 'vastagság');
+      const pairKey = materialPairKey(material.name, material.thicknessMm);
+      if (material.name.length >= 2 && thickness >= 1 && thickness <= 100) {
+        if (seenMaterialPairs.has(pairKey)) mark('name', 'már felvett anyag–vastagság páros');
+        else seenMaterialPairs.add(pairKey);
+      }
+      if (messages.length) {
+        card.classList.add('invalid');
+        const errorId = `${card.id}-error`;
+        card.querySelector('.material-error').textContent = `Ellenőrizze: ${messages.join(', ')}.`;
+        invalidControls.forEach((control) => {
+          control.setAttribute('aria-invalid', 'true');
+          control.setAttribute('aria-describedby', errorId);
+        });
+        errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. anyag: ${messages.join(', ')}.` });
+      }
+    });
     const cards = [...itemList.querySelectorAll('.item-card')];
     if (!cards.length) {
       errors.push({ id: 'add-item', message: 'Vegyen fel legalább egy tételt.' });
@@ -422,23 +610,18 @@
         const control = card.querySelector(`[data-item-field="${field}"]`);
         if (control) invalidControls.push(control);
       };
-      if (item.material.length < 2) mark('material', 'anyag/dekor');
-      const thickness = Number(item.thicknessMm);
-      if (!thickness || thickness < 1 || thickness > 100) mark('thicknessMm', 'vastagság');
+      if (!getMaterialProfile(item.materialId)) mark('materialId', 'anyag');
       const length = Number(item.lengthMm);
       if (!length || length < 10 || length > 5000) mark('lengthMm', 'hossz');
       const width = Number(item.widthMm);
       if (!width || width < 10 || width > 5000) mark('widthMm', 'szélesség');
       const quantity = Number(item.quantity);
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
-      if (!item.grainDirection) mark('grainDirection', 'szálirány');
       if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
       const hasEdge = EDGE_CODES.includes(item.edgeCode) && item.edgeCode !== '0-0';
-      if (hasEdge && !item.edgeBand) mark('edgeBand', 'ABS színe / dekorkódja');
-      if (hasEdge && !item.edgeThickness) mark('edgeThickness', 'élvastagság');
+      if (hasEdge && !item.edgeMaterialType) mark('edgeMaterialType', 'élzáró típusa / anyaga');
       if (messages.length) {
         card.classList.add('invalid');
-        card.querySelector('.item-more').open = true;
         const errorId = `${card.id}-error`;
         card.querySelector('.item-error').textContent = `Ellenőrizze: ${messages.join(', ')}.`;
         invalidControls.forEach((control) => {
@@ -505,6 +688,12 @@
     }));
   }
 
+  function seedFirstMaterial() {
+    const first = materialList.querySelector('.material-card');
+    if (!first) return newMaterial();
+    return first;
+  }
+
   function seedFirstItem() {
     const first = itemList.querySelector('.item-card');
     if (!first) return newItem({ quantity: 1 });
@@ -530,17 +719,21 @@
         ['Megjegyzés', fieldValue('upload_note')]
       ]));
     } else if (activeFlow === 'manual') {
+      const materials = readMaterials();
       cards.push(reviewCard('Munka alapadatai', 'items', [
         ['Beküldési mód', FLOW_NAMES.manual],
         ['Anyag biztosítása', MATERIAL_SOURCE_NAMES[fieldValue('manual_material_source')]],
-        ['Méretértelmezés', SIZE_BASIS_NAMES[fieldValue('manual_size_basis')]]
+        ['Méretértelmezés', SIZE_BASIS_NAMES[fieldValue('manual_size_basis')]],
+        ['Anyagok', materials.map((material, index) => materialDisplayName(material, index)).join('\n')]
       ]));
       const totals = itemTotals();
       const items = readItems().map((item, index) => {
+        const material = materials.find((profile) => profile.id === item.materialId);
+        const materialName = material ? `${material.name || 'Névtelen anyag'}, ${material.thicknessMm || '?'} mm` : 'Anyag nincs kiválasztva';
         const edgeData = item.edgeCode === '0-0'
           ? 'élkód: 0-0, élzárás nélkül'
-          : `élkód: ${item.edgeCode} (${EDGE_CODE_NAMES[item.edgeCode] || 'egyeztetendő'}); ${item.edgeBand || 'élanyag egyeztetendő'}, ${item.edgeThickness === 'other' ? 'egyedi élvastagság' : `${item.edgeThickness} mm`}`;
-        return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${item.material}, ${item.thicknessMm} mm; ${item.lengthMm} × ${item.widthMm} mm, ${item.quantity} db; szálirány: ${GRAIN_NAMES[item.grainDirection] || 'egyeztetendő'}; ${edgeData}${item.note ? `; megjegyzés: ${item.note}` : ''}`;
+          : `élkód: ${item.edgeCode || 'nincs megadva'} (${EDGE_CODE_NAMES[item.edgeCode] || 'egyeztetendő'}); ${item.edgeMaterialType || 'élanyag egyeztetendő'}`;
+        return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${materialName}; ${item.lengthMm || '?'} × ${item.widthMm || '?'} mm (hossz/szálirány × szélesség/keresztirány), ${item.quantity || '?'} db; ${edgeData}${item.note ? `; megjegyzés: ${item.note}` : ''}`;
       }).join('\n');
       cards.push(reviewCard('Tételek', 'items', [
         ['Összesítés', `${totals.rows} tétel, ${totals.pieces} darab, ${totals.area.toFixed(2)} m², kb. ${totals.edge.toFixed(1)} fm él`],
@@ -590,7 +783,10 @@
     submitButton.hidden = stepIndex !== steps.length - 1;
     nextButton.textContent = activeFlow === 'manual' && activeStep === 'items' ? 'Ajánlatkérés folytatása →' : 'Tovább →';
     document.querySelector('#change-flow').hidden = stepIndex === 0;
-    if (activeStep === 'items') seedFirstItem();
+    if (activeStep === 'items') {
+      seedFirstMaterial();
+      seedFirstItem();
+    }
     if (activeStep === 'review') buildReview();
     clearErrors();
     queueSave();
@@ -610,11 +806,19 @@
     successPanel.classList.remove('active');
     document.body.classList.toggle('manual-workspace', flow === 'manual');
     document.querySelectorAll('[data-flow-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.flowPanel === flow));
-    if (flow === 'manual' && !itemList.children.length) newItem({ quantity: 1 });
+    if (flow === 'manual') {
+      if (!materialList.children.length) newMaterial();
+      if (!itemList.children.length) newItem({ quantity: 1 });
+    }
     updateStep();
   }
 
   function returnToChoice() {
+    if (activeFlow) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      saveDraft();
+    }
     wizard.classList.remove('active');
     successPanel.classList.remove('active');
     flowChoice.style.display = 'block';
@@ -660,10 +864,11 @@
       fields[control.name] = control.type === 'checkbox' && control.name === 'privacy_consent' ? control.checked : fieldValue(control.name);
     });
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       flow: activeFlow,
       stepIndex,
       fields,
+      materialProfiles: readMaterials(),
       items: readItems(),
       filesMeta: {
         upload: files.upload.length ? files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.upload,
@@ -677,7 +882,8 @@
     if (!activeFlow) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
-      localStorage.removeItem(LEGACY_DRAFT_KEY);
+      localStorage.removeItem(V2_DRAFT_KEY);
+      localStorage.removeItem(V1_DRAFT_KEY);
       const time = new Intl.DateTimeFormat('hu-HU', { hour: '2-digit', minute: '2-digit' }).format(new Date());
       saveStatus.textContent = `Mentve: ${time}`;
     } catch (_) {
@@ -693,50 +899,140 @@
   form.addEventListener('change', queueSave);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveDraft(); });
 
-  function migrateLegacyDraft(draft) {
+  function migrateV1ToV2(draft) {
     if (draft?.schemaVersion !== 1) return draft;
     const legacyMaterial = draft.fields?.manual_material || '';
     const legacyThickness = draft.fields?.manual_thickness || '';
-    const items = Array.isArray(draft.items) ? draft.items.map((item) => ({
-      ...item,
-      material: item.material || legacyMaterial,
-      thicknessMm: item.thicknessMm || legacyThickness,
-      edgeCode: edgeCodeFromData(item)
-    })) : [];
+    const items = Array.isArray(draft.items) ? draft.items.map((rawItem) => {
+      const item = rawItem && typeof rawItem === 'object' ? rawItem : {};
+      return {
+        ...item,
+        material: item.material || legacyMaterial,
+        thicknessMm: item.thicknessMm || legacyThickness,
+        edgeCode: edgeCodeFromData(item)
+      };
+    }) : [];
     let migratedStep = Number(draft.stepIndex) || 0;
     if (draft.flow === 'manual') migratedStep = migratedStep <= 1 ? 0 : migratedStep - 1;
     return { ...draft, schemaVersion: 2, stepIndex: migratedStep, items };
   }
 
-  function readDraft() {
-    try {
-      const currentRaw = localStorage.getItem(DRAFT_KEY);
-      const legacyRaw = currentRaw ? null : localStorage.getItem(LEGACY_DRAFT_KEY);
-      const draft = migrateLegacyDraft(JSON.parse(currentRaw || legacyRaw));
-      const updatedAt = Date.parse(draft?.updatedAt);
-      const validStep = Number.isInteger(Number(draft?.stepIndex)) && Number(draft.stepIndex) >= 0 && Number(draft.stepIndex) < (FLOW_STEPS[draft?.flow]?.length || 0);
-      if (!draft || draft.schemaVersion !== 2 || !FLOW_STEPS[draft.flow] || !Number.isFinite(updatedAt) || Date.now() - updatedAt > DRAFT_MAX_AGE || Date.now() < updatedAt || !validStep || (draft.items && !Array.isArray(draft.items))) {
-        localStorage.removeItem(DRAFT_KEY);
-        localStorage.removeItem(LEGACY_DRAFT_KEY);
-        return null;
+  function migrateEdgeMaterial(item, edgeCode) {
+    if (edgeCode === '0-0') return '';
+    if (String(item.edgeMaterialType || '').trim()) return String(item.edgeMaterialType).trim();
+    const band = String(legacyEdgeBandValue(item.edgeBand)).trim();
+    const rawThickness = String(item.edgeThickness ?? '').trim();
+    const thickness = rawThickness === 'other'
+      ? 'egyedi / egyeztetendő vastagság'
+      : rawThickness
+        ? `${rawThickness.replace('.', ',')} mm`
+        : '';
+    return [band, thickness].filter(Boolean).join(' · ');
+  }
+
+  function migrateV2ToV3(draft) {
+    if (draft?.schemaVersion !== 2) return draft;
+    const materialProfiles = [];
+    const profileIdByPair = new Map();
+    const getMaterialId = (item = {}) => {
+      const name = String(item.material ?? '').trim().replace(/\s+/g, ' ');
+      const thicknessMm = canonicalThickness(item.thicknessMm);
+      const key = materialPairKey(name, thicknessMm);
+      if (!profileIdByPair.has(key)) {
+        const id = `material-migrated-${materialProfiles.length + 1}`;
+        materialProfiles.push({ id, name, thicknessMm });
+        profileIdByPair.set(key, id);
       }
-      if (legacyRaw) {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-        localStorage.removeItem(LEGACY_DRAFT_KEY);
-      }
-      return draft;
-    } catch (_) {
-      localStorage.removeItem(DRAFT_KEY);
-      localStorage.removeItem(LEGACY_DRAFT_KEY);
-      return null;
+      return profileIdByPair.get(key);
+    };
+    const items = (Array.isArray(draft.items) ? draft.items : []).map((rawItem) => {
+      const oldItem = rawItem && typeof rawItem === 'object' ? rawItem : {};
+      const { material, thicknessMm, grainDirection, edgeBand, edgeThickness, edgeMaterialType, edges, ...rest } = oldItem;
+      const originalEdgeCode = edgeCodeFromData(oldItem);
+      const rotateToGrain = grainDirection === 'width';
+      return {
+        ...rest,
+        materialId: getMaterialId(oldItem),
+        lengthMm: rotateToGrain ? oldItem.widthMm : oldItem.lengthMm,
+        widthMm: rotateToGrain ? oldItem.lengthMm : oldItem.widthMm,
+        edgeCode: rotateToGrain ? swapEdgeCode(originalEdgeCode) : originalEdgeCode,
+        edgeMaterialType: migrateEdgeMaterial(oldItem, originalEdgeCode)
+      };
+    });
+    if (draft.flow === 'manual' && !materialProfiles.length) {
+      const fallback = {
+        material: draft.fields?.manual_material || '',
+        thicknessMm: draft.fields?.manual_thickness || ''
+      };
+      getMaterialId(fallback);
     }
+    return { ...draft, schemaVersion: 3, materialProfiles, items };
+  }
+
+  function migrateDraft(draft) {
+    let migrated = draft;
+    if (migrated?.schemaVersion === 1) migrated = migrateV1ToV2(migrated);
+    if (migrated?.schemaVersion === 2) migrated = migrateV2ToV3(migrated);
+    return migrated;
+  }
+
+  function isValidDraft(draft) {
+    const updatedAt = Date.parse(draft?.updatedAt);
+    const validStep = Number.isInteger(Number(draft?.stepIndex))
+      && Number(draft.stepIndex) >= 0
+      && Number(draft.stepIndex) < (FLOW_STEPS[draft?.flow]?.length || 0);
+    const materials = draft?.materialProfiles;
+    const items = draft?.items;
+    const validMaterials = Array.isArray(materials)
+      && materials.every((material) => material && typeof material === 'object' && typeof material.id === 'string' && material.id.trim());
+    const uniqueMaterialIds = validMaterials && new Set(materials.map((material) => material.id)).size === materials.length;
+    const validItems = Array.isArray(items) && items.every((item) => item && typeof item === 'object');
+    const validManualCollections = draft?.flow !== 'manual' || (validMaterials && materials.length > 0 && validItems);
+    return Boolean(draft)
+      && draft.schemaVersion === 3
+      && Boolean(FLOW_STEPS[draft.flow])
+      && Number.isFinite(updatedAt)
+      && Date.now() - updatedAt <= DRAFT_MAX_AGE
+      && Date.now() >= updatedAt
+      && validStep
+      && validMaterials
+      && uniqueMaterialIds
+      && validItems
+      && validManualCollections;
+  }
+
+  function readDraft() {
+    for (const key of [DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const draft = migrateDraft(JSON.parse(raw));
+        if (!isValidDraft(draft)) {
+          localStorage.removeItem(key);
+          continue;
+        }
+        if (key !== DRAFT_KEY) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        localStorage.removeItem(V2_DRAFT_KEY);
+        localStorage.removeItem(V1_DRAFT_KEY);
+        return draft;
+      } catch (_) {
+        localStorage.removeItem(key);
+      }
+    }
+    return null;
   }
 
   function applyDraft(draft) {
+    form.reset();
+    files = { upload: [], help: [] };
     Object.entries(draft.fields || {}).forEach(([name, value]) => setFieldValue(name, value));
     document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
+    materialList.innerHTML = '';
     itemList.innerHTML = '';
-    (draft.items?.length ? draft.items : [{}]).forEach((item) => newItem(item));
+    const materialsToRestore = draft.materialProfiles?.length ? draft.materialProfiles : draft.flow === 'manual' ? [{}] : [];
+    const itemsToRestore = draft.items?.length ? draft.items : draft.flow === 'manual' ? [{ quantity: 1 }] : [];
+    materialsToRestore.forEach((material) => newMaterial(material));
+    itemsToRestore.forEach((item) => newItem(item));
     restoredFilesMeta = { upload: Array.isArray(draft.filesMeta?.upload) ? draft.filesMeta.upload : [], help: Array.isArray(draft.filesMeta?.help) ? draft.filesMeta.help : [] };
     renderFiles('upload');
     renderFiles('help');
@@ -757,7 +1053,8 @@
   document.querySelector('#restore-draft').addEventListener('click', () => applyDraft(restoredDraft));
   document.querySelector('#delete-draft').addEventListener('click', () => {
     localStorage.removeItem(DRAFT_KEY);
-    localStorage.removeItem(LEGACY_DRAFT_KEY);
+    localStorage.removeItem(V2_DRAFT_KEY);
+    localStorage.removeItem(V1_DRAFT_KEY);
     restoredDraft = null;
     draftBanner.classList.remove('visible');
   });
@@ -787,7 +1084,8 @@
     clearTimeout(saveTimer);
     saveTimer = null;
     localStorage.removeItem(DRAFT_KEY);
-    localStorage.removeItem(LEGACY_DRAFT_KEY);
+    localStorage.removeItem(V2_DRAFT_KEY);
+    localStorage.removeItem(V1_DRAFT_KEY);
     activeFlow = null;
     document.body.classList.remove('manual-workspace');
     wizard.classList.remove('active');
@@ -799,6 +1097,7 @@
   document.querySelector('#print-summary').addEventListener('click', () => window.print());
   document.querySelector('#new-request').addEventListener('click', () => {
     form.reset();
+    materialList.innerHTML = '';
     itemList.innerHTML = '';
     files = { upload: [], help: [] };
     restoredFilesMeta = { upload: [], help: [] };
