@@ -115,7 +115,7 @@ Az aktív lánc sorrendben:
 13. `20260914185201_hepa_customer_workflow_and_offer_templates.sql`
 14. `20260914230339_harden_quote_offer_delivery.sql`
 15. `20260915093719_add_quote_offer_delivery_tracking.sql`
-16. `20260915190513_add_cutting_quote_intake.sql`
+16. `20260915192823_add_cutting_quote_intake.sql`
 
 Az első és a hetedik fájl korábban közvetlenül létrehozott termelési objektumokat
 rögzít utólag. Az élő projekt migrációs előzményeiben alkalmazottként szerepelnek,
