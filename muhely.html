@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#10241d">
+  <meta name="referrer" content="no-referrer">
+  <title>HEPA Műhely · Ajánlatkérések</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="muhely.css">
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"
+    integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp"
+    crossorigin="anonymous"
+    defer
+  ></script>
+  <script src="muhely.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Ugrás a tartalomra</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <img src="hepa-logo-emblem.png" width="46" height="46" alt="">
+      <div>
+        <strong>HEPA Műhely</strong>
+        <span>Ajánlatkérések</span>
+      </div>
+    </div>
+    <div class="secure-label" aria-label="Védett munkafelület">
+      <span aria-hidden="true">●</span> Védett munkafelület
+    </div>
+  </header>
+
+  <main id="main-content" class="page-shell">
+    <div id="global-message" class="global-message" role="status" aria-live="polite" hidden></div>
+
+    <section id="loading-view" class="center-card" aria-labelledby="loading-title">
+      <div class="spinner" aria-hidden="true"></div>
+      <h1 id="loading-title">A Műhely betöltése…</h1>
+      <p>Biztonságos kapcsolat ellenőrzése.</p>
+    </section>
+
+    <section id="login-view" class="auth-layout" hidden>
+      <div class="auth-intro">
+        <p class="eyebrow">Belső használatra</p>
+        <h1>Minden érdeklődés egy helyen.</h1>
+        <p>A HEPA Műhelyben átláthatod a bútoros és lapszabászati ajánlatkéréseket, a szabászjegyzékeket és a következő teendőket.</p>
+        <ul class="feature-list">
+          <li>Lapszabászati tételek anyagonként csoportosítva</li>
+          <li>Kész méretek és élkódok változtatás nélkül</li>
+          <li>Kétlépcsős, hitelesítőalkalmazásos védelem</li>
+          <li>30 perc inaktivitás után automatikus kilépés</li>
+        </ul>
+      </div>
+
+      <div class="auth-card">
+        <p class="eyebrow">HEPA-admin</p>
+        <h2>Belépés a Műhelybe</h2>
+        <p class="muted">Kizárólag a HEPA által engedélyezett fiókkal használható.</p>
+        <form id="login-form" novalidate>
+          <label for="login-email">E-mail-cím</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" inputmode="email" aria-describedby="login-error" required>
+
+          <label for="login-password">Jelszó</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" aria-describedby="login-error" required>
+
+          <p id="login-error" class="form-error" role="alert" hidden></p>
+          <button id="login-button" class="button button-primary button-block" type="submit">Belépés</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="mfa-view" class="center-card auth-card mfa-card" hidden>
+      <p class="eyebrow">Második biztonsági lépés</p>
+
+      <div id="mfa-challenge-panel" hidden>
+        <h1>Írd be a 6 jegyű kódot</h1>
+        <p>Nyisd meg a telefonodon a hitelesítő alkalmazást, majd add meg a HEPA-fiók aktuális kódját.</p>
+        <form id="mfa-challenge-form" novalidate>
+          <label for="mfa-code">Hitelesítő kód</label>
+          <input id="mfa-code" class="code-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mfa-challenge-error" required>
+          <p id="mfa-challenge-error" class="form-error" role="alert" hidden></p>
+          <button id="mfa-verify-button" class="button button-primary button-block" type="submit">Ellenőrzés és belépés</button>
+        </form>
+      </div>
+
+      <div id="mfa-enroll-panel" hidden>
+        <h1>Biztonságos belépés beállítása</h1>
+        <p>A Műhely első használatához kapcsold össze a fiókot egy hitelesítő alkalmazással. Erre csak egyszer van szükség.</p>
+
+        <button id="mfa-enroll-start" class="button button-primary button-block" type="button">QR-kód megjelenítése</button>
+        <p id="mfa-enroll-error" class="form-error" role="alert" hidden></p>
+
+        <div id="mfa-enroll-details" class="enroll-details" hidden>
+          <img id="mfa-qr" class="qr-code" width="220" height="220" alt="A HEPA Műhely hitelesítő QR-kódja">
+          <p class="small muted">Olvasd be a QR-kódot Google Authenticator, Microsoft Authenticator vagy más TOTP alkalmazással.</p>
+          <details>
+            <summary>Nem tudom beolvasni a QR-kódot</summary>
+            <p class="small">A hitelesítő alkalmazásban válaszd a kézi beállítást, és add meg ezt a kulcsot:</p>
+            <code id="mfa-secret" class="secret-code"></code>
+          </details>
+          <form id="mfa-enroll-form" novalidate>
+            <label for="mfa-enroll-code">Az alkalmazás 6 jegyű kódja</label>
+            <input id="mfa-enroll-code" class="code-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" aria-describedby="mfa-enroll-error" required>
+            <button id="mfa-enroll-verify" class="button button-primary button-block" type="submit">Beállítás befejezése</button>
+          </form>
+        </div>
+      </div>
+
+      <button id="mfa-signout" class="button button-link" type="button">Kilépés</button>
+    </section>
+
+    <section id="denied-view" class="center-card" hidden>
+      <div class="state-icon" aria-hidden="true">!</div>
+      <h1>Nincs hozzáférésed ehhez a felülethez</h1>
+      <p>A belépett fiók nem szerepel a HEPA engedélyezett adminjai között.</p>
+      <button id="denied-signout" class="button button-primary" type="button">Vissza a belépéshez</button>
+    </section>
+
+    <section id="app-view" hidden>
+      <div class="workspace-topbar">
+        <div>
+          <p class="eyebrow">HEPA Műhely</p>
+          <h1 id="workspace-title">Ajánlatkérések</h1>
+        </div>
+        <div class="user-actions">
+          <span id="signed-in-user" class="signed-in-user"></span>
+          <button id="refresh-button" class="button button-secondary" type="button">Frissítés</button>
+          <button id="signout-button" class="button button-link" type="button">Kilépés</button>
+        </div>
+      </div>
+
+      <div id="list-view">
+        <div class="summary-grid" role="region" aria-label="Ajánlatkérések összesítése">
+          <article class="summary-card">
+            <span>Új</span>
+            <strong id="stat-new">0</strong>
+          </article>
+          <article class="summary-card">
+            <span>Árajánlatra vár</span>
+            <strong id="stat-needs-quote">0</strong>
+          </article>
+          <article class="summary-card summary-card-accent">
+            <span>Lapszabászat</span>
+            <strong id="stat-cutting">0</strong>
+          </article>
+          <article class="summary-card">
+            <span>Megrendelt</span>
+            <strong id="stat-ordered">0</strong>
+          </article>
+        </div>
+
+        <div class="list-panel">
+          <div class="list-tools">
+            <div class="search-field">
+              <label for="quote-search">Keresés</label>
+              <input id="quote-search" type="search" placeholder="Név, cég, e-mail vagy azonosító">
+            </div>
+            <div>
+              <label for="kind-filter">Típus</label>
+              <select id="kind-filter">
+                <option value="all">Minden ajánlatkérés</option>
+                <option value="cutting">Lapszabászat</option>
+                <option value="furniture">Bútorgyártás</option>
+              </select>
+            </div>
+            <div>
+              <label for="status-filter">Állapot</label>
+              <select id="status-filter">
+                <option value="all">Minden állapot</option>
+                <option value="new">Új</option>
+                <option value="needs_quote">Árajánlatra vár</option>
+                <option value="waiting">Válaszra vár</option>
+                <option value="ordered">Megrendelt</option>
+                <option value="closed">Lezárt</option>
+              </select>
+            </div>
+          </div>
+
+          <p id="result-count" class="list-result" role="status" aria-live="polite">0 találat</p>
+
+          <div id="list-loading" class="inline-loading" hidden>
+            <span class="spinner spinner-small" aria-hidden="true"></span>
+            Ajánlatkérések betöltése…
+          </div>
+
+          <div id="quote-table-wrap" class="table-wrap">
+            <table class="quote-table">
+              <caption class="visually-hidden">Beérkezett ajánlatkérések</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Érkezett</th>
+                  <th scope="col">Ügyfél</th>
+                  <th scope="col">Típus</th>
+                  <th scope="col">Kapcsolat</th>
+                  <th scope="col">Állapot</th>
+                  <th scope="col"><span class="visually-hidden">Megnyitás</span></th>
+                </tr>
+              </thead>
+              <tbody id="quote-list-body"></tbody>
+            </table>
+          </div>
+
+          <div id="quote-card-list" class="quote-card-list"></div>
+
+          <div id="empty-list" class="empty-state" hidden>
+            <div class="state-icon state-icon-light" aria-hidden="true">⌕</div>
+            <h2>Nincs ilyen ajánlatkérés</h2>
+            <p>Módosítsd a keresést vagy a szűrőket.</p>
+          </div>
+
+          <p class="list-footnote">A lista a legutóbbi 100 ajánlatkérést mutatja.</p>
+        </div>
+      </div>
+
+      <div id="detail-view" hidden>
+        <button id="back-to-list" class="button button-link back-button" type="button">← Vissza az ajánlatkérésekhez</button>
+        <div id="detail-loading" class="center-card compact-card">
+          <div class="spinner" aria-hidden="true"></div>
+          <h2>Ajánlatkérés betöltése…</h2>
+        </div>
+        <div id="detail-content" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>HEPA-CONSTRUCT Kft.</span>
+    <span>Hétfő–péntek 7:00–16:00</span>
+  </footer>
+</body>
+</html>

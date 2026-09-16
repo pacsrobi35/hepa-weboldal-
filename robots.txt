@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /muhely
+Disallow: /muhely.html
 
 Sitemap: https://hepabutor.hu/sitemap.xml
