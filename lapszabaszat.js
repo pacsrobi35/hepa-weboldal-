@@ -6,12 +6,12 @@
   const V2_DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
   const V1_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
   const DRAFT_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+  const SUBMIT_ENDPOINT = 'https://torczkyodukcvxwzutgf.supabase.co/functions/v1/submit-cutting-quote-request';
   const MAX_FILES = 5;
   const MAX_FILE_SIZE = 6 * 1024 * 1024;
   const MAX_TOTAL_FILE_SIZE = 15 * 1024 * 1024;
-  const SUBMISSION_TIMEOUT_MS = 60 * 1000;
-  const SUBMISSION_ENDPOINT = 'https://torczkyodukcvxwzutgf.supabase.co/functions/v1/submit-cutting-quote-request';
-  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const MAX_MATERIALS = 50;
+  const MAX_ITEMS = 500;
   const FLOW_STEPS = {
     upload: ['details', 'logistics', 'contact', 'review'],
     manual: ['items', 'logistics', 'contact', 'review'],
@@ -86,6 +86,7 @@
   const itemSummary = document.querySelector('#items-summary');
   const draftBanner = document.querySelector('#draft-banner');
   const draftTime = document.querySelector('#draft-time');
+  const submitFeedback = document.querySelector('#submit-feedback');
 
   let activeFlow = null;
   let stepIndex = 0;
@@ -95,9 +96,8 @@
   let restoredDraft = null;
   let files = { upload: [], help: [] };
   let restoredFilesMeta = { upload: [], help: [] };
-  let submissionToken = crypto.randomUUID();
+  let submissionToken = createSubmissionToken();
   let isSubmitting = false;
-  let submissionAttempted = false;
 
   const menuButton = document.querySelector('.menu-toggle');
   const menu = document.querySelector('.main-nav');
@@ -154,11 +154,79 @@
     });
   }
 
+  function createSubmissionToken(cryptoProvider = globalThis.crypto) {
+    if (typeof cryptoProvider?.randomUUID === 'function') return cryptoProvider.randomUUID();
+    const bytes = new Uint8Array(16);
+    if (typeof cryptoProvider?.getRandomValues === 'function') cryptoProvider.getRandomValues(bytes);
+    else bytes.forEach((_, index) => { bytes[index] = Math.floor(Math.random() * 256); });
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cleanText(value));
+  }
+
+  function fileExtension(fileName) {
+    const parts = String(fileName || '').toLowerCase().split('.');
+    return parts.length > 1 ? parts.at(-1) : '';
+  }
+
   function allowedFile(file, flow) {
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
     const uploadExtensions = ['xlsx', 'csv', 'pdf', 'jpg', 'jpeg', 'png'];
     const helpExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-    return (flow === 'upload' ? uploadExtensions : helpExtensions).includes(extension);
+    return (flow === 'upload' ? uploadExtensions : helpExtensions).includes(fileExtension(file?.name));
+  }
+
+  function validateFileBatch(existingFiles, incomingFiles, flow) {
+    const accepted = [];
+    const messages = [];
+    let totalSize = existingFiles.reduce((sum, file) => sum + Number(file.size || 0), 0);
+    let countLimitReported = false;
+
+    incomingFiles.forEach((file) => {
+      if (!allowedFile(file, flow)) {
+        messages.push(`${file.name}: nem támogatott formátum.`);
+        return;
+      }
+      if (!file.size) {
+        messages.push(`${file.name}: a fájl üres.`);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        messages.push(`${file.name}: nagyobb 6 MB-nál.`);
+        return;
+      }
+      if (existingFiles.length + accepted.length >= MAX_FILES) {
+        if (!countLimitReported) messages.push(`Legfeljebb ${MAX_FILES} fájl választható.`);
+        countLimitReported = true;
+        return;
+      }
+      if (totalSize + file.size > MAX_TOTAL_FILE_SIZE) {
+        messages.push(`${file.name}: ezzel a mellékletek összmérete meghaladná a 15 MB-ot.`);
+        return;
+      }
+      accepted.push(file);
+      totalSize += file.size;
+    });
+
+    return { accepted, messages };
+  }
+
+  function validateAttachmentSet(selectedFiles, flow, required = false) {
+    const errors = [];
+    if (required && !selectedFiles.length) errors.push('Válasszon ki legalább egy szabászjegyzéket.');
+    if (selectedFiles.length > MAX_FILES) errors.push(`Legfeljebb ${MAX_FILES} fájl küldhető.`);
+    selectedFiles.forEach((file) => {
+      if (!allowedFile(file, flow)) errors.push(`${file.name}: nem támogatott formátum.`);
+      else if (!file.size) errors.push(`${file.name}: a fájl üres.`);
+      else if (file.size > MAX_FILE_SIZE) errors.push(`${file.name}: nagyobb 6 MB-nál.`);
+    });
+    const totalSize = selectedFiles.reduce((sum, file) => sum + Number(file.size || 0), 0);
+    if (totalSize > MAX_TOTAL_FILE_SIZE) errors.push('A mellékletek összmérete nem lehet több 15 MB-nál.');
+    return errors;
   }
 
   function renderFiles(flow, restoredMeta = restoredFilesMeta[flow]) {
@@ -181,28 +249,9 @@
   function addFiles(flow, incoming) {
     const error = document.querySelector(`#${flow}-files-error`);
     if (error) error.textContent = '';
-    const accepted = [];
-    const messages = [];
-    [...incoming].forEach((file) => {
-      if (!allowedFile(file, flow)) messages.push(`${file.name}: nem támogatott formátum.`);
-      else if (file.size === 0) messages.push(`${file.name}: a fájl üres.`);
-      else if (file.size > MAX_FILE_SIZE) messages.push(`${file.name}: nagyobb 6 MB-nál.`);
-      else accepted.push(file);
-    });
-    const withinTotalLimit = [];
-    let totalSize = files[flow].reduce((sum, file) => sum + file.size, 0);
-    accepted.forEach((file) => {
-      if (totalSize + file.size > MAX_TOTAL_FILE_SIZE) {
-        messages.push(`${file.name}: a csatolmányok együtt legfeljebb 15 MB méretűek lehetnek.`);
-        return;
-      }
-      withinTotalLimit.push(file);
-      totalSize += file.size;
-    });
-    const slots = Math.max(0, MAX_FILES - files[flow].length);
-    if (withinTotalLimit.length > slots) messages.push(`Legfeljebb ${MAX_FILES} fájl választható.`);
-    if (withinTotalLimit.length) restoredFilesMeta[flow] = [];
-    files[flow].push(...withinTotalLimit.slice(0, slots));
+    const { accepted, messages } = validateFileBatch(files[flow], [...incoming], flow);
+    if (accepted.length) restoredFilesMeta[flow] = [];
+    files[flow].push(...accepted);
     if (error) error.textContent = messages.join(' ');
     renderFiles(flow);
     queueSave();
@@ -231,6 +280,8 @@
     if (!remove) return;
     const flow = remove.dataset.removeFile;
     files[flow].splice(Number(remove.dataset.fileIndex), 1);
+    const error = document.querySelector(`#${flow}-files-error`);
+    if (error) error.textContent = '';
     renderFiles(flow);
     queueSave();
   });
@@ -440,7 +491,6 @@
     const preview = card.querySelector('.edge-row-preview');
     if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
     const control = card.querySelector('[data-item-field="edgeMaterialType"]');
-    if (explicitlyNoEdge) control.value = '';
     control.required = hasEdge;
     control.disabled = explicitlyNoEdge;
     if (hasEdge) control.setAttribute('aria-required', 'true');
@@ -564,12 +614,17 @@
 
   function validateDetails(errors) {
     if (activeFlow === 'upload') {
-      if (!files.upload.length) addError(errors, 'upload-files', 'Válasszon ki legalább egy szabászjegyzéket.', 'upload-files-error');
+      const fileErrors = validateAttachmentSet(files.upload, 'upload', true);
+      if (fileErrors.length) addError(errors, 'upload-files', fileErrors.join(' '), 'upload-files-error');
+      else document.querySelector('#upload-files-error').textContent = '';
       if (!fieldValue('upload_material_source')) addError(errors, 'upload-source-hepa', 'Jelölje meg, honnan legyen az anyag.', 'upload-material-source-error');
       const uploadThickness = fieldValue('upload_thickness');
       if (uploadThickness && (Number(uploadThickness) < 1 || Number(uploadThickness) > 100)) addError(errors, 'upload-thickness', 'Adjon meg 1 és 100 mm közötti vastagságot.');
     }
     if (activeFlow === 'help') {
+      const fileErrors = validateAttachmentSet(files.help, 'help');
+      if (fileErrors.length) addError(errors, 'help-files', fileErrors.join(' '), 'help-files-error');
+      else document.querySelector('#help-files-error').textContent = '';
       if (!fieldValue('help_topics').length) addError(errors, 'help-material', 'Válasszon legalább egy témát.', 'help-topics-error');
       const description = fieldValue('help_description');
       if (description.length < 20) addError(errors, 'help-description', 'Írja le legalább 20 karakterben, miben kér segítséget.');
@@ -581,6 +636,7 @@
     const materialCards = [...materialList.querySelectorAll('.material-card')];
     const seenMaterialPairs = new Set();
     if (!materialCards.length) errors.push({ id: 'add-material', message: 'Vegyen fel legalább egy anyagot.' });
+    if (materialCards.length > MAX_MATERIALS) errors.push({ id: 'add-material', message: `Legfeljebb ${MAX_MATERIALS} különböző anyag adható meg.` });
     materialCards.forEach((card, index) => {
       const material = readMaterial(card);
       const messages = [];
@@ -614,6 +670,7 @@
       errors.push({ id: 'add-item', message: 'Vegyen fel legalább egy tételt.' });
       return;
     }
+    if (cards.length > MAX_ITEMS) errors.push({ id: 'add-item', message: `Legfeljebb ${MAX_ITEMS} tételsor adható meg.` });
     cards.forEach((card, index) => {
       const item = readItem(card);
       const messages = [];
@@ -649,7 +706,7 @@
   function validateLogistics(errors) {
     const fulfillment = fieldValue('fulfillment');
     if (!fulfillment) addError(errors, 'fulfillment-pickup', 'Válassza ki az átvétel módját.', 'fulfillment-error');
-    if (fulfillment === 'delivery' && !/^[1-9]\d{3}$/.test(fieldValue('postal_code'))) addError(errors, 'postal-code', 'Adjon meg érvényes, 4 számjegyű irányítószámot.');
+    if (fulfillment === 'delivery' && !/^[1-9]\d{3}$/.test(fieldValue('postal_code'))) addError(errors, 'postal-code', 'Adjon meg érvényes, 4 számjegyű magyar irányítószámot.');
     const target = fieldValue('target_date');
     if (target) {
       const selected = new Date(`${target}T12:00:00`);
@@ -660,13 +717,15 @@
 
   function validateContact(errors) {
     const name = fieldValue('customer_name');
+    const companyName = fieldValue('company_name');
     const email = fieldValue('customer_email');
     const phone = fieldValue('customer_phone');
     const phoneDigits = phone.replace(/\D/g, '');
-    const compactPhone = phone.replace(/[\s().\/-]/g, '');
+    const compactPhone = phone.replace(/[\s()./-]/g, '');
     if (name.length < 2) addError(errors, 'customer-name', 'Adja meg a nevét legalább 2 karakterben.');
+    if (companyName && companyName.length < 2) addError(errors, 'company-name', 'A cégnév legalább 2 karakter legyen.');
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) addError(errors, 'customer-email', 'Adjon meg érvényes e-mail címet.');
-    if (phone && (!/^\+?\d+$/.test(compactPhone) || phoneDigits.length < 7 || phoneDigits.length > 15)) addError(errors, 'customer-phone', 'Adjon meg érvényes telefonszámot.');
+    if (phone && (!/^\+?\d+$/.test(compactPhone) || phoneDigits.length < 7 || phoneDigits.length > 15)) addError(errors, 'customer-phone', 'Adjon meg érvényes telefonszámot, betűk nélkül.');
     if (!email && !phone) {
       addError(errors, 'customer-email', 'Az e-mail vagy a telefonszám közül legalább az egyik szükséges.');
       addError(errors, 'customer-phone', 'Az e-mail vagy a telefonszám közül legalább az egyik szükséges.');
@@ -677,6 +736,158 @@
     if ((email || phone) && preferred === 'email' && !email) addError(errors, 'customer-email', 'E-mailes kapcsolattartáshoz adja meg az e-mail címét.');
     if ((email || phone) && preferred === 'phone' && !phone) addError(errors, 'customer-phone', 'Telefonos kapcsolattartáshoz adja meg a telefonszámát.');
     if (!document.querySelector('#privacy-consent').checked) addError(errors, 'privacy-consent', 'Az ajánlatkéréshez el kell fogadnia az adatkezelési tájékoztatót.');
+  }
+
+  function cleanText(value) {
+    return String(value ?? '').trim();
+  }
+
+  function optionalNumber(value) {
+    const normalized = cleanText(value).replace(',', '.');
+    if (!normalized) return null;
+    const number = Number(normalized);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function resolvePreferredContact(email, phone, preferredContact) {
+    if (email && !phone) return 'email';
+    if (phone && !email) return 'phone';
+    return preferredContact === 'phone' ? 'phone' : 'email';
+  }
+
+  function buildSubmissionPayload({ flow, fields, materials = [], items = [] }) {
+    const email = cleanText(fields.customer_email);
+    const phone = cleanText(fields.customer_phone);
+    const payload = {
+      schemaVersion: 1,
+      flow,
+      sizeBasis: 'finished',
+      contact: {
+        name: cleanText(fields.customer_name),
+        companyName: cleanText(fields.company_name),
+        email,
+        phone,
+        preferredContact: resolvePreferredContact(email, phone, fields.preferred_contact)
+      },
+      privacyConsent: Boolean(fields.privacy_consent),
+      details: null,
+      logistics: null
+    };
+
+    if (flow === 'manual') {
+      payload.details = {
+        sizeBasis: 'finished',
+        materialSource: cleanText(fields.manual_material_source),
+        materials: materials.map((material, index) => ({
+          clientId: cleanText(material.id),
+          name: cleanText(material.name),
+          thicknessMm: Number(canonicalThickness(material.thicknessMm)),
+          displayOrder: index + 1
+        })),
+        items: items.map((item, index) => ({
+          materialClientId: cleanText(item.materialId),
+          name: cleanText(item.name),
+          lengthMm: Number(item.lengthMm),
+          widthMm: Number(item.widthMm),
+          quantity: Number(item.quantity),
+          edgeCode: cleanText(item.edgeCode),
+          edgeMaterialType: item.edgeCode === '0-0' ? null : cleanText(item.edgeMaterialType),
+          note: cleanText(item.note),
+          displayOrder: index + 1
+        }))
+      };
+    } else if (flow === 'upload') {
+      payload.details = {
+        sizeBasis: 'finished',
+        materialSource: cleanText(fields.upload_material_source),
+        materialHint: cleanText(fields.upload_material),
+        thicknessMm: optionalNumber(fields.upload_thickness),
+        note: cleanText(fields.upload_note)
+      };
+    } else if (flow === 'help') {
+      payload.details = {
+        topics: Array.isArray(fields.help_topics) ? fields.help_topics.map(cleanText).filter(Boolean) : [],
+        description: cleanText(fields.help_description)
+      };
+    }
+
+    if (flow !== 'help') {
+      payload.logistics = {
+        fulfillment: cleanText(fields.fulfillment),
+        postalCode: fields.fulfillment === 'delivery' ? cleanText(fields.postal_code) : '',
+        targetDate: cleanText(fields.target_date),
+        note: cleanText(fields.project_note)
+      };
+    }
+
+    return payload;
+  }
+
+  function parseRetryAfter(value, now = Date.now()) {
+    const raw = cleanText(value);
+    if (!raw) return null;
+    const seconds = Number(raw);
+    if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+    const retryAt = Date.parse(raw);
+    if (!Number.isFinite(retryAt)) return null;
+    return Math.max(0, Math.ceil((retryAt - now) / 1000));
+  }
+
+  function retryDelayText(seconds) {
+    if (!Number.isFinite(seconds)) return '';
+    if (seconds < 60) return `${Math.max(1, seconds)} másodperc múlva`;
+    return `${Math.ceil(seconds / 60)} perc múlva`;
+  }
+
+  function submissionErrorMessage(status, responseBody, retryAfterHeader) {
+    const code = cleanText(responseBody?.code);
+    const wait = retryDelayText(parseRetryAfter(retryAfterHeader));
+    if (status === 409 || code === 'submission-token-conflict') {
+      return 'A beküldés azonosítója már egy másik ajánlatkéréshez tartozik. Új azonosítót készítettünk; kérjük, próbálja meg ismét.';
+    }
+    if (status === 429) {
+      return wait
+        ? `Rövid időn belül túl sok beküldési kísérlet érkezett. Kérjük, próbálja újra ${wait}.`
+        : 'Rövid időn belül túl sok beküldési kísérlet érkezett. Kérjük, várjon egy kicsit, majd próbálja újra.';
+    }
+    if (status === 503) {
+      return wait
+        ? `Az ajánlatkérő átmenetileg nem érhető el. Kérjük, próbálja újra ${wait}.`
+        : 'Az ajánlatkérő átmenetileg nem érhető el. Kérjük, próbálja újra néhány perc múlva.';
+    }
+    if (status === 413) return 'A mellékletek mérete túl nagy. Fájlonként legfeljebb 6 MB, összesen legfeljebb 15 MB küldhető.';
+    if (status === 415) return 'Az egyik melléklet formátumát nem tudjuk fogadni. Kérjük, ellenőrizze a kiválasztott fájlokat.';
+    if (status === 400 && code === 'validation-failed' && cleanText(responseBody?.error)) return cleanText(responseBody.error).slice(0, 500);
+    if (status >= 400 && status < 500) return 'Az ajánlatkérést nem sikerült elküldeni. Kérjük, ellenőrizze a megadott adatokat és próbálja újra.';
+    return 'Az ajánlatkérést most nem sikerült elküldeni. Az adatai megmaradtak; kérjük, próbálja újra néhány perc múlva.';
+  }
+
+  function collectSubmissionFields() {
+    return {
+      customer_name: fieldValue('customer_name'),
+      company_name: fieldValue('company_name'),
+      customer_email: fieldValue('customer_email'),
+      customer_phone: fieldValue('customer_phone'),
+      preferred_contact: fieldValue('preferred_contact'),
+      privacy_consent: document.querySelector('#privacy-consent').checked,
+      manual_material_source: fieldValue('manual_material_source'),
+      upload_material_source: fieldValue('upload_material_source'),
+      upload_material: fieldValue('upload_material'),
+      upload_thickness: fieldValue('upload_thickness'),
+      upload_note: fieldValue('upload_note'),
+      help_topics: fieldValue('help_topics'),
+      help_description: fieldValue('help_description'),
+      fulfillment: fieldValue('fulfillment'),
+      postal_code: fieldValue('postal_code'),
+      target_date: fieldValue('target_date'),
+      project_note: fieldValue('project_note')
+    };
+  }
+
+  function setSubmitFeedback(message = '', tone = 'info') {
+    submitFeedback.textContent = message;
+    submitFeedback.className = `submit-feedback ${tone}`;
+    submitFeedback.hidden = !message;
   }
 
   function validateStep(step, show = true) {
@@ -781,7 +992,6 @@
     ]));
     review.innerHTML = cards.join('');
     review.querySelectorAll('[data-edit-step]').forEach((button) => button.addEventListener('click', () => {
-      if (isSubmitting) return;
       const targetIndex = FLOW_STEPS[activeFlow].indexOf(button.dataset.editStep);
       if (targetIndex >= 0) { stepIndex = targetIndex; updateStep(); }
     }));
@@ -813,6 +1023,7 @@
 
   function startFlow(flow, draft = null) {
     if (!FLOW_STEPS[flow]) return;
+    setSubmitFeedback();
     activeFlow = flow;
     const requestedStep = Number(draft?.stepIndex);
     stepIndex = Number.isInteger(requestedStep) && requestedStep >= 0 && requestedStep < FLOW_STEPS[flow].length ? requestedStep : 0;
@@ -836,6 +1047,7 @@
     }
     wizard.classList.remove('active');
     successPanel.classList.remove('active');
+    setSubmitFeedback();
     flowChoice.style.display = 'block';
     document.body.classList.remove('manual-workspace');
     activeFlow = null;
@@ -855,7 +1067,6 @@
     else { stepIndex -= 1; updateStep(); }
   });
   nextButton.addEventListener('click', () => {
-    if (isSubmitting) return;
     const step = FLOW_STEPS[activeFlow][stepIndex];
     if (validateStep(step).length) return;
     stepIndex += 1;
@@ -881,9 +1092,9 @@
     });
     return {
       schemaVersion: 4,
-      submissionToken,
       flow: activeFlow,
       stepIndex,
+      submissionToken,
       fields,
       materialProfiles: readMaterials(),
       items: readItems(),
@@ -910,10 +1121,6 @@
   }
 
   function queueSave() {
-    if (submissionAttempted && !isSubmitting) {
-      submissionToken = crypto.randomUUID();
-      submissionAttempted = false;
-    }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveDraft, 600);
   }
@@ -1071,9 +1278,7 @@
   function applyDraft(draft) {
     form.reset();
     files = { upload: [], help: [] };
-    submissionToken = typeof draft.submissionToken === 'string' && UUID_PATTERN.test(draft.submissionToken)
-      ? draft.submissionToken
-      : crypto.randomUUID();
+    submissionToken = isUuid(draft.submissionToken) ? draft.submissionToken : createSubmissionToken();
     Object.entries(draft.fields || {}).forEach(([name, value]) => {
       if (name === 'manual_size_basis' || name === 'upload_size_basis') return;
       setFieldValue(name, value);
@@ -1111,104 +1316,58 @@
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);
     restoredDraft = null;
+    submissionToken = createSubmissionToken();
     draftBanner.classList.remove('visible');
   });
 
-  function buildLogisticsPayload() {
-    const fulfillment = fieldValue('fulfillment');
-    return {
-      fulfillment,
-      postalCode: fulfillment === 'delivery' ? fieldValue('postal_code') : null,
-      targetDate: fieldValue('target_date') || null,
-      note: fieldValue('project_note') || null
-    };
+  function clearDraftStorage() {
+    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V3_DRAFT_KEY);
+    localStorage.removeItem(V2_DRAFT_KEY);
+    localStorage.removeItem(V1_DRAFT_KEY);
   }
 
-  function buildSubmissionPayload() {
-    const contact = {
-      name: fieldValue('customer_name'),
-      companyName: fieldValue('company_name') || null,
-      email: fieldValue('customer_email').toLowerCase() || null,
-      phone: fieldValue('customer_phone') || null,
-      preferredContact: fieldValue('preferred_contact')
-    };
+  function buildMultipartBody(payload, token, honeypotValue, attachments) {
+    const body = new FormData();
+    body.append('payload', JSON.stringify(payload));
+    body.append('submission_token', token);
+    body.append('company_website', cleanText(honeypotValue));
+    attachments.forEach((file) => body.append('attachments', file, file.name));
+    return body;
+  }
 
-    if (activeFlow === 'manual') {
-      return {
-        schemaVersion: 1,
-        flow: 'manual',
-        contact,
-        privacyConsent: document.querySelector('#privacy-consent').checked,
-        details: {
-          materialSource: fieldValue('manual_material_source'),
-          sizeBasis: 'finished',
-          materials: readMaterials().map((material, index) => ({
-            position: index + 1,
-            clientId: material.id,
-            name: material.name,
-            thicknessMm: Number(material.thicknessMm)
-          })),
-          items: readItems().map((item, index) => ({
-            position: index + 1,
-            materialClientId: item.materialId,
-            name: item.name || null,
-            lengthMm: Number(item.lengthMm),
-            widthMm: Number(item.widthMm),
-            quantity: Number(item.quantity),
-            edgeCode: item.edgeCode,
-            edgeMaterialType: item.edgeCode === '0-0' ? null : item.edgeMaterialType,
-            note: item.note || null
-          }))
-        },
-        logistics: buildLogisticsPayload()
-      };
+  async function readJsonResponse(response) {
+    try {
+      return await response.json();
+    } catch (_) {
+      return null;
     }
-
-    if (activeFlow === 'upload') {
-      const rawThickness = fieldValue('upload_thickness');
-      const parsedThickness = Number(rawThickness);
-      return {
-        schemaVersion: 1,
-        flow: 'upload',
-        contact,
-        privacyConsent: document.querySelector('#privacy-consent').checked,
-        details: {
-          materialSource: fieldValue('upload_material_source'),
-          sizeBasis: 'finished',
-          materialHint: fieldValue('upload_material') || null,
-          thicknessMm: Number.isFinite(parsedThickness) && parsedThickness > 0 ? parsedThickness : null,
-          note: fieldValue('upload_note') || null
-        },
-        logistics: buildLogisticsPayload()
-      };
-    }
-
-    return {
-      schemaVersion: 1,
-      flow: 'help',
-      contact,
-      privacyConsent: document.querySelector('#privacy-consent').checked,
-      details: {
-        topics: fieldValue('help_topics'),
-        description: fieldValue('help_description')
-      },
-      logistics: null
-    };
   }
 
-  function activeAttachments() {
-    if (activeFlow === 'upload') return files.upload;
-    if (activeFlow === 'help') return files.help;
-    return [];
+  function setSubmitting(submitting) {
+    isSubmitting = submitting;
+    form.setAttribute('aria-busy', String(submitting));
+    submitButton.disabled = submitting;
+    backButton.disabled = submitting;
+    document.querySelector('#change-flow').disabled = submitting;
+    submitButton.textContent = submitting ? 'Küldés folyamatban…' : 'Ajánlatkérés elküldése';
   }
 
-  function submissionErrorMessage(error, status) {
-    if (typeof error === 'string' && error.trim()) return error.trim();
-    if (status === 413) return 'A csatolmányok összmérete túl nagy.';
-    if (status === 429) return 'Túl sok próbálkozás érkezett. Kérjük, próbálja újra 10 perc múlva.';
-    if (status === 409) return 'A korábbi beküldés feldolgozása még folyamatban van. Kérjük, próbálja újra néhány másodperc múlva.';
-    if (status >= 500) return 'A szolgáltatás átmenetileg nem érhető el. Az adatai megmaradtak; kérjük, próbálja újra.';
-    return 'Az ajánlatkérés elküldése nem sikerült. Kérjük, ellenőrizze az adatokat és próbálja újra.';
+  function showSuccessfulSubmission(reference, reviewHtml) {
+    document.querySelector('#submission-reference').textContent = reference;
+    document.querySelector('#success-review').innerHTML = reviewHtml;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    clearDraftStorage();
+    restoredDraft = null;
+    submissionToken = createSubmissionToken();
+    activeFlow = null;
+    document.body.classList.remove('manual-workspace');
+    wizard.classList.remove('active');
+    successPanel.classList.add('active');
+    history.replaceState(null, '', location.pathname);
+    successPanel.focus();
+    window.scrollTo({ top: document.querySelector('.form-card').offsetTop - 100, behavior: 'smooth' });
   }
 
   form.addEventListener('submit', async (event) => {
@@ -1228,87 +1387,53 @@
         return;
       }
     }
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    saveDraft();
 
-    const attachments = activeAttachments();
-    const totalSize = attachments.reduce((sum, file) => sum + file.size, 0);
-    if (totalSize > MAX_TOTAL_FILE_SIZE) {
-      showErrors([{ id: 'submit-button', message: 'A csatolmányok együtt legfeljebb 15 MB méretűek lehetnek.' }]);
-      return;
-    }
+    const flowAtSubmission = activeFlow;
+    const payload = buildSubmissionPayload({
+      flow: flowAtSubmission,
+      fields: collectSubmissionFields(),
+      materials: flowAtSubmission === 'manual' ? readMaterials() : [],
+      items: flowAtSubmission === 'manual' ? readItems() : []
+    });
+    const attachments = flowAtSubmission === 'upload' ? files.upload : flowAtSubmission === 'help' ? files.help : [];
+    const multipartBody = buildMultipartBody(payload, submissionToken, fieldValue('company_website'), attachments);
+    const reviewHtml = document.querySelector('#review-list').innerHTML;
 
-    clearErrors();
-    isSubmitting = true;
-    submissionAttempted = true;
-    form.setAttribute('aria-busy', 'true');
-    const originalSubmitLabel = submitButton.textContent;
-    const lockedControls = [...form.querySelectorAll('input, select, textarea, button')]
-      .filter((control) => !control.disabled);
-    lockedControls.forEach((control) => { control.disabled = true; });
-    submitButton.textContent = 'Küldés folyamatban…';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SUBMISSION_TIMEOUT_MS);
-
+    setSubmitFeedback('Az ajánlatkérés küldése folyamatban van…', 'info');
+    setSubmitting(true);
     try {
-      const body = new FormData();
-      body.append('submission_token', submissionToken);
-      body.append('company_website', fieldValue('company_website'));
-      body.append('payload', JSON.stringify(buildSubmissionPayload()));
-      attachments.forEach((file) => body.append('attachments', file, file.name));
-
-      const response = await fetch(SUBMISSION_ENDPOINT, {
+      const response = await fetch(SUBMIT_ENDPOINT, {
         method: 'POST',
-        body,
-        signal: controller.signal
+        headers: { Accept: 'application/json' },
+        body: multipartBody
       });
-      let result = null;
-      try {
-        result = await response.json();
-      } catch (_) {
-        result = null;
+      const responseBody = await readJsonResponse(response);
+      const reference = cleanText(responseBody?.reference);
+      if (!response.ok || responseBody?.ok !== true || !reference) {
+        if (response.status === 409 || responseBody?.code === 'submission-token-conflict') {
+          submissionToken = createSubmissionToken();
+          saveDraft();
+        }
+        const message = submissionErrorMessage(response.status || 500, responseBody, response.headers.get('Retry-After'));
+        setSubmitFeedback(message, 'error');
+        submitFeedback.focus();
+        return;
       }
-
-      if (!response.ok || result?.ok !== true || !result?.reference) {
-        throw Object.assign(new Error(submissionErrorMessage(result?.error, response.status)), {
-          isSubmissionError: true
-        });
-      }
-
-      document.querySelector('#request-reference').textContent = result.reference;
-      document.querySelector('#success-review').innerHTML = document.querySelector('#review-list').innerHTML;
-      clearTimeout(saveTimer);
-      saveTimer = null;
-      localStorage.removeItem(DRAFT_KEY);
-      localStorage.removeItem(V3_DRAFT_KEY);
-      localStorage.removeItem(V2_DRAFT_KEY);
-      localStorage.removeItem(V1_DRAFT_KEY);
-      activeFlow = null;
-      document.body.classList.remove('manual-workspace');
-      wizard.classList.remove('active');
-      successPanel.classList.add('active');
-      successPanel.focus();
-      window.scrollTo({ top: document.querySelector('.form-card').offsetTop - 100, behavior: 'smooth' });
-    } catch (error) {
-      const message = error?.name === 'AbortError'
-        ? 'A küldés túllépte az időkorlátot. Az adatai megmaradtak; kérjük, próbálja újra.'
-        : error?.isSubmissionError
-          ? error.message
-          : 'Hálózati hiba történt. Az adatai megmaradtak; kérjük, próbálja újra.';
-      showErrors([{ id: 'submit-button', message }]);
-      saveDraft();
+      showSuccessfulSubmission(reference, reviewHtml);
+    } catch (_) {
+      setSubmitFeedback('Nem sikerült kapcsolódni az ajánlatkérőhöz. Az adatai megmaradtak; ellenőrizze az internetkapcsolatát, majd próbálja újra.', 'error');
+      submitFeedback.focus();
     } finally {
-      clearTimeout(timeout);
-      isSubmitting = false;
-      form.removeAttribute('aria-busy');
-      lockedControls.forEach((control) => { control.disabled = false; });
-      submitButton.textContent = originalSubmitLabel;
+      setSubmitting(false);
     }
   });
 
   document.querySelector('#print-summary').addEventListener('click', () => window.print());
   document.querySelector('#new-request').addEventListener('click', () => {
     form.reset();
-    submissionToken = crypto.randomUUID();
-    submissionAttempted = false;
     materialList.innerHTML = '';
     itemList.innerHTML = '';
     files = { upload: [], help: [] };
@@ -1317,6 +1442,9 @@
     document.querySelector('#postcode-field').hidden = true;
     document.querySelector('#postal-code').required = false;
     document.querySelector('#success-review').innerHTML = '';
+    document.querySelector('#submission-reference').textContent = '';
+    submissionToken = createSubmissionToken();
+    setSubmitFeedback();
     returnToChoice();
   });
 

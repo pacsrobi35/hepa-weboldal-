@@ -12,7 +12,7 @@
 </head>
 <body class="form-page">
   <a class="skip-link" href="#main-content">Ugrás a fő tartalomra</a>
-  <div class="preview-bar">Fejlesztési előnézet · a beküldés valódi, tesztként jelölt ajánlatkérést rögzít</div>
+  <div class="preview-bar">Működő fejlesztési demó · a beküldés nem küld valódi adatot</div>
 
   <header class="site-header">
     <div class="header-inner">
@@ -100,7 +100,7 @@
           </div>
 
           <form id="cutting-form" novalidate>
-            <div class="website-field" aria-hidden="true">
+            <div class="website-trap" aria-hidden="true">
               <label for="company-website">Weboldal</label>
               <input id="company-website" name="company_website" type="text" tabindex="-1" autocomplete="off">
             </div>
@@ -114,11 +114,11 @@
                 <div class="flow-panel" data-flow-panel="upload">
                   <p class="eyebrow">A lista és az anyag</p>
                   <h2 id="upload-details-title" tabindex="-1">Töltse fel a szabászjegyzéket</h2>
-                  <p class="step-lead">Elfogadott formátum: Excel, CSV, PDF vagy jól olvasható kép. Ha más formátuma van, akkor is kérhet segítséget.</p>
+                  <p class="step-lead">XLSX- vagy CSV-táblázatot, PDF-et, illetve jól olvasható képet is fogadunk. Ha más formátuma van, akkor is kérhet segítséget.</p>
 
                   <div class="drop-zone" id="upload-drop-zone">
                     <strong>Húzza ide a fájlokat</strong>
-                    <p>XLSX, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB · összesen max. 15 MB</p>
+                    <p>XLSX, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB, összesen max. 15 MB</p>
                     <input id="upload-files" type="file" multiple aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
                     <label class="btn btn-small btn-ghost" for="upload-files">Fájl kiválasztása</label>
                   </div>
@@ -183,7 +183,7 @@
                   </div>
                   <div class="drop-zone" id="help-drop-zone" style="margin-top:22px">
                     <strong>Kép vagy vázlat csatolása – opcionális</strong>
-                    <p>PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB · összesen max. 15 MB</p>
+                    <p>PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB, összesen max. 15 MB</p>
                     <input id="help-files" type="file" multiple aria-describedby="help-files-error" accept=".pdf,.jpg,.jpeg,.png" data-file-input="help">
                     <label class="btn btn-small btn-ghost" for="help-files">Fájl kiválasztása</label>
                   </div>
@@ -277,7 +277,7 @@
                   </fieldset>
                   <div class="field" id="postcode-field" hidden>
                     <label class="required" for="postal-code">Szállítási irányítószám</label>
-                    <input id="postal-code" name="postal_code" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" aria-describedby="postal-code-error" placeholder="Pl. 2100">
+                    <input id="postal-code" name="postal_code" type="text" inputmode="numeric" maxlength="4" pattern="[1-9][0-9]{3}" aria-describedby="postal-code-error" placeholder="Pl. 2100">
                     <p class="field-error" id="postal-code-error"></p>
                   </div>
                   <div class="field">
@@ -305,7 +305,8 @@
                   </div>
                   <div class="field">
                     <label for="company-name">Cégnév – opcionális</label>
-                    <input id="company-name" name="company_name" type="text" autocomplete="organization" maxlength="100" placeholder="Vállalkozás neve">
+                    <input id="company-name" name="company_name" type="text" autocomplete="organization" minlength="2" maxlength="100" aria-describedby="company-name-error" placeholder="Vállalkozás neve">
+                    <p class="field-error" id="company-name-error"></p>
                   </div>
                   <div class="field">
                     <label for="customer-email">E-mail cím</label>
@@ -341,6 +342,7 @@
                 <h2 id="review-title" tabindex="-1">Minden rendben van?</h2>
                 <p class="step-lead">Beküldés előtt még visszaléphet és bármit módosíthat.</p>
                 <div class="review-list" id="review-list"></div>
+                <div class="submit-feedback" id="submit-feedback" role="status" aria-live="polite" tabindex="-1" hidden></div>
                 <div class="legal-note"><strong>Az ajánlatkérés elküldése nem minősül megrendelésnek.</strong> A gyártás csak a műszaki tartalom, az ár és a határidő külön jóváhagyása után indul.</div>
               </section>
             </div>
@@ -350,7 +352,7 @@
               <div class="action-right">
                 <button class="btn btn-ghost" type="button" id="change-flow">Másik mód</button>
                 <button class="btn btn-primary" type="button" id="next-button">Tovább →</button>
-                <button class="btn btn-primary" type="submit" id="submit-button" hidden>Ajánlatkérés elküldése</button>
+                <button class="btn btn-primary" type="submit" id="submit-button" aria-describedby="submit-feedback" hidden>Ajánlatkérés elküldése</button>
               </div>
             </div>
           </form>
@@ -359,10 +361,10 @@
         <div class="success-panel" id="success-panel" tabindex="-1">
           <div class="success-icon" aria-hidden="true">✓</div>
           <p class="eyebrow">Sikeres beküldés</p>
-          <h2>Köszönjük, az ajánlatkérés megérkezett</h2>
-          <p>A fejlesztési előnézetből küldött kérés tesztként került a HEPA rendszerébe.</p>
-          <span class="demo-reference" id="request-reference"></span>
-          <div class="success-review" id="success-review" aria-label="Az elküldött ajánlatkérés összegzése"></div>
+          <h2>Köszönjük, megérkezett az ajánlatkérése</h2>
+          <p>Az alábbi hivatkozási számmal rögzítettük. Ha pontosítás szükséges, a megadott elérhetőségén keressük.</p>
+          <span class="submission-reference" id="submission-reference"></span>
+          <div class="success-review" id="success-review" aria-label="A beküldött ajánlatkérés összegzése"></div>
           <div class="success-actions">
             <button class="btn btn-primary" type="button" id="print-summary">Összegzés nyomtatása</button>
             <button class="btn btn-ghost" type="button" id="new-request">Új ajánlatkérés</button>
