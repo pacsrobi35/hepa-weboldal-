@@ -412,6 +412,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .edge-section-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 12px; margin-top: 8px; }
 .edge-section-actions .add-second-edge { justify-self: start; }
 .edge-section-actions .add-second-edge[hidden], .edge-side-hint[hidden] { display: none; }
+.edge-section-actions .add-second-edge:disabled { color: #737b77; background: #ecebe7; border-color: #c8ccc9; cursor: not-allowed; opacity: .68; }
 .edge-side-hint { color: #73591f; font-size: .75rem; line-height: 1.45; }
 .item-actions { display: flex; align-items: flex-end; justify-content: flex-end; gap: 7px; }
 .icon-button { min-width: 44px; min-height: 44px; padding: 7px 10px; color: var(--green-800); background: white; border: 1px solid #7f8783; border-radius: 8px; font-size: .78rem; font-weight: 850; }
