@@ -552,6 +552,7 @@
       const select = composerField(`edgeProfileId${suffix}`);
       if (!select) return;
       const selectedId = select.value;
+      const selectedProfile = allProfiles.find((profile) => profile.id === selectedId);
       const snapshotId = matchingEdgeProfileId(composerField(`edgeMaterialIdentifier${suffix}`)?.value, composerField(`edgeThicknessMm${suffix}`)?.value);
       const placeholderText = profiles.length
         ? 'Válasszon ABS élanyagot…'
@@ -561,9 +562,14 @@
       const placeholder = new Option(placeholderText, '');
       select.replaceChildren(placeholder);
       profiles.forEach((profile, index) => select.add(new Option(edgeProfileDisplayName(profile, index), profile.id)));
-      if (profiles.some((profile) => profile.id === selectedId)) select.value = selectedId;
+      if (selectedProfile && !isUsableEdgeProfile(selectedProfile)) {
+        const incompleteOption = new Option(`${edgeProfileDisplayName(selectedProfile, allProfiles.indexOf(selectedProfile))} · kitöltés alatt`, selectedProfile.id);
+        incompleteOption.disabled = true;
+        select.add(incompleteOption);
+      }
+      if (selectedProfile) select.value = selectedId;
       else if (snapshotId && profiles.some((profile) => profile.id === snapshotId)) select.value = snapshotId;
-      else if (profiles.length === 1 && EDGE_CODES_WITH_MATERIAL.includes(composerField(`edgeCode${suffix}`)?.value)) select.value = profiles[0].id;
+      else if (!selectedId && profiles.length === 1 && EDGE_CODES_WITH_MATERIAL.includes(composerField(`edgeCode${suffix}`)?.value)) select.value = profiles[0].id;
       syncComposerEdgeProfileSnapshot(position);
     });
     syncStoredItemEdgeProfileSnapshots();
@@ -619,8 +625,20 @@
     queueSave();
   }
 
+  function finishOrAddEdgeProfile() {
+    const incompleteCard = [...edgeProfileList.querySelectorAll('.edge-profile-card')].find((card) => !isUsableEdgeProfile(readEdgeProfile(card)));
+    if (!incompleteCard) {
+      addAndFocusEdgeProfile();
+      return;
+    }
+    const profile = readEdgeProfile(incompleteCard);
+    const targetField = profile.identifier.trim().length < 2 ? 'identifier' : 'thicknessMm';
+    incompleteCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    incompleteCard.querySelector(`[data-edge-profile-field="${targetField}"]`)?.focus();
+  }
+
   document.querySelector('#add-edge-profile').addEventListener('click', addAndFocusEdgeProfile);
-  document.querySelector('#quick-add-edge-profile').addEventListener('click', addAndFocusEdgeProfile);
+  document.querySelector('#quick-add-edge-profile').addEventListener('click', finishOrAddEdgeProfile);
 
   edgeProfileList.addEventListener('click', (event) => {
     const card = event.target.closest('.edge-profile-card');
@@ -867,7 +885,7 @@
         profileControl.value = '';
         thicknessControl.value = '';
         identifierControl.value = '';
-      } else if (!getUsableEdgeProfile(profileControl.value) && usableProfiles.length === 1) {
+      } else if (!profileControl.value && usableProfiles.length === 1) {
         profileControl.value = usableProfiles[0].id;
       }
       profileControl.disabled = !active || !hasEdge;
@@ -899,7 +917,18 @@
     const canAddSecondEdge = EDGE_CODES_WITH_MATERIAL.includes(firstCode) && (longOne < 2 || shortOne < 2);
     addButton.hidden = secondaryActive || !canAddSecondEdge;
     addButton.disabled = !canAddSecondEdge;
-    document.querySelector('#quick-add-edge-profile').hidden = !([firstCode, secondCode].some((code) => EDGE_CODES_WITH_MATERIAL.includes(code)) && !readEdgeProfiles().some(isUsableEdgeProfile));
+    const allEdgeProfiles = readEdgeProfiles();
+    const usableEdgeProfiles = allEdgeProfiles.filter(isUsableEdgeProfile);
+    const edgeSelections = [
+      { code: firstCode, profileId: composerField('edgeProfileId').value },
+      { code: secondCode, profileId: composerField('edgeProfileId2').value }
+    ];
+    const missingRequiredProfile = edgeSelections.some(({ code, profileId }) => EDGE_CODES_WITH_MATERIAL.includes(code) && !getUsableEdgeProfile(profileId));
+    const secondEdgeNeedsAlternative = secondaryActive && EDGE_CODES_WITH_MATERIAL.includes(secondCode) && usableEdgeProfiles.length < 2;
+    const hasIncompleteProfile = allEdgeProfiles.some((profile) => !isUsableEdgeProfile(profile));
+    const quickAddButton = document.querySelector('#quick-add-edge-profile');
+    quickAddButton.hidden = !((missingRequiredProfile && (!usableEdgeProfiles.length || hasIncompleteProfile)) || secondEdgeNeedsAlternative);
+    quickAddButton.textContent = hasIncompleteProfile ? 'ABS adatainak befejezése fent' : '+ Új ABS felvétele fent';
     const [longTwo, shortTwo] = edgeCodeParts(secondCode);
     const sharedEdgeDirection = secondaryActive && Boolean((longOne && longTwo) || (shortOne && shortTwo));
     const noteControl = composerField('note');
@@ -1506,7 +1535,7 @@
       ]));
     } else if (activeFlow === 'manual') {
       const materials = readMaterials();
-      const edgeProfiles = readEdgeProfiles();
+      const edgeProfiles = readEdgeProfiles().filter(isUsableEdgeProfile);
       cards.push(reviewCard('Munka alapadatai', 'items', [
         ['Beküldési mód', FLOW_NAMES.manual],
         ['Anyag biztosítása', MATERIAL_SOURCE_NAMES[fieldValue('manual_material_source')]],
