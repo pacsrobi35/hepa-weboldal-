@@ -436,6 +436,46 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
   .edge-remove { justify-self: end; }
 }
 
+@media (min-width: 821px) and (max-width: 980px) {
+  body.manual-workspace .wizard-body { padding-inline: 20px; }
+  .items-toolbar { padding: 11px 13px; }
+  .item-list { gap: 8px; }
+  .item-card { border-radius: 8px; }
+  .item-main-grid {
+    grid-template-columns: 36px minmax(155px, 1.15fr) minmax(135px, 1fr) 82px 90px 52px;
+    align-items: end;
+    gap: 7px;
+    padding: 10px 12px;
+  }
+  .item-index { grid-column: auto; align-self: center; justify-content: center; }
+  .item-index span { display: none; }
+  .item-index strong { width: 28px; height: 28px; }
+  .item-material, .item-name { grid-column: auto; }
+  .item-note { grid-column: 2 / 5; }
+  .item-actions { grid-column: 5 / 7; align-items: center; }
+  .item-main-grid .field label { margin-bottom: 4px; font-size: .67rem; }
+  .item-main-grid .field label small { margin-top: 1px; font-size: .61rem; }
+  .item-main-grid .field input, .item-main-grid .field select { min-height: 38px; padding: 6px 8px; }
+  .item-length input, .item-width input { padding-right: 8px !important; }
+  .item-length .input-unit, .item-width .input-unit { display: none; }
+  .item-edge-section { grid-column: 1 / -1; margin: 2px -12px -10px; padding: 8px 12px 9px; }
+  .edge-section-head { margin-bottom: 5px; }
+  .edge-section-head > div { display: flex; align-items: baseline; gap: 8px; }
+  .edge-assignment {
+    grid-template-columns: 30px minmax(150px, 1.05fr) 78px minmax(120px, 1fr) minmax(140px, 1fr) 32px;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .edge-assignment-index, .edge-assignment-code, .edge-assignment-result, .edge-remove { grid-column: auto; }
+  .edge-assignment .field label { margin: 0 0 4px; font-size: .62rem; }
+  .edge-assignment .field input, .edge-assignment .field select { min-height: 38px; padding-block: 6px; }
+  .edge-assignment-result { min-height: 38px; }
+  .edge-code-control { grid-template-columns: minmax(0, 1fr) 40px; gap: 5px; }
+  .edge-row-preview { width: 36px; height: 23px; }
+  .icon-button { min-height: 38px; padding: 6px 8px; }
+  .item-error { margin-inline: 48px; }
+}
+
 @media (min-width: 981px) {
   body.manual-workspace .wizard-body { padding-inline: 28px; }
   .item-table-head, .item-main-grid { grid-template-columns: 42px minmax(132px, 1.08fr) minmax(110px, .92fr) 100px 108px 56px minmax(140px, 1.12fr) 132px; }
