@@ -345,10 +345,10 @@
       <div class="edge-assignment" data-edge-assignment="${position}" ${hidden ? 'hidden' : ''}>
         <div class="edge-assignment-index"><span>Élanyag</span><strong>${position}</strong></div>
         <div class="field edge-assignment-code"><label class="required" for="${itemId}-edge-code-${position}">Élzárás kódja</label><div class="edge-code-control"><select id="${itemId}-edge-code-${position}" data-item-field="${codeField}" ${position === 1 ? 'required aria-required="true"' : ''}><option value="">Válasszon…</option>${codes.map((value) => `<option value="${value}" ${code === value ? 'selected' : ''}>${value} · ${EDGE_CODE_NAMES[value]}</option>`).join('')}</select>${edgePreviewMarkup(code, 'edge-row-preview')}</div></div>
-        <div class="field edge-assignment-thickness"><label for="${itemId}-edge-thickness-${position}">ABS vastagsága</label><input id="${itemId}-edge-thickness-${position}" data-item-field="${thicknessField}" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="${escapeHtml(data[thicknessField])}" placeholder="Pl. 0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="field edge-assignment-thickness"><label for="${itemId}-edge-thickness-${position}">Vastagság</label><input id="${itemId}-edge-thickness-${position}" data-item-field="${thicknessField}" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="${escapeHtml(data[thicknessField])}" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field edge-assignment-identifier"><label for="${itemId}-edge-identifier-${position}">ABS színe / azonosítója</label><input id="${itemId}-edge-identifier-${position}" data-item-field="${identifierField}" type="text" maxlength="120" value="${escapeHtml(data[identifierField])}" placeholder="Pl. U604 vagy lapazonos"></div>
-        <div class="edge-assignment-result" aria-live="polite"><span>Összefoglaló</span><strong data-edge-summary="${position}">${escapeHtml(edgeAssignmentSummary(code, data[thicknessField], data[identifierField]))}</strong></div>
-        ${position === 2 ? '<button class="icon-button delete edge-remove" type="button" data-item-action="remove-edge" aria-label="Második élanyag eltávolítása">Eltávolítás</button>' : ''}
+        <div class="edge-assignment-result" aria-live="polite"><span>Beállítás</span><strong data-edge-summary="${position}">${escapeHtml(edgeAssignmentSummary(code, data[thicknessField], data[identifierField]))}</strong></div>
+        ${position === 2 ? '<button class="icon-button delete edge-remove" type="button" data-item-action="remove-edge" aria-label="Második élanyag eltávolítása">×</button>' : ''}
       </div>`;
   }
 
@@ -483,13 +483,13 @@
           <button class="icon-button delete" type="button" data-item-action="delete">Törlés</button>
         </div>
         <section class="item-edge-section" aria-label="A tétel élzárásai">
-          <div class="edge-section-head"><div><strong>Élzárás</strong><small>Az élkód, a vastagság és az ABS színe külön tartozik össze.</small></div></div>
+          <div class="edge-section-head"><div><strong>Élzárás</strong><small>Kód + vastagság + ABS szín</small></div></div>
           <div class="edge-assignment-list">
             ${edgeAssignmentMarkup(id, 1, { ...data, edgeCode })}
             ${edgeAssignmentMarkup(id, 2, data)}
           </div>
           <div class="edge-section-actions">
-            <button class="btn btn-small btn-ghost add-second-edge" type="button" data-item-action="add-edge">+ Második élanyag hozzáadása</button>
+            <button class="btn btn-small btn-ghost add-second-edge" type="button" data-item-action="add-edge">+ Második élanyag (opcionális)</button>
             <small class="edge-side-hint" hidden>Ha két élanyag ugyanazon méretű élekre kerül, a Megjegyzésben írja le, melyik konkrét oldal melyiket kapja.</small>
           </div>
         </section>
