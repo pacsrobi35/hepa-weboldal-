@@ -60,6 +60,7 @@
     '2-1': '2 hosszanti + 1 rövid él',
     '2-2': 'mind a 4 él'
   };
+  const ITEM_FIELD_NAMES = ['materialId', 'name', 'lengthMm', 'widthMm', 'quantity', 'note', 'edgeCode', 'edgeThicknessMm', 'edgeMaterialIdentifier', 'edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'];
 
   const form = document.querySelector('#cutting-form');
   if (!form) return;
@@ -78,6 +79,12 @@
   const materialList = document.querySelector('#material-list');
   const itemList = document.querySelector('#item-list');
   const itemSummary = document.querySelector('#items-summary');
+  const itemEmptyState = document.querySelector('#item-empty-state');
+  const itemComposer = document.querySelector('#item-composer');
+  const itemComposerTitle = document.querySelector('#item-composer-title');
+  const itemComposerError = document.querySelector('#item-composer-error');
+  const saveItemButton = document.querySelector('#save-item');
+  const cancelItemEditButton = document.querySelector('#cancel-item-edit');
   const draftBanner = document.querySelector('#draft-banner');
   const draftTime = document.querySelector('#draft-time');
   const submitFeedback = document.querySelector('#submit-feedback');
@@ -86,6 +93,7 @@
   let stepIndex = 0;
   let materialCounter = 0;
   let itemCounter = 0;
+  let editingItemId = null;
   let saveTimer = null;
   let restoredDraft = null;
   let files = { upload: [], help: [] };
@@ -315,11 +323,6 @@
     return `${shortEdges}-${longEdges}`;
   }
 
-  function edgePreviewMarkup(code, extraClass = '') {
-    const [longEdges, shortEdges] = edgeCodeParts(code);
-    return `<span class="part l-${longEdges} s-${shortEdges} ${extraClass}" aria-hidden="true"><i class="top"></i><i class="right"></i><i class="bottom"></i><i class="left"></i></span>`;
-  }
-
   function formatDecimal(value) {
     const number = Number(String(value ?? '').replace(',', '.'));
     if (!Number.isFinite(number)) return String(value ?? '').trim();
@@ -331,25 +334,6 @@
     if (code === '0-0') return '0-0 · élzárás nélkül';
     const thickness = thicknessMm ? `${formatDecimal(thicknessMm)} mm` : 'vastagság nélkül';
     return `${code} · ${thickness} · ${String(identifier || 'azonosító nélkül').trim()}`;
-  }
-
-  function edgeAssignmentMarkup(itemId, position, data = {}) {
-    const suffix = position === 1 ? '' : '2';
-    const codeField = `edgeCode${suffix}`;
-    const thicknessField = `edgeThicknessMm${suffix}`;
-    const identifierField = `edgeMaterialIdentifier${suffix}`;
-    const code = position === 1 ? edgeCodeFromData(data) : String(data[codeField] || '').trim();
-    const codes = position === 1 ? EDGE_CODES : EDGE_CODES_WITH_MATERIAL;
-    const hidden = position === 2 && !code;
-    return `
-      <div class="edge-assignment" data-edge-assignment="${position}" ${hidden ? 'hidden' : ''}>
-        <div class="edge-assignment-index"><span>Élanyag</span><strong>${position}</strong></div>
-        <div class="field edge-assignment-code"><label class="required" for="${itemId}-edge-code-${position}">Élzárás kódja</label><div class="edge-code-control"><select id="${itemId}-edge-code-${position}" data-item-field="${codeField}" ${position === 1 ? 'required aria-required="true"' : ''}><option value="">Válasszon…</option>${codes.map((value) => `<option value="${value}" ${code === value ? 'selected' : ''}>${value} · ${EDGE_CODE_NAMES[value]}</option>`).join('')}</select>${edgePreviewMarkup(code, 'edge-row-preview')}</div></div>
-        <div class="field edge-assignment-thickness"><label for="${itemId}-edge-thickness-${position}">Vastagság</label><input id="${itemId}-edge-thickness-${position}" data-item-field="${thicknessField}" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="${escapeHtml(data[thicknessField])}" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
-        <div class="field edge-assignment-identifier"><label for="${itemId}-edge-identifier-${position}">ABS színe / azonosítója</label><input id="${itemId}-edge-identifier-${position}" data-item-field="${identifierField}" type="text" maxlength="120" value="${escapeHtml(data[identifierField])}" placeholder="Pl. U604 vagy lapazonos"></div>
-        <div class="edge-assignment-result" aria-live="polite"><span>Beállítás</span><strong data-edge-summary="${position}">${escapeHtml(edgeAssignmentSummary(code, data[thicknessField], data[identifierField]))}</strong></div>
-        ${position === 2 ? '<button class="icon-button delete edge-remove" type="button" data-item-action="remove-edge" aria-label="Második élanyag eltávolítása">×</button>' : ''}
-      </div>`;
   }
 
   function materialDisplayName(material, index) {
@@ -376,14 +360,16 @@
 
   function updateMaterialOptions() {
     const materials = readMaterials();
-    itemList.querySelectorAll('[data-item-field="materialId"]').forEach((select) => {
+    const select = itemComposer?.querySelector('[data-composer-field="materialId"]');
+    if (select) {
       const selectedId = select.value;
       const placeholder = new Option('Válasszon anyagot…', '');
       select.replaceChildren(placeholder);
       materials.forEach((material, index) => select.add(new Option(materialDisplayName(material, index), material.id)));
       if (materials.some((material) => material.id === selectedId)) select.value = selectedId;
       else if (materials.length === 1) select.value = materials[0].id;
-    });
+    }
+    itemList.querySelectorAll('.item-card').forEach(renderItemSummary);
   }
 
   function updateMaterialUsageState() {
@@ -461,92 +447,51 @@
 
   function newItem(data = {}) {
     itemCounter += 1;
-    const id = `item-${Date.now()}-${itemCounter}`;
+    const preferredId = String(data.id || '').trim();
+    const id = preferredId && !document.getElementById(preferredId) ? preferredId : `item-${Date.now()}-${itemCounter}`;
     const edgeCode = edgeCodeFromData(data);
-    const card = document.createElement('article');
+    const card = document.createElement('tr');
     card.className = 'item-card';
     card.id = id;
     card.tabIndex = -1;
     card.dataset.itemId = id;
     card.innerHTML = `
-      <h3 class="sr-only"><span class="item-number-a11y"></span>. szabászjegyzék-tétel</h3>
-      <div class="item-main-grid">
-        <div class="item-index"><span>Tétel</span><strong class="item-number"></strong></div>
-        <div class="field item-material"><label class="required" for="${id}-material">Anyag</label><select id="${id}-material" data-item-field="materialId" required aria-required="true"></select></div>
-        <div class="field item-name"><label for="${id}-name">Elnevezés</label><input id="${id}-name" data-item-field="name" type="text" maxlength="100" value="${escapeHtml(data.name)}" placeholder="Pl. oldallap"></div>
-        <div class="field item-length"><label for="${id}-length"><span class="required">Hossz (mm)</span><small>Szálirány</small></label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" aria-label="Hossz milliméterben, szálirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="Szálirány"><span class="input-unit" aria-hidden="true">mm</span></div>
-        <div class="field item-width"><label for="${id}-width"><span class="required">Szélesség (mm)</span><small>Keresztirány</small></label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" aria-label="Szélesség milliméterben, keresztirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="Keresztirány"><span class="input-unit" aria-hidden="true">mm</span></div>
-        <div class="field item-quantity"><label class="required" for="${id}-quantity">Mennyiség</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
-        <div class="field item-note"><label for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
-        <div class="item-actions">
-          <button class="icon-button" type="button" data-item-action="duplicate">Másolás</button>
-          <button class="icon-button delete" type="button" data-item-action="delete">Törlés</button>
-        </div>
-        <section class="item-edge-section" aria-label="A tétel élzárásai">
-          <div class="edge-section-head"><div><strong>Élzárás</strong><small>Kód + vastagság + ABS szín</small></div></div>
-          <div class="edge-assignment-list">
-            ${edgeAssignmentMarkup(id, 1, { ...data, edgeCode })}
-            ${edgeAssignmentMarkup(id, 2, data)}
-          </div>
-          <div class="edge-section-actions">
-            <button class="btn btn-small btn-ghost add-second-edge" type="button" data-item-action="add-edge">+ Második élanyag (opcionális)</button>
-            <small class="edge-side-hint" hidden>Ha két élanyag ugyanazon méretű élekre kerül, a Megjegyzésben írja le, melyik konkrét oldal melyiket kapja.</small>
-          </div>
-        </section>
-      </div>
-      <p class="item-error" id="${id}-error" role="alert"></p>`;
+      <td class="cutlist-number" data-label="Tétel"><strong class="item-number"></strong><span class="sr-only"><span class="item-number-a11y"></span>. szabászjegyzék-tétel</span><span class="stored-item-fields" hidden>${ITEM_FIELD_NAMES.map((field) => `<input id="${id}-${field}" type="hidden" data-item-field="${field}">`).join('')}</span></td>
+      <td data-label="Anyag"><strong data-summary-material>—</strong></td>
+      <td data-label="Elnevezés"><span data-summary-name>—</span></td>
+      <td data-label="Méret"><strong data-summary-size>—</strong><small>hossz × szélesség</small></td>
+      <td data-label="Mennyiség"><strong data-summary-quantity>—</strong></td>
+      <td data-label="Élzárás"><div class="cutlist-edge-lines"><span data-summary-edge="1">—</span><span data-summary-edge="2" hidden></span></div></td>
+      <td data-label="Megjegyzés"><span data-summary-note>—</span></td>
+      <td class="cutlist-actions" data-label="Műveletek"><div><button class="icon-button" type="button" data-item-action="edit">Szerk.</button><button class="icon-button" type="button" data-item-action="duplicate">Másol</button><button class="icon-button delete" type="button" data-item-action="delete">Töröl</button></div><p class="item-error" id="${id}-error" role="alert"></p></td>`;
     itemList.append(card);
-    updateMaterialOptions();
-    const materialSelect = card.querySelector('[data-item-field="materialId"]');
-    const requestedMaterialId = String(data.materialId || '');
-    if ([...materialSelect.options].some((option) => option.value === requestedMaterialId)) materialSelect.value = requestedMaterialId;
-    syncEdgeRequirements(card);
+    writeItem(card, { ...data, edgeCode });
     renumberItems();
     return card;
   }
 
-  function syncEdgeRequirements(card) {
-    const secondaryRow = card.querySelector('[data-edge-assignment="2"]');
-    const secondaryActive = !secondaryRow.hidden;
-    [1, 2].forEach((position) => {
-      const suffix = position === 1 ? '' : '2';
-      const row = card.querySelector(`[data-edge-assignment="${position}"]`);
-      const codeControl = card.querySelector(`[data-item-field="edgeCode${suffix}"]`);
-      const thicknessControl = card.querySelector(`[data-item-field="edgeThicknessMm${suffix}"]`);
-      const identifierControl = card.querySelector(`[data-item-field="edgeMaterialIdentifier${suffix}"]`);
-      const active = position === 1 || secondaryActive;
-      const code = active ? codeControl.value : '';
-      const hasEdge = active && EDGE_CODES_WITH_MATERIAL.includes(code);
-      const explicitlyNoEdge = position === 1 && code === '0-0';
-      const [longEdges, shortEdges] = edgeCodeParts(code);
-      const preview = row.querySelector('.edge-row-preview');
-      if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
-
-      codeControl.disabled = !active;
-      codeControl.required = active;
-      if (active) codeControl.setAttribute('aria-required', 'true');
-      else codeControl.removeAttribute('aria-required');
-
-      [thicknessControl, identifierControl].forEach((control) => {
-        control.disabled = !active || explicitlyNoEdge || !hasEdge;
-        control.required = hasEdge;
-        if (hasEdge) control.setAttribute('aria-required', 'true');
-        else control.removeAttribute('aria-required');
-        control.closest('.field').querySelector('label').classList.toggle('required', hasEdge);
-      });
-
-      const summary = row.querySelector(`[data-edge-summary="${position}"]`);
-      if (summary) summary.textContent = edgeAssignmentSummary(code, thicknessControl.value, identifierControl.value);
+  function writeItem(card, data = {}) {
+    ITEM_FIELD_NAMES.forEach((field) => {
+      const control = card.querySelector(`[data-item-field="${field}"]`);
+      control.value = String(data[field] ?? (field === 'quantity' ? 1 : ''));
     });
+    renderItemSummary(card);
+  }
 
-    const firstCode = card.querySelector('[data-item-field="edgeCode"]').value;
-    const secondCode = secondaryActive ? card.querySelector('[data-item-field="edgeCode2"]').value : '';
-    const addButton = card.querySelector('[data-item-action="add-edge"]');
-    addButton.hidden = secondaryActive;
-    addButton.disabled = !EDGE_CODES_WITH_MATERIAL.includes(firstCode);
-    const [longOne, shortOne] = edgeCodeParts(firstCode);
-    const [longTwo, shortTwo] = edgeCodeParts(secondCode);
-    card.querySelector('.edge-side-hint').hidden = !(secondaryActive && ((longOne && longTwo) || (shortOne && shortTwo)));
+  function renderItemSummary(card) {
+    const item = readItem(card);
+    const materials = readMaterials();
+    const material = materials.find((entry) => entry.id === item.materialId);
+    card.querySelector('[data-summary-material]').textContent = material ? materialDisplayName(material, materials.indexOf(material)) : 'Nincs kiválasztva';
+    card.querySelector('[data-summary-name]').textContent = item.name || '—';
+    card.querySelector('[data-summary-size]').textContent = item.lengthMm && item.widthMm ? `${formatDecimal(item.lengthMm)} × ${formatDecimal(item.widthMm)} mm` : '—';
+    card.querySelector('[data-summary-quantity]').textContent = item.quantity ? `${item.quantity} db` : '—';
+    card.querySelector('[data-summary-note]').textContent = item.note || '—';
+    const firstEdge = card.querySelector('[data-summary-edge="1"]');
+    const secondEdge = card.querySelector('[data-summary-edge="2"]');
+    firstEdge.textContent = `1. ${edgeAssignmentSummary(item.edgeCode, item.edgeThicknessMm, item.edgeMaterialIdentifier)}`;
+    secondEdge.hidden = !item.edgeCode2;
+    secondEdge.textContent = item.edgeCode2 ? `2. ${edgeAssignmentSummary(item.edgeCode2, item.edgeThicknessMm2, item.edgeMaterialIdentifier2)}` : '';
   }
 
   function readItem(card) {
@@ -560,15 +505,16 @@
   }
 
   function renumberItems() {
-    [...itemList.querySelectorAll('.item-card')].forEach((card, index) => {
+    const cards = [...itemList.querySelectorAll('.item-card')];
+    cards.forEach((card, index) => {
       card.querySelector('.item-number').textContent = String(index + 1);
       card.querySelector('.item-number-a11y').textContent = String(index + 1);
-      const copyButton = card.querySelector('[data-item-action="duplicate"]');
-      const deleteButton = card.querySelector('[data-item-action="delete"]');
-      copyButton.setAttribute('aria-label', `${index + 1}. tétel másolása`);
-      deleteButton.setAttribute('aria-label', `${index + 1}. tétel törlése`);
-      deleteButton.disabled = itemList.children.length === 1;
+      card.querySelector('[data-item-action="edit"]').setAttribute('aria-label', `${index + 1}. tétel szerkesztése`);
+      card.querySelector('[data-item-action="duplicate"]').setAttribute('aria-label', `${index + 1}. tétel másolása`);
+      card.querySelector('[data-item-action="delete"]').setAttribute('aria-label', `${index + 1}. tétel törlése`);
+      renderItemSummary(card);
     });
+    itemEmptyState.hidden = cards.length > 0;
     updateItemSummary();
     updateMaterialUsageState();
   }
@@ -600,57 +546,212 @@
     itemSummary.textContent = `${totals.rows} tétel · ${totals.pieces} darab · ${totals.area.toFixed(2)} m² · kb. ${totals.edge.toFixed(1)} fm él`;
   }
 
-  function addItemRow() {
-    const previous = readItems().at(-1) || {};
-    const card = newItem({
-      materialId: previous.materialId,
-      quantity: 1,
-      edgeThicknessMm: previous.edgeCode === '0-0' ? '' : previous.edgeThicknessMm,
-      edgeMaterialIdentifier: previous.edgeCode === '0-0' ? '' : previous.edgeMaterialIdentifier
-    });
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    card.querySelector(previous.materialId ? '[data-item-field="name"]' : '[data-item-field="materialId"]').focus();
-    queueSave();
+  function composerField(name) {
+    return itemComposer.querySelector(`[data-composer-field="${name}"]`);
   }
 
-  document.querySelectorAll('[data-add-item]').forEach((button) => button.addEventListener('click', addItemRow));
+  function readComposerItem() {
+    const data = {};
+    itemComposer.querySelectorAll('[data-composer-field]').forEach((control) => { data[control.dataset.composerField] = control.value.trim(); });
+    return data;
+  }
+
+  function clearComposerErrors() {
+    itemComposerError.textContent = '';
+    itemComposer.querySelectorAll('[aria-invalid="true"]').forEach((control) => control.removeAttribute('aria-invalid'));
+  }
+
+  function setComposerItem(data = {}) {
+    clearComposerErrors();
+    ITEM_FIELD_NAMES.forEach((field) => {
+      const control = composerField(field);
+      if (control) control.value = String(data[field] ?? (field === 'quantity' ? 1 : ''));
+    });
+    const requestedMaterialId = String(data.materialId || '');
+    const materialControl = composerField('materialId');
+    if (requestedMaterialId && [...materialControl.options].some((option) => option.value === requestedMaterialId)) materialControl.value = requestedMaterialId;
+    const secondaryRow = itemComposer.querySelector('[data-composer-edge="2"]');
+    secondaryRow.hidden = !data.edgeCode2;
+    syncComposerEdges();
+  }
+
+  function resetItemComposer(defaults = {}) {
+    editingItemId = null;
+    itemComposer.classList.remove('editing');
+    itemComposerTitle.textContent = 'Elem hozzáadása';
+    saveItemButton.textContent = '+ Elem hozzáadása';
+    cancelItemEditButton.hidden = true;
+    setComposerItem({ quantity: 1, ...defaults, edgeCode2: '', edgeThicknessMm2: '', edgeMaterialIdentifier2: '' });
+  }
+
+  function syncComposerEdges() {
+    const secondaryRow = itemComposer.querySelector('[data-composer-edge="2"]');
+    const firstCode = composerField('edgeCode').value;
+    if (!secondaryRow.hidden && !EDGE_CODES_WITH_MATERIAL.includes(firstCode)) {
+      ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
+      secondaryRow.hidden = true;
+    }
+    const secondaryActive = !secondaryRow.hidden;
+    [1, 2].forEach((position) => {
+      const suffix = position === 1 ? '' : '2';
+      const row = itemComposer.querySelector(`[data-composer-edge="${position}"]`);
+      const codeControl = composerField(`edgeCode${suffix}`);
+      const thicknessControl = composerField(`edgeThicknessMm${suffix}`);
+      const identifierControl = composerField(`edgeMaterialIdentifier${suffix}`);
+      const active = position === 1 || secondaryActive;
+      const code = active ? codeControl.value : '';
+      const hasEdge = active && EDGE_CODES_WITH_MATERIAL.includes(code);
+      const explicitlyNoEdge = position === 1 && code === '0-0';
+      const [longEdges, shortEdges] = edgeCodeParts(code);
+      row.querySelector('.edge-row-preview').className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
+      codeControl.disabled = !active;
+      codeControl.required = active;
+      if (active) codeControl.setAttribute('aria-required', 'true');
+      else codeControl.removeAttribute('aria-required');
+      [thicknessControl, identifierControl].forEach((control) => {
+        control.disabled = !active || explicitlyNoEdge || !hasEdge;
+        control.required = hasEdge;
+        if (hasEdge) control.setAttribute('aria-required', 'true');
+        else control.removeAttribute('aria-required');
+        control.closest('.field').querySelector('label').classList.toggle('required', hasEdge);
+      });
+      row.querySelector(`[data-composer-edge-summary="${position}"]`).textContent = edgeAssignmentSummary(code, thicknessControl.value, identifierControl.value);
+    });
+    const secondCode = secondaryActive ? composerField('edgeCode2').value : '';
+    const addButton = document.querySelector('#add-composer-edge');
+    addButton.hidden = secondaryActive;
+    addButton.disabled = !EDGE_CODES_WITH_MATERIAL.includes(firstCode);
+    const [longOne, shortOne] = edgeCodeParts(firstCode);
+    const [longTwo, shortTwo] = edgeCodeParts(secondCode);
+    document.querySelector('#composer-edge-side-hint').hidden = !(secondaryActive && ((longOne && longTwo) || (shortOne && shortTwo)));
+  }
+
+  function itemValidationIssues(item, secondaryActive = Boolean(item.edgeCode2)) {
+    const issues = [];
+    const mark = (field, label) => issues.push({ field, label });
+    if (!getMaterialProfile(item.materialId)) mark('materialId', 'anyag');
+    const length = Number(item.lengthMm);
+    if (!length || length < 10 || length > 5000) mark('lengthMm', 'hossz');
+    const width = Number(item.widthMm);
+    if (!width || width < 10 || width > 5000) mark('widthMm', 'szélesség');
+    const quantity = Number(item.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
+    if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
+    const hasEdge = EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode);
+    const firstThickness = Number(String(item.edgeThicknessMm || '').replace(',', '.'));
+    if (hasEdge && (!Number.isFinite(firstThickness) || firstThickness < 0.1 || firstThickness > 10)) mark('edgeThicknessMm', 'első ABS vastagsága');
+    if (hasEdge && !item.edgeMaterialIdentifier) mark('edgeMaterialIdentifier', 'első ABS színe / azonosítója');
+    if (secondaryActive) {
+      if (!EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode2)) mark('edgeCode2', 'második élkód');
+      const secondThickness = Number(String(item.edgeThicknessMm2 || '').replace(',', '.'));
+      if (!Number.isFinite(secondThickness) || secondThickness < 0.1 || secondThickness > 10) mark('edgeThicknessMm2', 'második ABS vastagsága');
+      if (!item.edgeMaterialIdentifier2) mark('edgeMaterialIdentifier2', 'második ABS színe / azonosítója');
+      const [longOne, shortOne] = edgeCodeParts(item.edgeCode);
+      const [longTwo, shortTwo] = edgeCodeParts(item.edgeCode2);
+      if (longOne + longTwo > 2 || shortOne + shortTwo > 2) mark('edgeCode2', 'az élkódok együtt legfeljebb 2 hosszú és 2 rövid élt jelölhetnek');
+    }
+    return issues;
+  }
+
+  function validateComposerItem(data) {
+    clearComposerErrors();
+    const secondaryActive = !itemComposer.querySelector('[data-composer-edge="2"]').hidden;
+    const issues = itemValidationIssues(data, secondaryActive);
+    issues.forEach(({ field }) => composerField(field)?.setAttribute('aria-invalid', 'true'));
+    if (!issues.length) return true;
+    itemComposerError.textContent = `Ellenőrizze: ${issues.map(({ label }) => label).join(', ')}.`;
+    composerField(issues[0].field)?.focus();
+    return false;
+  }
+
+  function commitComposerItem({ refocus = true } = {}) {
+    const data = readComposerItem();
+    if (!editingItemId && itemList.children.length >= MAX_ITEMS) {
+      itemComposerError.textContent = `Legfeljebb ${MAX_ITEMS} tételsor adható meg.`;
+      return false;
+    }
+    if (!validateComposerItem(data)) return false;
+    const editingCard = editingItemId ? document.getElementById(editingItemId) : null;
+    if (editingCard) writeItem(editingCard, data);
+    else newItem(data);
+    renumberItems();
+    const defaults = {
+      materialId: data.materialId,
+      quantity: 1,
+      edgeThicknessMm: data.edgeCode === '0-0' ? '' : data.edgeThicknessMm,
+      edgeMaterialIdentifier: data.edgeCode === '0-0' ? '' : data.edgeMaterialIdentifier
+    };
+    resetItemComposer(defaults);
+    queueSave();
+    if (refocus) composerField(data.materialId ? 'name' : 'materialId').focus();
+    return true;
+  }
+
+  function editItem(card) {
+    editingItemId = card.id;
+    const index = [...itemList.querySelectorAll('.item-card')].indexOf(card) + 1;
+    itemComposer.classList.add('editing');
+    itemComposerTitle.textContent = `${index}. elem szerkesztése`;
+    saveItemButton.textContent = 'Módosítás mentése';
+    cancelItemEditButton.hidden = false;
+    setComposerItem(readItem(card));
+    itemComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    composerField('name').focus({ preventScroll: true });
+  }
+
+  function focusItemComposer() {
+    itemComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    composerField(composerField('materialId').value ? 'name' : 'materialId').focus({ preventScroll: true });
+  }
+
+  document.querySelector('#focus-item-composer').addEventListener('click', focusItemComposer);
+  saveItemButton.addEventListener('click', () => commitComposerItem());
+  cancelItemEditButton.addEventListener('click', () => resetItemComposer({ materialId: readItems().at(-1)?.materialId || '' }));
+  document.querySelector('#add-composer-edge').addEventListener('click', () => {
+    const row = itemComposer.querySelector('[data-composer-edge="2"]');
+    if (document.querySelector('#add-composer-edge').disabled) return;
+    row.hidden = false;
+    syncComposerEdges();
+    composerField('edgeCode2').focus();
+    queueSave();
+  });
+  document.querySelector('#remove-composer-edge').addEventListener('click', () => {
+    ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
+    itemComposer.querySelector('[data-composer-edge="2"]').hidden = true;
+    syncComposerEdges();
+    queueSave();
+  });
+  itemComposer.addEventListener('input', (event) => {
+    if (event.target.matches('[data-composer-field^="edge"]')) syncComposerEdges();
+    event.target.removeAttribute('aria-invalid');
+    itemComposerError.textContent = '';
+    queueSave();
+  });
+  itemComposer.addEventListener('change', (event) => {
+    if (event.target.matches('[data-composer-field^="edge"]')) syncComposerEdges();
+    event.target.removeAttribute('aria-invalid');
+    itemComposerError.textContent = '';
+    queueSave();
+  });
 
   itemList.addEventListener('click', (event) => {
     const card = event.target.closest('.item-card');
     if (!card) return;
     const action = event.target.closest('[data-item-action]')?.dataset.itemAction;
-    if (action === 'duplicate') {
+    if (action === 'edit') {
+      editItem(card);
+    } else if (action === 'duplicate') {
+      if (itemList.children.length >= MAX_ITEMS) return;
       const clone = newItem({ ...readItem(card), id: undefined });
-      card.after(clone); renumberItems(); queueSave();
-    } else if (action === 'add-edge') {
-      const row = card.querySelector('[data-edge-assignment="2"]');
-      row.hidden = false;
-      syncEdgeRequirements(card);
-      row.querySelector('[data-item-field="edgeCode2"]').focus();
+      card.after(clone);
+      renumberItems();
       queueSave();
-    } else if (action === 'remove-edge') {
-      const row = card.querySelector('[data-edge-assignment="2"]');
-      row.querySelectorAll('[data-item-field]').forEach((control) => { control.value = ''; });
-      row.hidden = true;
-      syncEdgeRequirements(card);
-      updateItemSummary();
+    } else if (action === 'delete') {
+      if (editingItemId === card.id) resetItemComposer({ materialId: readItems().at(-1)?.materialId || '' });
+      card.remove();
+      renumberItems();
       queueSave();
-    } else if (action === 'delete' && itemList.children.length > 1) {
-      card.remove(); renumberItems(); queueSave();
     }
-  });
-  itemList.addEventListener('input', (event) => {
-    const card = event.target.closest('.item-card');
-    if (card && event.target.matches('[data-item-field^="edge"]')) syncEdgeRequirements(card);
-    updateItemSummary();
-    queueSave();
-  });
-  itemList.addEventListener('change', (event) => {
-    const card = event.target.closest('.item-card');
-    if (card && event.target.matches('[data-item-field^="edge"]')) syncEdgeRequirements(card);
-    updateItemSummary();
-    updateMaterialUsageState();
-    queueSave();
   });
 
   function moveToNextManualField(event, selector, fallback) {
@@ -661,8 +762,9 @@
     (next || document.querySelector(fallback))?.focus();
   }
 
-  materialList.addEventListener('keydown', (event) => moveToNextManualField(event, '#material-list [data-material-field]', '#item-list [data-item-field="materialId"]'));
-  itemList.addEventListener('keydown', (event) => moveToNextManualField(event, '#item-list [data-item-field]', '.items-footer [data-add-item]'));
+  materialList.addEventListener('keydown', (event) => moveToNextManualField(event, '#material-list [data-material-field]', '#item-composer [data-composer-field="materialId"]'));
+  itemComposer.addEventListener('keydown', (event) => moveToNextManualField(event, '#item-composer [data-composer-field]', '#save-item'));
+  resetItemComposer();
 
   function clearErrors() {
     errorSummary.classList.remove('visible');
@@ -744,44 +846,19 @@
     });
     const cards = [...itemList.querySelectorAll('.item-card')];
     if (!cards.length) {
-      errors.push({ id: 'add-item', message: 'Vegyen fel legalább egy tételt.' });
+      errors.push({ id: 'save-item', message: 'Vegyen fel legalább egy tételt.' });
       return;
     }
-    if (cards.length > MAX_ITEMS) errors.push({ id: 'add-item', message: `Legfeljebb ${MAX_ITEMS} tételsor adható meg.` });
+    if (cards.length > MAX_ITEMS) errors.push({ id: 'save-item', message: `Legfeljebb ${MAX_ITEMS} tételsor adható meg.` });
     cards.forEach((card, index) => {
       const item = readItem(card);
-      const messages = [];
+      const issues = itemValidationIssues(item, Boolean(item.edgeCode2));
+      const messages = issues.map(({ label }) => label);
       const invalidControls = [];
-      const mark = (field, label) => {
-        messages.push(label);
+      issues.forEach(({ field }) => {
         const control = card.querySelector(`[data-item-field="${field}"]`);
         if (control) invalidControls.push(control);
-      };
-      if (!getMaterialProfile(item.materialId)) mark('materialId', 'anyag');
-      const length = Number(item.lengthMm);
-      if (!length || length < 10 || length > 5000) mark('lengthMm', 'hossz');
-      const width = Number(item.widthMm);
-      if (!width || width < 10 || width > 5000) mark('widthMm', 'szélesség');
-      const quantity = Number(item.quantity);
-      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
-      if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
-      const hasEdge = EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode);
-      const firstThickness = Number(String(item.edgeThicknessMm || '').replace(',', '.'));
-      if (hasEdge && (!Number.isFinite(firstThickness) || firstThickness < 0.1 || firstThickness > 10)) mark('edgeThicknessMm', 'első ABS vastagsága');
-      if (hasEdge && !item.edgeMaterialIdentifier) mark('edgeMaterialIdentifier', 'első ABS színe / azonosítója');
-
-      const secondaryActive = !card.querySelector('[data-edge-assignment="2"]').hidden;
-      if (secondaryActive) {
-        if (!EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode2)) mark('edgeCode2', 'második élkód');
-        const secondThickness = Number(String(item.edgeThicknessMm2 || '').replace(',', '.'));
-        if (!Number.isFinite(secondThickness) || secondThickness < 0.1 || secondThickness > 10) mark('edgeThicknessMm2', 'második ABS vastagsága');
-        if (!item.edgeMaterialIdentifier2) mark('edgeMaterialIdentifier2', 'második ABS színe / azonosítója');
-        const [longOne, shortOne] = edgeCodeParts(item.edgeCode);
-        const [longTwo, shortTwo] = edgeCodeParts(item.edgeCode2);
-        if (longOne + longTwo > 2 || shortOne + shortTwo > 2) {
-          mark('edgeCode2', 'az élkódok együtt legfeljebb 2 hosszú és 2 rövid élt jelölhetnek');
-        }
-      }
+      });
       if (messages.length) {
         card.classList.add('invalid');
         const errorId = `${card.id}-error`;
@@ -790,7 +867,7 @@
           control.setAttribute('aria-invalid', 'true');
           control.setAttribute('aria-describedby', errorId);
         });
-        errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. tétel: ${messages.join(', ')}.` });
+        errors.push({ id: card.id, message: `${index + 1}. tétel: ${messages.join(', ')}.` });
       }
     });
   }
@@ -1026,8 +1103,7 @@
 
   function seedFirstItem() {
     const first = itemList.querySelector('.item-card');
-    if (!first) return newItem({ quantity: 1 });
-    return first;
+    return first || itemComposer;
   }
 
   function reviewCard(title, step, rows) {
@@ -1143,7 +1219,6 @@
     document.querySelectorAll('[data-flow-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.flowPanel === flow));
     if (flow === 'manual') {
       if (!materialList.children.length) newMaterial();
-      if (!itemList.children.length) newItem({ quantity: 1 });
     }
     updateStep();
   }
@@ -1177,6 +1252,7 @@
   });
   nextButton.addEventListener('click', () => {
     const step = FLOW_STEPS[activeFlow][stepIndex];
+    if (step === 'items' && isMeaningfulItem(readComposerItem()) && !commitComposerItem({ refocus: false })) return;
     if (validateStep(step).length) return;
     stepIndex += 1;
     updateStep();
@@ -1207,6 +1283,7 @@
       fields,
       materialProfiles: readMaterials(),
       items: readItems(),
+      composerItem: activeFlow === 'manual' ? readComposerItem() : null,
       filesMeta: {
         upload: files.upload.length ? files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.upload,
         help: files.help.length ? files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.help
@@ -1435,9 +1512,10 @@
     materialList.innerHTML = '';
     itemList.innerHTML = '';
     const materialsToRestore = draft.materialProfiles?.length ? draft.materialProfiles : draft.flow === 'manual' ? [{}] : [];
-    const itemsToRestore = draft.items?.length ? draft.items : draft.flow === 'manual' ? [{ quantity: 1 }] : [];
+    const itemsToRestore = draft.items?.length ? draft.items : [];
     materialsToRestore.forEach((material) => newMaterial(material));
     itemsToRestore.forEach((item) => newItem(item));
+    if (draft.flow === 'manual') setComposerItem(draft.composerItem || { materialId: itemsToRestore.at(-1)?.materialId || '', quantity: 1 });
     restoredFilesMeta = { upload: Array.isArray(draft.filesMeta?.upload) ? draft.filesMeta.upload : [], help: Array.isArray(draft.filesMeta?.help) ? draft.filesMeta.help : [] };
     renderFiles('upload');
     renderFiles('help');
@@ -1584,6 +1662,7 @@
     form.reset();
     materialList.innerHTML = '';
     itemList.innerHTML = '';
+    resetItemComposer();
     files = { upload: [], help: [] };
     restoredFilesMeta = { upload: [], help: [] };
     renderFiles('upload'); renderFiles('help');
