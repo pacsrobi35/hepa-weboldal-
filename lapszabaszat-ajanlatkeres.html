@@ -7,7 +7,7 @@
   <meta name="description" content="Kérjen ajánlatot bútorlap szabására és ABS élzárására. Töltse fel szabászjegyzékét, vagy adja meg a tételeket online.">
   <meta name="theme-color" content="#152520">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="lapszabaszat.css?v=20260917-table5">
+  <link rel="stylesheet" href="lapszabaszat.css?v=20260917-quick6">
 </head>
 <body class="form-page">
   <a class="skip-link" href="#main-content">Ugrás a fő tartalomra</a>
@@ -268,47 +268,50 @@
                 <section class="item-composer" id="item-composer" aria-labelledby="item-composer-title">
                   <header class="item-composer-head">
                     <div><p class="eyebrow">Gyors felvitel</p><h4 id="item-composer-title">Elem hozzáadása</h4></div>
-                    <small>A hossz a szálirány, a szélesség a keresztirány. Mindig kész méretet adjon meg.</small>
+                    <small>Adja meg a kész méretet. A következő alkatrésznél az anyag és az ABS beállítása igény szerint megmarad.</small>
                   </header>
                   <div class="item-composer-grid">
                     <div class="field composer-material"><label class="required" for="composer-material">Anyag</label><select id="composer-material" data-composer-field="materialId" required aria-required="true"></select></div>
-                    <div class="field composer-name"><label for="composer-name">Elnevezés</label><input id="composer-name" data-composer-field="name" type="text" maxlength="100" placeholder="Pl. oldallap"></div>
+                    <div class="field composer-name"><label for="composer-name">Elnevezés <small>(opcionális)</small></label><input id="composer-name" data-composer-field="name" type="text" maxlength="100" placeholder="Pl. oldallap"></div>
                     <div class="field composer-length"><label class="required" for="composer-length">Hossz <small>(mm, szálirány)</small></label><input id="composer-length" data-composer-field="lengthMm" type="number" min="10" max="5000" step="0.1" inputmode="decimal" placeholder="2200"></div>
                     <div class="field composer-width"><label class="required" for="composer-width">Szélesség <small>(mm)</small></label><input id="composer-width" data-composer-field="widthMm" type="number" min="10" max="5000" step="0.1" inputmode="decimal" placeholder="600"></div>
-                    <div class="field composer-quantity"><label class="required" for="composer-quantity">Mennyiség</label><input id="composer-quantity" data-composer-field="quantity" type="number" min="1" max="999" step="1" inputmode="numeric" value="1"></div>
-                    <div class="field composer-note"><label for="composer-note">Megjegyzés</label><input id="composer-note" data-composer-field="note" type="text" maxlength="500" placeholder="Egyedi kérés"></div>
+                    <div class="field composer-quantity"><label class="required" for="composer-quantity">Db</label><input id="composer-quantity" data-composer-field="quantity" type="number" min="1" max="999" step="1" inputmode="numeric" value="1"></div>
+                    <div class="field composer-note"><label for="composer-note">Megjegyzés <small data-note-requirement>(opcionális)</small></label><input id="composer-note" data-composer-field="note" type="text" maxlength="500" placeholder="Pl. egyedi kérés"></div>
                   </div>
 
                   <div class="composer-edge-area">
-                    <div class="composer-edge-heading"><strong>Élzárás</strong><small>Az első élanyag alapmező, a második csak szükség esetén jelenik meg.</small></div>
+                    <div class="composer-edge-heading"><strong>Élzárás / ABS</strong><small>Az első beállítás alapmező, a második élanyag csak szükség esetén jelenik meg.</small></div>
                     <div class="edge-assignment-list">
                       <div class="edge-assignment" data-composer-edge="1">
-                        <div class="edge-assignment-index"><span>Élanyag</span><strong>1</strong></div>
+                        <div class="edge-assignment-index"><span>ABS</span><strong>1</strong></div>
                         <div class="field edge-assignment-code"><label class="required" for="composer-edge-code">Élzárás kódja</label><div class="edge-code-control"><select id="composer-edge-code" data-composer-field="edgeCode" required aria-required="true"><option value="">Válasszon…</option><option value="0-0">0-0 · nincs élzárás</option><option value="0-1">0-1 · 1 rövid él</option><option value="0-2">0-2 · 2 rövid él</option><option value="1-0">1-0 · 1 hosszanti él</option><option value="1-1">1-1 · 1 hosszanti + 1 rövid él</option><option value="1-2">1-2 · 1 hosszanti + 2 rövid él</option><option value="2-0">2-0 · 2 hosszanti él</option><option value="2-1">2-1 · 2 hosszanti + 1 rövid él</option><option value="2-2">2-2 · mind a 4 él</option></select><span class="part l-0 s-0 edge-row-preview" aria-hidden="true"><i class="top"></i><i class="right"></i><i class="bottom"></i><i class="left"></i></span></div></div>
-                        <div class="field edge-assignment-thickness"><label for="composer-edge-thickness">Vastagság</label><input id="composer-edge-thickness" data-composer-field="edgeThicknessMm" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
-                        <div class="field edge-assignment-identifier"><label for="composer-edge-identifier">ABS színe / azonosítója</label><input id="composer-edge-identifier" data-composer-field="edgeMaterialIdentifier" type="text" maxlength="120" placeholder="Pl. U604 vagy lapazonos"></div>
+                        <div class="field edge-assignment-thickness"><label for="composer-edge-thickness">Vastagság</label><input id="composer-edge-thickness" data-composer-field="edgeThicknessMm" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" list="edge-thickness-options" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
+                        <div class="field edge-assignment-identifier"><label for="composer-edge-identifier">ABS színe / azonosítója</label><input id="composer-edge-identifier" data-composer-field="edgeMaterialIdentifier" type="text" maxlength="120" list="edge-identifier-options" placeholder="Pl. U604 vagy lapazonos"></div>
                         <div class="edge-assignment-result" aria-live="polite"><span>Beállítás</span><strong data-composer-edge-summary="1">Még nincs kitöltve</strong></div>
                       </div>
                       <div class="edge-assignment" data-composer-edge="2" hidden>
-                        <div class="edge-assignment-index"><span>Élanyag</span><strong>2</strong></div>
+                        <div class="edge-assignment-index"><span>ABS</span><strong>2</strong></div>
                         <div class="field edge-assignment-code"><label class="required" for="composer-edge-code-2">Élzárás kódja</label><div class="edge-code-control"><select id="composer-edge-code-2" data-composer-field="edgeCode2"><option value="">Válasszon…</option><option value="0-1">0-1 · 1 rövid él</option><option value="0-2">0-2 · 2 rövid él</option><option value="1-0">1-0 · 1 hosszanti él</option><option value="1-1">1-1 · 1 hosszanti + 1 rövid él</option><option value="1-2">1-2 · 1 hosszanti + 2 rövid él</option><option value="2-0">2-0 · 2 hosszanti él</option><option value="2-1">2-1 · 2 hosszanti + 1 rövid él</option><option value="2-2">2-2 · mind a 4 él</option></select><span class="part l-0 s-0 edge-row-preview" aria-hidden="true"><i class="top"></i><i class="right"></i><i class="bottom"></i><i class="left"></i></span></div></div>
-                        <div class="field edge-assignment-thickness"><label for="composer-edge-thickness-2">Vastagság</label><input id="composer-edge-thickness-2" data-composer-field="edgeThicknessMm2" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
-                        <div class="field edge-assignment-identifier"><label for="composer-edge-identifier-2">ABS színe / azonosítója</label><input id="composer-edge-identifier-2" data-composer-field="edgeMaterialIdentifier2" type="text" maxlength="120" placeholder="Pl. fehér vagy U604"></div>
+                        <div class="field edge-assignment-thickness"><label for="composer-edge-thickness-2">Vastagság</label><input id="composer-edge-thickness-2" data-composer-field="edgeThicknessMm2" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" list="edge-thickness-options" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
+                        <div class="field edge-assignment-identifier"><label for="composer-edge-identifier-2">ABS színe / azonosítója</label><input id="composer-edge-identifier-2" data-composer-field="edgeMaterialIdentifier2" type="text" maxlength="120" list="edge-identifier-options" placeholder="Pl. fehér vagy U604"></div>
                         <div class="edge-assignment-result" aria-live="polite"><span>Beállítás</span><strong data-composer-edge-summary="2">Még nincs kitöltve</strong></div>
                         <button class="icon-button delete edge-remove" type="button" id="remove-composer-edge" aria-label="Második élanyag eltávolítása">×</button>
                       </div>
                     </div>
                     <div class="edge-section-actions">
-                      <button class="btn btn-small btn-ghost add-second-edge" type="button" id="add-composer-edge">+ Második élanyag (opcionális)</button>
-                      <small class="edge-side-hint" id="composer-edge-side-hint" hidden>Ha két élanyag ugyanazon méretű élekre kerül, a Megjegyzésben írja le, melyik konkrét oldal melyiket kapja.</small>
+                      <button class="btn btn-small btn-ghost add-second-edge" type="button" id="add-composer-edge" hidden>+ Második élanyag (opcionális)</button>
+                      <small class="edge-side-hint" id="composer-edge-side-hint" hidden>A Megjegyzésben írja le, melyik konkrét oldal kapja az 1. és a 2. ABS-t.</small>
                     </div>
                   </div>
 
                   <p class="item-composer-error" id="item-composer-error" role="alert"></p>
                   <div class="item-composer-actions">
-                    <button class="btn btn-small btn-ghost" type="button" id="cancel-item-edit" hidden>Mégse</button>
-                    <button class="btn btn-primary" type="button" id="save-item">+ Elem hozzáadása</button>
+                    <label class="composer-retain" for="retain-item-settings"><input id="retain-item-settings" type="checkbox" checked><span>Anyag és ABS megtartása a következő tételhez</span></label>
+                    <div class="composer-submit-group"><small class="keyboard-hint">Gyorsbillentyű: Ctrl + Enter</small><button class="btn btn-small btn-ghost" type="button" id="cancel-item-edit" hidden>Mégse</button><button class="btn btn-primary" type="button" id="save-item" aria-keyshortcuts="Control+Enter Meta+Enter">+ Elem hozzáadása</button></div>
                   </div>
+                  <p class="item-composer-status" id="item-composer-status" role="status" aria-live="polite"></p>
+                  <datalist id="edge-thickness-options"><option value="0.4"></option><option value="0.6"></option><option value="0.8"></option><option value="1"></option><option value="2"></option></datalist>
+                  <datalist id="edge-identifier-options"><option value="Lapazonos"></option><option value="Fehér"></option></datalist>
                 </section>
               </section>
 
@@ -436,6 +439,6 @@
     </div>
   </footer>
 
-  <script src="lapszabaszat.js?v=20260917-table5" defer></script>
+  <script src="lapszabaszat.js?v=20260917-quick6" defer></script>
 </body>
 </html>
