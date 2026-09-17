@@ -12,6 +12,7 @@
   const MAX_FILE_SIZE = 6 * 1024 * 1024;
   const MAX_TOTAL_FILE_SIZE = 15 * 1024 * 1024;
   const MAX_MATERIALS = 50;
+  const MAX_EDGE_PROFILES = 500;
   const MAX_ITEMS = 500;
   const FLOW_STEPS = {
     upload: ['details', 'logistics', 'contact', 'review'],
@@ -60,7 +61,7 @@
     '2-1': '2 hosszanti + 1 rövid él',
     '2-2': 'mind a 4 él'
   };
-  const ITEM_FIELD_NAMES = ['materialId', 'name', 'lengthMm', 'widthMm', 'quantity', 'note', 'edgeCode', 'edgeThicknessMm', 'edgeMaterialIdentifier', 'edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'];
+  const ITEM_FIELD_NAMES = ['materialId', 'name', 'lengthMm', 'widthMm', 'quantity', 'note', 'edgeCode', 'edgeProfileId', 'edgeThicknessMm', 'edgeMaterialIdentifier', 'edgeCode2', 'edgeProfileId2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'];
 
   const form = document.querySelector('#cutting-form');
   if (!form) return;
@@ -77,6 +78,8 @@
   const errorSummary = document.querySelector('#error-summary');
   const errorList = document.querySelector('#error-list');
   const materialList = document.querySelector('#material-list');
+  const edgeProfileList = document.querySelector('#edge-profile-list');
+  const edgeProfileEmpty = document.querySelector('#edge-profile-empty');
   const itemList = document.querySelector('#item-list');
   const itemSummary = document.querySelector('#items-summary');
   const itemEmptyState = document.querySelector('#item-empty-state');
@@ -94,6 +97,7 @@
   let activeFlow = null;
   let stepIndex = 0;
   let materialCounter = 0;
+  let edgeProfileCounter = 0;
   let itemCounter = 0;
   let editingItemId = null;
   let composerDirty = false;
@@ -450,6 +454,199 @@
     queueSave();
   });
 
+  function edgeProfileDisplayName(profile, index) {
+    const identifier = String(profile?.identifier || '').trim();
+    const thickness = String(profile?.thicknessMm || '').trim();
+    if (!identifier && !thickness) return `${index + 1}. ABS – még nincs kitöltve`;
+    if (!identifier) return `${index + 1}. ABS – ${formatDecimal(thickness)} mm`;
+    return thickness ? `${identifier} – ${formatDecimal(thickness)} mm` : `${identifier} – vastagság nélkül`;
+  }
+
+  function edgeProfilePairKey(identifier, thicknessMm) {
+    const normalizedIdentifier = String(identifier ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('hu-HU');
+    return `${normalizedIdentifier}\u001f${canonicalThickness(thicknessMm)}`;
+  }
+
+  function isUsableEdgeProfile(profile) {
+    const thickness = Number(canonicalThickness(profile?.thicknessMm));
+    return String(profile?.identifier || '').trim().length >= 2 && thickness >= 0.1 && thickness <= 10;
+  }
+
+  function readEdgeProfile(card) {
+    const data = { id: card.dataset.edgeProfileId };
+    card.querySelectorAll('[data-edge-profile-field]').forEach((control) => { data[control.dataset.edgeProfileField] = control.value.trim(); });
+    return data;
+  }
+
+  function readEdgeProfiles() {
+    return [...edgeProfileList.querySelectorAll('.edge-profile-card')].map(readEdgeProfile);
+  }
+
+  function getEdgeProfile(profileId) {
+    return readEdgeProfiles().find((profile) => profile.id === profileId) || null;
+  }
+
+  function getUsableEdgeProfile(profileId) {
+    const profile = getEdgeProfile(profileId);
+    return isUsableEdgeProfile(profile) ? profile : null;
+  }
+
+  function matchingEdgeProfileId(identifier, thicknessMm) {
+    const key = edgeProfilePairKey(identifier, thicknessMm);
+    if (!String(identifier || '').trim() && !String(thicknessMm || '').trim()) return '';
+    return readEdgeProfiles().find((profile) => isUsableEdgeProfile(profile) && edgeProfilePairKey(profile.identifier, profile.thicknessMm) === key)?.id || '';
+  }
+
+  function syncComposerEdgeProfileSnapshot(position) {
+    const suffix = position === 1 ? '' : '2';
+    const profileControl = composerField(`edgeProfileId${suffix}`);
+    const profile = getEdgeProfile(profileControl?.value || '');
+    const thicknessControl = composerField(`edgeThicknessMm${suffix}`);
+    const identifierControl = composerField(`edgeMaterialIdentifier${suffix}`);
+    if (thicknessControl) thicknessControl.value = profile?.thicknessMm || '';
+    if (identifierControl) identifierControl.value = profile?.identifier || '';
+  }
+
+  function syncStoredItemEdgeProfileSnapshots() {
+    itemList.querySelectorAll('.item-card').forEach((card) => {
+      [1, 2].forEach((position) => {
+        const suffix = position === 1 ? '' : '2';
+        const profileId = card.querySelector(`[data-item-field="edgeProfileId${suffix}"]`)?.value || '';
+        const profile = getEdgeProfile(profileId);
+        if (!profile) return;
+        card.querySelector(`[data-item-field="edgeThicknessMm${suffix}"]`).value = profile.thicknessMm;
+        card.querySelector(`[data-item-field="edgeMaterialIdentifier${suffix}"]`).value = profile.identifier;
+      });
+      renderItemSummary(card);
+    });
+    updateItemSummary();
+  }
+
+  function updateEdgeProfileUsageState() {
+    const cards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
+    const usedIds = new Set();
+    readItems().filter(isMeaningfulItem).forEach((item) => {
+      if (item.edgeProfileId) usedIds.add(item.edgeProfileId);
+      if (item.edgeProfileId2) usedIds.add(item.edgeProfileId2);
+    });
+    ['edgeProfileId', 'edgeProfileId2'].forEach((field) => {
+      const value = composerField(field)?.value;
+      if (value) usedIds.add(value);
+    });
+    cards.forEach((card, index) => {
+      const button = card.querySelector('[data-edge-profile-action="delete"]');
+      const inUse = usedIds.has(card.dataset.edgeProfileId);
+      button.disabled = inUse;
+      button.textContent = inUse ? 'Használatban' : 'Törlés';
+      button.setAttribute('aria-label', inUse ? `${index + 1}. ABS használatban, nem törölhető` : `${index + 1}. ABS törlése`);
+      button.title = inUse ? 'Ezt az ABS-t már használja egy tétel vagy a gyors felvitel.' : `${index + 1}. ABS törlése`;
+    });
+  }
+
+  function updateEdgeProfileOptions() {
+    const allProfiles = readEdgeProfiles();
+    const profiles = allProfiles.filter(isUsableEdgeProfile);
+    const wasDirty = composerDirty;
+    [1, 2].forEach((position) => {
+      const suffix = position === 1 ? '' : '2';
+      const select = composerField(`edgeProfileId${suffix}`);
+      if (!select) return;
+      const selectedId = select.value;
+      const snapshotId = matchingEdgeProfileId(composerField(`edgeMaterialIdentifier${suffix}`)?.value, composerField(`edgeThicknessMm${suffix}`)?.value);
+      const placeholderText = profiles.length
+        ? 'Válasszon ABS élanyagot…'
+        : allProfiles.length
+          ? 'Előbb töltse ki az ABS adatait fent…'
+          : 'Előbb vegyen fel ABS-t fent…';
+      const placeholder = new Option(placeholderText, '');
+      select.replaceChildren(placeholder);
+      profiles.forEach((profile, index) => select.add(new Option(edgeProfileDisplayName(profile, index), profile.id)));
+      if (profiles.some((profile) => profile.id === selectedId)) select.value = selectedId;
+      else if (snapshotId && profiles.some((profile) => profile.id === snapshotId)) select.value = snapshotId;
+      else if (profiles.length === 1 && EDGE_CODES_WITH_MATERIAL.includes(composerField(`edgeCode${suffix}`)?.value)) select.value = profiles[0].id;
+      syncComposerEdgeProfileSnapshot(position);
+    });
+    syncStoredItemEdgeProfileSnapshots();
+    syncComposerEdges();
+    updateEdgeProfileUsageState();
+    if (!wasDirty) {
+      composerBaseline = composerSnapshot();
+      composerDirty = false;
+    }
+  }
+
+  function renumberEdgeProfiles() {
+    const cards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
+    cards.forEach((card, index) => {
+      card.querySelector('.edge-profile-number').textContent = String(index + 1);
+      card.querySelector('.edge-profile-number-a11y').textContent = String(index + 1);
+      card.querySelector('[data-edge-profile-action="delete"]').setAttribute('aria-label', `${index + 1}. ABS törlése`);
+    });
+    edgeProfileEmpty.hidden = cards.length > 0;
+    updateEdgeProfileOptions();
+  }
+
+  function newEdgeProfile(data = {}) {
+    edgeProfileCounter += 1;
+    const domId = `edge-profile-${Date.now()}-${edgeProfileCounter}`;
+    const usedIds = new Set(readEdgeProfiles().map((profile) => profile.id));
+    const preferredId = String(data.id || '').trim();
+    const profileId = preferredId && !usedIds.has(preferredId) ? preferredId : `edge-${Date.now()}-${edgeProfileCounter}`;
+    const card = document.createElement('article');
+    card.className = 'edge-profile-card';
+    card.id = domId;
+    card.tabIndex = -1;
+    card.dataset.edgeProfileId = profileId;
+    card.innerHTML = `
+      <h4 class="sr-only"><span class="edge-profile-number-a11y"></span>. ABS élanyag</h4>
+      <div class="edge-profile-grid">
+        <div class="edge-profile-index"><span>ABS</span><strong class="edge-profile-number"></strong></div>
+        <div class="field edge-profile-identifier"><label class="required" for="${domId}-identifier">ABS színe / azonosítója</label><input id="${domId}-identifier" data-edge-profile-field="identifier" type="text" required aria-required="true" maxlength="120" value="${escapeHtml(data.identifier)}" placeholder="Pl. U604 lapazonos vagy Fehér"></div>
+        <div class="field edge-profile-thickness"><label class="required" for="${domId}-thickness">Vastagság (mm)</label><input id="${domId}-thickness" data-edge-profile-field="thicknessMm" type="number" required aria-required="true" min="0.1" max="10" step="0.1" inputmode="decimal" value="${escapeHtml(data.thicknessMm)}" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="edge-profile-actions"><button class="icon-button delete" type="button" data-edge-profile-action="delete">Törlés</button></div>
+      </div>
+      <p class="edge-profile-error" id="${domId}-error" role="alert"></p>`;
+    edgeProfileList.append(card);
+    renumberEdgeProfiles();
+    return card;
+  }
+
+  function addAndFocusEdgeProfile() {
+    if (edgeProfileList.children.length >= MAX_EDGE_PROFILES) return;
+    const card = newEdgeProfile();
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.querySelector('[data-edge-profile-field="identifier"]').focus();
+    queueSave();
+  }
+
+  document.querySelector('#add-edge-profile').addEventListener('click', addAndFocusEdgeProfile);
+  document.querySelector('#quick-add-edge-profile').addEventListener('click', addAndFocusEdgeProfile);
+
+  edgeProfileList.addEventListener('click', (event) => {
+    const card = event.target.closest('.edge-profile-card');
+    if (!card || !event.target.closest('[data-edge-profile-action="delete"]')) return;
+    if (card.querySelector('[data-edge-profile-action="delete"]').disabled) return;
+    const deletedIndex = [...edgeProfileList.querySelectorAll('.edge-profile-card')].indexOf(card) + 1;
+    const focusTarget = card.nextElementSibling?.querySelector('[data-edge-profile-field]')
+      || card.previousElementSibling?.querySelector('[data-edge-profile-field]')
+      || document.querySelector('#add-edge-profile');
+    card.remove();
+    renumberEdgeProfiles();
+    focusTarget?.focus();
+    setComposerStatus(`✓ A(z) ${deletedIndex}. ABS törölve.`);
+    queueSave();
+  });
+
+  edgeProfileList.addEventListener('input', (event) => {
+    const card = event.target.closest('.edge-profile-card');
+    card?.classList.remove('invalid');
+    card?.querySelector('.edge-profile-error')?.replaceChildren();
+    event.target.removeAttribute('aria-invalid');
+    event.target.removeAttribute('aria-describedby');
+    renumberEdgeProfiles();
+    queueSave();
+  });
+
   function newItem(data = {}) {
     itemCounter += 1;
     const preferredId = String(data.id || '').trim();
@@ -528,6 +725,7 @@
     itemEmptyState.hidden = cards.length > 0;
     updateItemSummary();
     updateMaterialUsageState();
+    updateEdgeProfileUsageState();
   }
 
   function isMeaningfulItem(item) {
@@ -581,6 +779,11 @@
   function clearComposerErrors() {
     itemComposerError.textContent = '';
     itemComposer.querySelectorAll('[aria-invalid="true"]').forEach((control) => control.removeAttribute('aria-invalid'));
+    itemComposer.querySelectorAll('[aria-describedby]').forEach((control) => {
+      const describedBy = (control.getAttribute('aria-describedby') || '').split(/\s+/).filter((id) => id && id !== 'item-composer-error');
+      if (describedBy.length) control.setAttribute('aria-describedby', describedBy.join(' '));
+      else control.removeAttribute('aria-describedby');
+    });
   }
 
   function setComposerStatus(message = '') {
@@ -598,6 +801,13 @@
     const requestedMaterialId = String(data.materialId || '');
     const materialControl = composerField('materialId');
     if (requestedMaterialId && [...materialControl.options].some((option) => option.value === requestedMaterialId)) materialControl.value = requestedMaterialId;
+    [1, 2].forEach((position) => {
+      const suffix = position === 1 ? '' : '2';
+      const profileControl = composerField(`edgeProfileId${suffix}`);
+      if (profileControl.value) return;
+      const matchedId = matchingEdgeProfileId(data[`edgeMaterialIdentifier${suffix}`], data[`edgeThicknessMm${suffix}`]);
+      if (matchedId && [...profileControl.options].some((option) => option.value === matchedId)) profileControl.value = matchedId;
+    });
     const secondaryRow = itemComposer.querySelector('[data-composer-edge="2"]');
     secondaryRow.hidden = !data.edgeCode2;
     syncComposerEdges();
@@ -611,19 +821,19 @@
     itemComposerTitle.textContent = 'Elem hozzáadása';
     saveItemButton.textContent = '+ Elem hozzáadása';
     cancelItemEditButton.hidden = true;
-    setComposerItem({ quantity: 1, edgeCode2: '', edgeThicknessMm2: '', edgeMaterialIdentifier2: '', ...defaults });
+    setComposerItem({ quantity: 1, edgeCode2: '', edgeProfileId2: '', edgeThicknessMm2: '', edgeMaterialIdentifier2: '', ...defaults });
   }
 
   function syncComposerEdges() {
     const secondaryRow = itemComposer.querySelector('[data-composer-edge="2"]');
     const firstCode = composerField('edgeCode').value;
     if (!secondaryRow.hidden && !EDGE_CODES_WITH_MATERIAL.includes(firstCode)) {
-      ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
+      ['edgeCode2', 'edgeProfileId2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
       secondaryRow.hidden = true;
     }
     const [longOne, shortOne] = edgeCodeParts(firstCode);
     if (!secondaryRow.hidden && longOne === 2 && shortOne === 2) {
-      ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
+      ['edgeCode2', 'edgeProfileId2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
       secondaryRow.hidden = true;
     }
     const secondaryCodeControl = composerField('edgeCode2');
@@ -640,25 +850,48 @@
       const suffix = position === 1 ? '' : '2';
       const row = itemComposer.querySelector(`[data-composer-edge="${position}"]`);
       const codeControl = composerField(`edgeCode${suffix}`);
+      const profileControl = composerField(`edgeProfileId${suffix}`);
       const thicknessControl = composerField(`edgeThicknessMm${suffix}`);
       const identifierControl = composerField(`edgeMaterialIdentifier${suffix}`);
       const active = position === 1 || secondaryActive;
       const code = active ? codeControl.value : '';
       const hasEdge = active && EDGE_CODES_WITH_MATERIAL.includes(code);
-      const explicitlyNoEdge = position === 1 && code === '0-0';
+      const usableProfiles = readEdgeProfiles().filter(isUsableEdgeProfile);
       const [longEdges, shortEdges] = edgeCodeParts(code);
       row.querySelector('.edge-row-preview').className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
       codeControl.disabled = !active;
       codeControl.required = active;
       if (active) codeControl.setAttribute('aria-required', 'true');
       else codeControl.removeAttribute('aria-required');
-      [thicknessControl, identifierControl].forEach((control) => {
-        control.disabled = !active || explicitlyNoEdge || !hasEdge;
-        control.required = hasEdge;
-        if (hasEdge) control.setAttribute('aria-required', 'true');
-        else control.removeAttribute('aria-required');
-        control.closest('.field').querySelector('label').classList.toggle('required', hasEdge);
-      });
+      if (!active || !hasEdge) {
+        profileControl.value = '';
+        thicknessControl.value = '';
+        identifierControl.value = '';
+      } else if (!getUsableEdgeProfile(profileControl.value) && usableProfiles.length === 1) {
+        profileControl.value = usableProfiles[0].id;
+      }
+      profileControl.disabled = !active || !hasEdge;
+      profileControl.required = hasEdge;
+      if (hasEdge) profileControl.setAttribute('aria-required', 'true');
+      else profileControl.removeAttribute('aria-required');
+      profileControl.closest('.field').querySelector('label').classList.toggle('required', hasEdge);
+      const placeholder = profileControl.options[0];
+      if (placeholder) {
+        placeholder.textContent = !active || !code
+          ? 'Előbb válasszon élkódot…'
+          : code === '0-0'
+            ? 'Nem szükséges'
+            : usableProfiles.length
+              ? 'Válasszon ABS élanyagot…'
+              : readEdgeProfiles().length
+                ? 'Előbb töltse ki az ABS adatait fent…'
+                : 'Előbb vegyen fel ABS-t fent…';
+      }
+      if (profileControl.value) syncComposerEdgeProfileSnapshot(position);
+      else if (hasEdge) {
+        thicknessControl.value = '';
+        identifierControl.value = '';
+      }
       row.querySelector(`[data-composer-edge-summary="${position}"]`).textContent = edgeAssignmentSummary(code, thicknessControl.value, identifierControl.value);
     });
     const secondCode = secondaryActive ? composerField('edgeCode2').value : '';
@@ -666,6 +899,7 @@
     const canAddSecondEdge = EDGE_CODES_WITH_MATERIAL.includes(firstCode) && (longOne < 2 || shortOne < 2);
     addButton.hidden = secondaryActive || !canAddSecondEdge;
     addButton.disabled = !canAddSecondEdge;
+    document.querySelector('#quick-add-edge-profile').hidden = !([firstCode, secondCode].some((code) => EDGE_CODES_WITH_MATERIAL.includes(code)) && !readEdgeProfiles().some(isUsableEdgeProfile));
     const [longTwo, shortTwo] = edgeCodeParts(secondCode);
     const sharedEdgeDirection = secondaryActive && Boolean((longOne && longTwo) || (shortOne && shortTwo));
     const noteControl = composerField('note');
@@ -678,6 +912,7 @@
     noteRequirement.textContent = sharedEdgeDirection ? '(kötelező az oldalak miatt)' : '(opcionális)';
     noteControl.placeholder = sharedEdgeDirection ? 'Pl. bal oldal: 1. ABS, jobb oldal: 2. ABS' : 'Pl. egyedi kérés';
     document.querySelector('#composer-edge-side-hint').hidden = !sharedEdgeDirection;
+    updateEdgeProfileUsageState();
   }
 
   function itemValidationIssues(item, secondaryActive = Boolean(item.edgeCode2)) {
@@ -692,14 +927,10 @@
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
     if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
     const hasEdge = EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode);
-    const firstThickness = Number(String(item.edgeThicknessMm || '').replace(',', '.'));
-    if (hasEdge && (!Number.isFinite(firstThickness) || firstThickness < 0.1 || firstThickness > 10)) mark('edgeThicknessMm', 'első ABS vastagsága');
-    if (hasEdge && !item.edgeMaterialIdentifier) mark('edgeMaterialIdentifier', 'első ABS színe / azonosítója');
+    if (hasEdge && !getUsableEdgeProfile(item.edgeProfileId)) mark('edgeProfileId', 'első ABS élanyag');
     if (secondaryActive) {
       if (!EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode2)) mark('edgeCode2', 'második élkód');
-      const secondThickness = Number(String(item.edgeThicknessMm2 || '').replace(',', '.'));
-      if (!Number.isFinite(secondThickness) || secondThickness < 0.1 || secondThickness > 10) mark('edgeThicknessMm2', 'második ABS vastagsága');
-      if (!item.edgeMaterialIdentifier2) mark('edgeMaterialIdentifier2', 'második ABS színe / azonosítója');
+      if (!getUsableEdgeProfile(item.edgeProfileId2)) mark('edgeProfileId2', 'második ABS élanyag');
       const [longOne, shortOne] = edgeCodeParts(item.edgeCode);
       const [longTwo, shortTwo] = edgeCodeParts(item.edgeCode2);
       if (longOne + longTwo > 2 || shortOne + shortTwo > 2) mark('edgeCode2', 'az élkódok együtt legfeljebb 2 hosszú és 2 rövid élt jelölhetnek');
@@ -712,7 +943,11 @@
     clearComposerErrors();
     const secondaryActive = !itemComposer.querySelector('[data-composer-edge="2"]').hidden;
     const issues = itemValidationIssues(data, secondaryActive);
-    issues.forEach(({ field }) => composerField(field)?.setAttribute('aria-invalid', 'true'));
+    issues.forEach(({ field }) => {
+      const control = composerField(field);
+      control?.setAttribute('aria-invalid', 'true');
+      control?.setAttribute('aria-describedby', 'item-composer-error');
+    });
     if (!issues.length) return true;
     itemComposerError.textContent = `Ellenőrizze: ${issues.map(({ label }) => label).join(', ')}.`;
     composerField(issues[0].field)?.focus();
@@ -736,9 +971,11 @@
       materialId: data.materialId,
       quantity: 1,
       edgeCode: data.edgeCode,
+      edgeProfileId: data.edgeCode === '0-0' ? '' : data.edgeProfileId,
       edgeThicknessMm: data.edgeCode === '0-0' ? '' : data.edgeThicknessMm,
       edgeMaterialIdentifier: data.edgeCode === '0-0' ? '' : data.edgeMaterialIdentifier,
       edgeCode2: data.edgeCode2,
+      edgeProfileId2: data.edgeProfileId2,
       edgeThicknessMm2: data.edgeThicknessMm2,
       edgeMaterialIdentifier2: data.edgeMaterialIdentifier2
     } : { quantity: 1 };
@@ -794,7 +1031,7 @@
     queueSave();
   });
   document.querySelector('#remove-composer-edge').addEventListener('click', () => {
-    ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
+    ['edgeCode2', 'edgeProfileId2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
     itemComposer.querySelector('[data-composer-edge="2"]').hidden = true;
     syncComposerEdges();
     updateComposerDirtyState();
@@ -804,6 +1041,7 @@
     if (event.target.matches('[data-composer-field^="edge"]')) syncComposerEdges();
     if (event.target.matches('[data-composer-field]')) updateComposerDirtyState();
     event.target.removeAttribute('aria-invalid');
+    if (event.target.getAttribute('aria-describedby') === 'item-composer-error') event.target.removeAttribute('aria-describedby');
     itemComposerError.textContent = '';
     setComposerStatus('');
     queueSave();
@@ -812,6 +1050,7 @@
     if (event.target.matches('[data-composer-field^="edge"]')) syncComposerEdges();
     if (event.target.matches('[data-composer-field]')) updateComposerDirtyState();
     event.target.removeAttribute('aria-invalid');
+    if (event.target.getAttribute('aria-describedby') === 'item-composer-error') event.target.removeAttribute('aria-describedby');
     itemComposerError.textContent = '';
     setComposerStatus('');
     queueSave();
@@ -847,7 +1086,14 @@
     else document.querySelector(fallback)?.focus();
   }
 
-  materialList.addEventListener('keydown', (event) => moveToNextManualField(event, '#material-list [data-material-field]', '#item-composer [data-composer-field="materialId"]'));
+  materialList.addEventListener('keydown', (event) => {
+    const incompleteProfile = [...edgeProfileList.querySelectorAll('.edge-profile-card')].find((card) => !isUsableEdgeProfile(readEdgeProfile(card)));
+    const fallback = incompleteProfile
+      ? `#${incompleteProfile.id} [data-edge-profile-field]`
+      : '#item-composer [data-composer-field="materialId"]';
+    moveToNextManualField(event, '#material-list [data-material-field]', fallback);
+  });
+  edgeProfileList.addEventListener('keydown', (event) => moveToNextManualField(event, '#edge-profile-list [data-edge-profile-field]', '#item-composer [data-composer-field="materialId"]'));
   itemComposer.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.isComposing && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
@@ -874,6 +1120,8 @@
     form.querySelectorAll('[aria-invalid="true"]').forEach((node) => node.removeAttribute('aria-invalid'));
     form.querySelectorAll('.material-card.invalid').forEach((node) => node.classList.remove('invalid'));
     form.querySelectorAll('.material-error').forEach((node) => { node.textContent = ''; });
+    form.querySelectorAll('.edge-profile-card.invalid').forEach((node) => node.classList.remove('invalid'));
+    form.querySelectorAll('.edge-profile-error').forEach((node) => { node.textContent = ''; });
     form.querySelectorAll('.item-card.invalid').forEach((node) => node.classList.remove('invalid'));
     form.querySelectorAll('.item-error').forEach((node) => { node.textContent = ''; });
   }
@@ -943,6 +1191,37 @@
           control.setAttribute('aria-describedby', errorId);
         });
         errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. anyag: ${messages.join(', ')}.` });
+      }
+    });
+    const edgeProfileCards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
+    const seenEdgeProfilePairs = new Set();
+    edgeProfileCards.forEach((card, index) => {
+      const profile = readEdgeProfile(card);
+      if (!profile.identifier && !profile.thicknessMm) return;
+      const messages = [];
+      const invalidControls = [];
+      const mark = (field, label) => {
+        messages.push(label);
+        const control = card.querySelector(`[data-edge-profile-field="${field}"]`);
+        if (control) invalidControls.push(control);
+      };
+      if (profile.identifier.length < 2) mark('identifier', 'ABS színe / azonosítója');
+      const thickness = Number(canonicalThickness(profile.thicknessMm));
+      if (!thickness || thickness < 0.1 || thickness > 10) mark('thicknessMm', '0,1 és 10 mm közötti vastagság');
+      const pairKey = edgeProfilePairKey(profile.identifier, profile.thicknessMm);
+      if (profile.identifier.length >= 2 && thickness >= 0.1 && thickness <= 10) {
+        if (seenEdgeProfilePairs.has(pairKey)) mark('identifier', 'már felvett ABS–vastagság páros');
+        else seenEdgeProfilePairs.add(pairKey);
+      }
+      if (messages.length) {
+        card.classList.add('invalid');
+        const errorId = `${card.id}-error`;
+        card.querySelector('.edge-profile-error').textContent = `Ellenőrizze: ${messages.join(', ')}.`;
+        invalidControls.forEach((control) => {
+          control.setAttribute('aria-invalid', 'true');
+          control.setAttribute('aria-describedby', errorId);
+        });
+        errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. ABS: ${messages.join(', ')}.` });
       }
     });
     const cards = [...itemList.querySelectorAll('.item-card')];
@@ -1227,11 +1506,13 @@
       ]));
     } else if (activeFlow === 'manual') {
       const materials = readMaterials();
+      const edgeProfiles = readEdgeProfiles();
       cards.push(reviewCard('Munka alapadatai', 'items', [
         ['Beküldési mód', FLOW_NAMES.manual],
         ['Anyag biztosítása', MATERIAL_SOURCE_NAMES[fieldValue('manual_material_source')]],
         ['Méret', 'Kész méret, élzárással együtt'],
-        ['Anyagok', materials.map((material, index) => materialDisplayName(material, index)).join('\n')]
+        ['Bútorlapok', materials.map((material, index) => materialDisplayName(material, index)).join('\n')],
+        ['ABS élanyagok', edgeProfiles.length ? edgeProfiles.map((profile, index) => edgeProfileDisplayName(profile, index)).join('\n') : 'Nincs']
       ]));
       const totals = itemTotals();
       const items = readItems().map((item, index) => {
@@ -1383,6 +1664,7 @@
       submissionToken,
       fields,
       materialProfiles: readMaterials(),
+      edgeProfiles: readEdgeProfiles(),
       items: readItems(),
       composerItem: activeFlow === 'manual' ? readComposerItem() : null,
       composerDirty: activeFlow === 'manual' ? composerDirty : false,
@@ -1555,16 +1837,95 @@
     return migrated;
   }
 
+  function prepareDraftEdgeProfiles(draft) {
+    const profiles = [];
+    const profileIds = new Set();
+    const pairToId = new Map();
+    const idAliases = new Map();
+    let generatedId = 0;
+    const nextId = () => {
+      let id = '';
+      do {
+        generatedId += 1;
+        id = `edge-restored-${generatedId}`;
+      } while (profileIds.has(id));
+      return id;
+    };
+    const addProfile = (rawProfile = {}, { deduplicate = true, preserveEmpty = false } = {}) => {
+      const identifier = cleanText(rawProfile.identifier);
+      const thicknessMm = cleanText(rawProfile.thicknessMm);
+      const requestedId = cleanText(rawProfile.id);
+      const hasPairData = Boolean(identifier || thicknessMm);
+      if (!hasPairData && !preserveEmpty) return '';
+      const pairKey = edgeProfilePairKey(identifier, thicknessMm);
+      const existingId = hasPairData ? pairToId.get(pairKey) : '';
+      if (deduplicate && existingId) {
+        if (requestedId) idAliases.set(requestedId, existingId);
+        return existingId;
+      }
+      const id = requestedId && !profileIds.has(requestedId) ? requestedId : nextId();
+      profiles.push({ id, identifier, thicknessMm });
+      profileIds.add(id);
+      if (hasPairData && !pairToId.has(pairKey)) pairToId.set(pairKey, id);
+      if (requestedId) idAliases.set(requestedId, id);
+      return id;
+    };
+    const hasExplicitProfiles = Array.isArray(draft.edgeProfiles);
+    if (hasExplicitProfiles) draft.edgeProfiles.forEach((profile) => addProfile(profile, { deduplicate: false, preserveEmpty: true }));
+    const normalizeItem = (rawItem) => {
+      if (!rawItem || typeof rawItem !== 'object') return rawItem;
+      const item = { ...rawItem };
+      [1, 2].forEach((position) => {
+        const suffix = position === 1 ? '' : '2';
+        const code = cleanText(item[`edgeCode${suffix}`]);
+        const profileIdField = `edgeProfileId${suffix}`;
+        const thicknessField = `edgeThicknessMm${suffix}`;
+        const identifierField = `edgeMaterialIdentifier${suffix}`;
+        if (!EDGE_CODES_WITH_MATERIAL.includes(code)) {
+          item[profileIdField] = '';
+          if (code === '0-0' || position === 2) {
+            item[thicknessField] = '';
+            item[identifierField] = '';
+          }
+          return;
+        }
+        const requestedId = cleanText(item[profileIdField]);
+        let resolvedId = requestedId && profileIds.has(requestedId) ? requestedId : idAliases.get(requestedId) || '';
+        if (!resolvedId) {
+          const identifier = cleanText(item[identifierField]);
+          const thicknessMm = cleanText(item[thicknessField]);
+          resolvedId = pairToId.get(edgeProfilePairKey(identifier, thicknessMm)) || addProfile({ id: requestedId, identifier, thicknessMm });
+        }
+        item[profileIdField] = resolvedId;
+        const profile = profiles.find((entry) => entry.id === resolvedId);
+        if (profile) {
+          item[thicknessField] = profile.thicknessMm;
+          item[identifierField] = profile.identifier;
+        }
+      });
+      return item;
+    };
+    return {
+      profiles,
+      items: (Array.isArray(draft.items) ? draft.items : []).map(normalizeItem),
+      composerItem: normalizeItem(draft.composerItem)
+    };
+  }
+
   function isValidDraft(draft) {
     const updatedAt = Date.parse(draft?.updatedAt);
     const validStep = Number.isInteger(Number(draft?.stepIndex))
       && Number(draft.stepIndex) >= 0
       && Number(draft.stepIndex) < (FLOW_STEPS[draft?.flow]?.length || 0);
     const materials = draft?.materialProfiles;
+    const edgeProfiles = draft?.edgeProfiles;
     const items = draft?.items;
     const validMaterials = Array.isArray(materials)
       && materials.every((material) => material && typeof material === 'object' && typeof material.id === 'string' && material.id.trim());
     const uniqueMaterialIds = validMaterials && new Set(materials.map((material) => material.id)).size === materials.length;
+    const validEdgeProfiles = edgeProfiles === undefined || (Array.isArray(edgeProfiles)
+      && edgeProfiles.every((profile) => profile && typeof profile === 'object' && typeof profile.id === 'string' && profile.id.trim()));
+    const uniqueEdgeProfileIds = validEdgeProfiles && (edgeProfiles === undefined || new Set(edgeProfiles.map((profile) => profile.id.trim())).size === edgeProfiles.length);
     const validItems = Array.isArray(items) && items.every((item) => item && typeof item === 'object');
     const validManualCollections = draft?.flow !== 'manual' || (validMaterials && materials.length > 0 && validItems);
     return Boolean(draft)
@@ -1578,6 +1939,8 @@
       && validStep
       && validMaterials
       && uniqueMaterialIds
+      && validEdgeProfiles
+      && uniqueEdgeProfileIds
       && validItems
       && validManualCollections;
   }
@@ -1606,6 +1969,7 @@
   }
 
   function applyDraft(draft) {
+    const preparedEdgeData = prepareDraftEdgeProfiles(draft);
     form.reset();
     editingItemId = null;
     composerDirty = false;
@@ -1623,14 +1987,17 @@
     setFieldValue('upload_size_basis', 'finished');
     document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
     materialList.innerHTML = '';
+    edgeProfileList.innerHTML = '';
     itemList.innerHTML = '';
     const materialsToRestore = draft.materialProfiles?.length ? draft.materialProfiles : draft.flow === 'manual' ? [{}] : [];
-    const itemsToRestore = draft.items?.length ? draft.items : [];
+    const itemsToRestore = preparedEdgeData.items;
     materialsToRestore.forEach((material) => newMaterial(material));
+    preparedEdgeData.profiles.forEach((profile) => newEdgeProfile(profile));
+    if (!preparedEdgeData.profiles.length) renumberEdgeProfiles();
     itemsToRestore.forEach((item) => newItem(item));
     if (draft.flow === 'manual') {
       retainItemSettings.checked = draft.retainItemSettings !== false;
-      const restoredComposer = draft.composerItem || { materialId: itemsToRestore.at(-1)?.materialId || '', quantity: 1 };
+      const restoredComposer = preparedEdgeData.composerItem || { materialId: itemsToRestore.at(-1)?.materialId || '', quantity: 1 };
       const olderDraftHasInput = [restoredComposer.name, restoredComposer.lengthMm, restoredComposer.widthMm, restoredComposer.note, restoredComposer.edgeCode, restoredComposer.edgeCode2].some(Boolean)
         || (restoredComposer.quantity && String(restoredComposer.quantity) !== '1');
       setComposerItem(restoredComposer, { dirty: Boolean(draft.composerDirty ?? olderDraftHasInput) });
@@ -1793,7 +2160,9 @@
   document.querySelector('#new-request').addEventListener('click', () => {
     form.reset();
     materialList.innerHTML = '';
+    edgeProfileList.innerHTML = '';
     itemList.innerHTML = '';
+    renumberEdgeProfiles();
     resetItemComposer();
     files = { upload: [], help: [] };
     restoredFilesMeta = { upload: [], help: [] };
