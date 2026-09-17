@@ -437,7 +437,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 
 @media (min-width: 1040px) {
   body.manual-workspace .wizard-body { padding-inline: 28px; }
-  .item-table-head, .item-main-grid { grid-template-columns: 42px minmax(132px, 1.08fr) minmax(110px, .92fr) 90px 98px 56px minmax(140px, 1.12fr) 132px; }
+  .item-table-head, .item-main-grid { grid-template-columns: 42px minmax(132px, 1.08fr) minmax(110px, .92fr) 100px 108px 56px minmax(140px, 1.12fr) 132px; }
   .item-table-head { display: grid; gap: 8px; align-items: end; padding: 10px 14px; color: #48534e; background: #eeeae3; border: 1px solid #d6d2ca; border-bottom: 0; border-radius: 10px 10px 0 0; font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; }
   .item-table-head small { display: block; margin-top: 2px; color: #68736d; font-size: .64rem; letter-spacing: 0; text-transform: none; }
   .item-list { gap: 0; border: 1px solid #d6d2ca; border-radius: 0 0 10px 10px; overflow: hidden; }
@@ -460,6 +460,8 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
   .edge-code-control { grid-template-columns: minmax(0, 1fr) 44px; gap: 6px; }
   .edge-row-preview { width: 39px; height: 24px; }
   .item-main-grid .field input, .item-main-grid .field select { min-height: 38px; padding-block: 6px; }
+  .item-length input, .item-width input { padding-right: 9px !important; }
+  .item-length .input-unit, .item-width .input-unit { display: none; }
   .item-actions { align-items: center; }
   .icon-button { min-width: 0; min-height: 38px; padding: 6px 8px; }
   .item-error { margin-inline: 60px; }
