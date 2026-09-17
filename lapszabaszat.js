@@ -83,8 +83,10 @@
   const itemComposer = document.querySelector('#item-composer');
   const itemComposerTitle = document.querySelector('#item-composer-title');
   const itemComposerError = document.querySelector('#item-composer-error');
+  const itemComposerStatus = document.querySelector('#item-composer-status');
   const saveItemButton = document.querySelector('#save-item');
   const cancelItemEditButton = document.querySelector('#cancel-item-edit');
+  const retainItemSettings = document.querySelector('#retain-item-settings');
   const draftBanner = document.querySelector('#draft-banner');
   const draftTime = document.querySelector('#draft-time');
   const submitFeedback = document.querySelector('#submit-feedback');
@@ -94,6 +96,9 @@
   let materialCounter = 0;
   let itemCounter = 0;
   let editingItemId = null;
+  let composerDirty = false;
+  let composerBaseline = '';
+  let composerStatusTimer = null;
   let saveTimer = null;
   let restoredDraft = null;
   let files = { upload: [], help: [] };
@@ -475,6 +480,12 @@
       const control = card.querySelector(`[data-item-field="${field}"]`);
       control.value = String(data[field] ?? (field === 'quantity' ? 1 : ''));
     });
+    card.classList.remove('invalid');
+    card.querySelector('.item-error').textContent = '';
+    card.querySelectorAll('[data-item-field]').forEach((control) => {
+      control.removeAttribute('aria-invalid');
+      control.removeAttribute('aria-describedby');
+    });
     renderItemSummary(card);
   }
 
@@ -556,12 +567,29 @@
     return data;
   }
 
+  function composerSnapshot() {
+    return JSON.stringify({
+      item: readComposerItem(),
+      secondaryEdgeActive: !itemComposer.querySelector('[data-composer-edge="2"]').hidden
+    });
+  }
+
+  function updateComposerDirtyState() {
+    composerDirty = composerBaseline === null || composerSnapshot() !== composerBaseline;
+  }
+
   function clearComposerErrors() {
     itemComposerError.textContent = '';
     itemComposer.querySelectorAll('[aria-invalid="true"]').forEach((control) => control.removeAttribute('aria-invalid'));
   }
 
-  function setComposerItem(data = {}) {
+  function setComposerStatus(message = '') {
+    clearTimeout(composerStatusTimer);
+    itemComposerStatus.textContent = message;
+    if (message) composerStatusTimer = setTimeout(() => { itemComposerStatus.textContent = ''; }, 4500);
+  }
+
+  function setComposerItem(data = {}, { dirty = false } = {}) {
     clearComposerErrors();
     ITEM_FIELD_NAMES.forEach((field) => {
       const control = composerField(field);
@@ -573,6 +601,8 @@
     const secondaryRow = itemComposer.querySelector('[data-composer-edge="2"]');
     secondaryRow.hidden = !data.edgeCode2;
     syncComposerEdges();
+    composerDirty = dirty;
+    composerBaseline = dirty ? null : composerSnapshot();
   }
 
   function resetItemComposer(defaults = {}) {
@@ -581,7 +611,7 @@
     itemComposerTitle.textContent = 'Elem hozzáadása';
     saveItemButton.textContent = '+ Elem hozzáadása';
     cancelItemEditButton.hidden = true;
-    setComposerItem({ quantity: 1, ...defaults, edgeCode2: '', edgeThicknessMm2: '', edgeMaterialIdentifier2: '' });
+    setComposerItem({ quantity: 1, edgeCode2: '', edgeThicknessMm2: '', edgeMaterialIdentifier2: '', ...defaults });
   }
 
   function syncComposerEdges() {
@@ -591,6 +621,20 @@
       ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
       secondaryRow.hidden = true;
     }
+    const [longOne, shortOne] = edgeCodeParts(firstCode);
+    if (!secondaryRow.hidden && longOne === 2 && shortOne === 2) {
+      ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
+      secondaryRow.hidden = true;
+    }
+    const secondaryCodeControl = composerField('edgeCode2');
+    [...secondaryCodeControl.options].forEach((option) => {
+      if (!option.value) return;
+      const [longTwo, shortTwo] = edgeCodeParts(option.value);
+      const allowed = longOne + longTwo <= 2 && shortOne + shortTwo <= 2;
+      option.disabled = !allowed;
+      option.hidden = !allowed;
+    });
+    if (secondaryCodeControl.selectedOptions[0]?.disabled) secondaryCodeControl.value = '';
     const secondaryActive = !secondaryRow.hidden;
     [1, 2].forEach((position) => {
       const suffix = position === 1 ? '' : '2';
@@ -619,11 +663,21 @@
     });
     const secondCode = secondaryActive ? composerField('edgeCode2').value : '';
     const addButton = document.querySelector('#add-composer-edge');
-    addButton.hidden = secondaryActive;
-    addButton.disabled = !EDGE_CODES_WITH_MATERIAL.includes(firstCode);
-    const [longOne, shortOne] = edgeCodeParts(firstCode);
+    const canAddSecondEdge = EDGE_CODES_WITH_MATERIAL.includes(firstCode) && (longOne < 2 || shortOne < 2);
+    addButton.hidden = secondaryActive || !canAddSecondEdge;
+    addButton.disabled = !canAddSecondEdge;
     const [longTwo, shortTwo] = edgeCodeParts(secondCode);
-    document.querySelector('#composer-edge-side-hint').hidden = !(secondaryActive && ((longOne && longTwo) || (shortOne && shortTwo)));
+    const sharedEdgeDirection = secondaryActive && Boolean((longOne && longTwo) || (shortOne && shortTwo));
+    const noteControl = composerField('note');
+    const noteLabel = noteControl.closest('.field').querySelector('label');
+    const noteRequirement = noteLabel.querySelector('[data-note-requirement]');
+    noteControl.required = sharedEdgeDirection;
+    if (sharedEdgeDirection) noteControl.setAttribute('aria-required', 'true');
+    else noteControl.removeAttribute('aria-required');
+    noteLabel.classList.toggle('required', sharedEdgeDirection);
+    noteRequirement.textContent = sharedEdgeDirection ? '(kötelező az oldalak miatt)' : '(opcionális)';
+    noteControl.placeholder = sharedEdgeDirection ? 'Pl. bal oldal: 1. ABS, jobb oldal: 2. ABS' : 'Pl. egyedi kérés';
+    document.querySelector('#composer-edge-side-hint').hidden = !sharedEdgeDirection;
   }
 
   function itemValidationIssues(item, secondaryActive = Boolean(item.edgeCode2)) {
@@ -649,6 +703,7 @@
       const [longOne, shortOne] = edgeCodeParts(item.edgeCode);
       const [longTwo, shortTwo] = edgeCodeParts(item.edgeCode2);
       if (longOne + longTwo > 2 || shortOne + shortTwo > 2) mark('edgeCode2', 'az élkódok együtt legfeljebb 2 hosszú és 2 rövid élt jelölhetnek');
+      if (((longOne && longTwo) || (shortOne && shortTwo)) && !item.note.trim()) mark('note', 'írja le a Megjegyzésben, melyik oldal melyik ABS-t kapja');
     }
     return issues;
   }
@@ -672,22 +727,40 @@
     }
     if (!validateComposerItem(data)) return false;
     const editingCard = editingItemId ? document.getElementById(editingItemId) : null;
+    const wasEditing = Boolean(editingCard);
     if (editingCard) writeItem(editingCard, data);
     else newItem(data);
     renumberItems();
-    const defaults = {
+    const keepSettings = retainItemSettings.checked;
+    const defaults = keepSettings ? {
       materialId: data.materialId,
       quantity: 1,
+      edgeCode: data.edgeCode,
       edgeThicknessMm: data.edgeCode === '0-0' ? '' : data.edgeThicknessMm,
-      edgeMaterialIdentifier: data.edgeCode === '0-0' ? '' : data.edgeMaterialIdentifier
-    };
+      edgeMaterialIdentifier: data.edgeCode === '0-0' ? '' : data.edgeMaterialIdentifier,
+      edgeCode2: data.edgeCode2,
+      edgeThicknessMm2: data.edgeThicknessMm2,
+      edgeMaterialIdentifier2: data.edgeMaterialIdentifier2
+    } : { quantity: 1 };
     resetItemComposer(defaults);
+    const rowNumber = wasEditing
+      ? [...itemList.querySelectorAll('.item-card')].indexOf(editingCard) + 1
+      : itemList.querySelectorAll('.item-card').length;
+    setComposerStatus(wasEditing
+      ? `✓ A(z) ${rowNumber}. tétel módosítása elmentve.`
+      : `✓ A(z) ${rowNumber}. tétel hozzáadva.${keepSettings ? ' Az anyag és az ABS megmaradt a következőhöz.' : ''}`);
     queueSave();
-    if (refocus) composerField(data.materialId ? 'name' : 'materialId').focus();
+    if (refocus) composerField(keepSettings && data.materialId ? 'lengthMm' : 'materialId').focus();
     return true;
   }
 
   function editItem(card) {
+    if (editingItemId === card.id) {
+      itemComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      composerField('name').focus({ preventScroll: true });
+      return;
+    }
+    if (composerDirty && editingItemId !== card.id && !window.confirm('Van egy még nem mentett alkatrész vagy módosítás. Elveti, és megnyitja ezt a tételt?')) return;
     editingItemId = card.id;
     const index = [...itemList.querySelectorAll('.item-card')].indexOf(card) + 1;
     itemComposer.classList.add('editing');
@@ -695,23 +768,28 @@
     saveItemButton.textContent = 'Módosítás mentése';
     cancelItemEditButton.hidden = false;
     setComposerItem(readItem(card));
+    setComposerStatus('');
     itemComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     composerField('name').focus({ preventScroll: true });
   }
 
   function focusItemComposer() {
     itemComposer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    composerField(composerField('materialId').value ? 'name' : 'materialId').focus({ preventScroll: true });
+    composerField(composerField('materialId').value ? 'lengthMm' : 'materialId').focus({ preventScroll: true });
   }
 
   document.querySelector('#focus-item-composer').addEventListener('click', focusItemComposer);
   saveItemButton.addEventListener('click', () => commitComposerItem());
-  cancelItemEditButton.addEventListener('click', () => resetItemComposer({ materialId: readItems().at(-1)?.materialId || '' }));
+  cancelItemEditButton.addEventListener('click', () => {
+    resetItemComposer({ materialId: readItems().at(-1)?.materialId || '' });
+    setComposerStatus('A módosítás elvetve.');
+  });
   document.querySelector('#add-composer-edge').addEventListener('click', () => {
     const row = itemComposer.querySelector('[data-composer-edge="2"]');
     if (document.querySelector('#add-composer-edge').disabled) return;
     row.hidden = false;
     syncComposerEdges();
+    updateComposerDirtyState();
     composerField('edgeCode2').focus();
     queueSave();
   });
@@ -719,18 +797,23 @@
     ['edgeCode2', 'edgeThicknessMm2', 'edgeMaterialIdentifier2'].forEach((field) => { composerField(field).value = ''; });
     itemComposer.querySelector('[data-composer-edge="2"]').hidden = true;
     syncComposerEdges();
+    updateComposerDirtyState();
     queueSave();
   });
   itemComposer.addEventListener('input', (event) => {
     if (event.target.matches('[data-composer-field^="edge"]')) syncComposerEdges();
+    if (event.target.matches('[data-composer-field]')) updateComposerDirtyState();
     event.target.removeAttribute('aria-invalid');
     itemComposerError.textContent = '';
+    setComposerStatus('');
     queueSave();
   });
   itemComposer.addEventListener('change', (event) => {
     if (event.target.matches('[data-composer-field^="edge"]')) syncComposerEdges();
+    if (event.target.matches('[data-composer-field]')) updateComposerDirtyState();
     event.target.removeAttribute('aria-invalid');
     itemComposerError.textContent = '';
+    setComposerStatus('');
     queueSave();
   });
 
@@ -754,16 +837,34 @@
     }
   });
 
-  function moveToNextManualField(event, selector, fallback) {
-    if (event.key !== 'Enter' || event.isComposing || !event.target.matches('input')) return;
+  function moveToNextManualField(event, selector, fallback, submitOnLast = false) {
+    if (event.key !== 'Enter' || event.isComposing || !event.target.matches('input') || !event.target.matches(selector)) return;
     event.preventDefault();
     const controls = [...document.querySelectorAll(selector)].filter((control) => !control.disabled && control.offsetParent !== null);
     const next = controls[controls.indexOf(event.target) + 1];
-    (next || document.querySelector(fallback))?.focus();
+    if (next) next.focus();
+    else if (submitOnLast) commitComposerItem();
+    else document.querySelector(fallback)?.focus();
   }
 
   materialList.addEventListener('keydown', (event) => moveToNextManualField(event, '#material-list [data-material-field]', '#item-composer [data-composer-field="materialId"]'));
-  itemComposer.addEventListener('keydown', (event) => moveToNextManualField(event, '#item-composer [data-composer-field]', '#save-item'));
+  itemComposer.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.isComposing && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      commitComposerItem();
+      return;
+    }
+    if (event.key === 'Escape' && editingItemId) {
+      event.preventDefault();
+      resetItemComposer({ materialId: readItems().at(-1)?.materialId || '' });
+      setComposerStatus('A módosítás elvetve.');
+      return;
+    }
+    moveToNextManualField(event, '#item-composer [data-composer-field]', '#save-item', true);
+  });
+  itemComposer.addEventListener('focusin', (event) => {
+    if (event.target.matches('input[type="number"]')) event.target.select();
+  });
   resetItemComposer();
 
   function clearErrors() {
@@ -1252,7 +1353,7 @@
   });
   nextButton.addEventListener('click', () => {
     const step = FLOW_STEPS[activeFlow][stepIndex];
-    if (step === 'items' && isMeaningfulItem(readComposerItem()) && !commitComposerItem({ refocus: false })) return;
+    if (step === 'items' && (composerDirty || editingItemId) && !commitComposerItem({ refocus: false })) return;
     if (validateStep(step).length) return;
     stepIndex += 1;
     updateStep();
@@ -1284,6 +1385,10 @@
       materialProfiles: readMaterials(),
       items: readItems(),
       composerItem: activeFlow === 'manual' ? readComposerItem() : null,
+      composerDirty: activeFlow === 'manual' ? composerDirty : false,
+      composerEditingItemId: activeFlow === 'manual' ? editingItemId : null,
+      composerSecondEdgeActive: activeFlow === 'manual' ? !itemComposer.querySelector('[data-composer-edge="2"]').hidden : false,
+      retainItemSettings: activeFlow === 'manual' ? retainItemSettings.checked : true,
       filesMeta: {
         upload: files.upload.length ? files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.upload,
         help: files.help.length ? files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.help
@@ -1422,7 +1527,7 @@
 
   function migrateV4ToV5(draft) {
     if (draft?.schemaVersion !== 4) return draft;
-    const items = (Array.isArray(draft.items) ? draft.items : []).map((rawItem) => {
+    const migrateItem = (rawItem) => {
       const item = rawItem && typeof rawItem === 'object' ? rawItem : {};
       const legacy = splitLegacyEdgeMaterial(item.edgeMaterialType);
       const { edgeMaterialType, ...rest } = item;
@@ -1435,8 +1540,10 @@
         edgeThicknessMm2: item.edgeThicknessMm2 || '',
         edgeMaterialIdentifier2: item.edgeMaterialIdentifier2 || ''
       };
-    });
-    return { ...draft, schemaVersion: 5, items };
+    };
+    const items = (Array.isArray(draft.items) ? draft.items : []).map(migrateItem);
+    const composerItem = draft.composerItem && typeof draft.composerItem === 'object' ? migrateItem(draft.composerItem) : draft.composerItem;
+    return { ...draft, schemaVersion: 5, items, composerItem };
   }
 
   function migrateDraft(draft) {
@@ -1500,6 +1607,12 @@
 
   function applyDraft(draft) {
     form.reset();
+    editingItemId = null;
+    composerDirty = false;
+    itemComposer.classList.remove('editing');
+    itemComposerTitle.textContent = 'Elem hozzáadása';
+    saveItemButton.textContent = '+ Elem hozzáadása';
+    cancelItemEditButton.hidden = true;
     files = { upload: [], help: [] };
     submissionToken = isUuid(draft.submissionToken) ? draft.submissionToken : createSubmissionToken();
     Object.entries(draft.fields || {}).forEach(([name, value]) => {
@@ -1515,7 +1628,26 @@
     const itemsToRestore = draft.items?.length ? draft.items : [];
     materialsToRestore.forEach((material) => newMaterial(material));
     itemsToRestore.forEach((item) => newItem(item));
-    if (draft.flow === 'manual') setComposerItem(draft.composerItem || { materialId: itemsToRestore.at(-1)?.materialId || '', quantity: 1 });
+    if (draft.flow === 'manual') {
+      retainItemSettings.checked = draft.retainItemSettings !== false;
+      const restoredComposer = draft.composerItem || { materialId: itemsToRestore.at(-1)?.materialId || '', quantity: 1 };
+      const olderDraftHasInput = [restoredComposer.name, restoredComposer.lengthMm, restoredComposer.widthMm, restoredComposer.note, restoredComposer.edgeCode, restoredComposer.edgeCode2].some(Boolean)
+        || (restoredComposer.quantity && String(restoredComposer.quantity) !== '1');
+      setComposerItem(restoredComposer, { dirty: Boolean(draft.composerDirty ?? olderDraftHasInput) });
+      if (draft.composerSecondEdgeActive && EDGE_CODES_WITH_MATERIAL.includes(restoredComposer.edgeCode)) {
+        itemComposer.querySelector('[data-composer-edge="2"]').hidden = false;
+        syncComposerEdges();
+      }
+      const restoredEditingCard = draft.composerEditingItemId ? document.getElementById(draft.composerEditingItemId) : null;
+      editingItemId = restoredEditingCard ? restoredEditingCard.id : null;
+      if (editingItemId) {
+        const index = [...itemList.querySelectorAll('.item-card')].indexOf(restoredEditingCard) + 1;
+        itemComposer.classList.add('editing');
+        itemComposerTitle.textContent = `${index}. elem szerkesztése`;
+        saveItemButton.textContent = 'Módosítás mentése';
+        cancelItemEditButton.hidden = false;
+      }
+    }
     restoredFilesMeta = { upload: Array.isArray(draft.filesMeta?.upload) ? draft.filesMeta.upload : [], help: Array.isArray(draft.filesMeta?.help) ? draft.filesMeta.help : [] };
     renderFiles('upload');
     renderFiles('help');
