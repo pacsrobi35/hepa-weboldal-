@@ -193,6 +193,73 @@
     }).format(number);
   }
 
+  function hasNumericValue(value) {
+    return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+  }
+
+  function edgeAssignmentsFor(item) {
+    const assignments = [
+      {
+        code: item.edge_code,
+        material: item.edge_material_type,
+        thickness: item.edge_thickness_mm,
+        length: item.edge_length_m
+      },
+      {
+        code: item.edge_code_2,
+        material: item.edge_material_type_2,
+        thickness: item.edge_thickness_mm_2,
+        length: item.edge_length_m_2
+      }
+    ];
+
+    return assignments.filter((assignment, index) => {
+      if (index === 0) return true;
+      return (
+        (assignment.code && assignment.code !== '0-0')
+        || Boolean(assignment.material)
+        || (hasNumericValue(assignment.thickness) && Number(assignment.thickness) > 0)
+        || (hasNumericValue(assignment.length) && Number(assignment.length) > 0)
+      );
+    });
+  }
+
+  function renderEdgeAssignments(item) {
+    const list = element('div', 'edge-assignments');
+    edgeAssignmentsFor(item).forEach((assignment, index) => {
+      const row = element('div', 'edge-assignment');
+      row.setAttribute('aria-label', `${index + 1}. élanyag`);
+      row.append(element('span', 'edge-code', assignment.code || '—'));
+
+      let detail = '';
+      if (assignment.code === '0-0' && !assignment.material && !hasNumericValue(assignment.thickness)) {
+        detail = 'Élzárás nélkül';
+      } else {
+        detail = [
+          hasNumericValue(assignment.thickness) ? `${formatNumber(assignment.thickness, 1)} mm` : null,
+          assignment.material
+        ].filter(Boolean).join(' · ');
+      }
+
+      row.append(element('span', 'edge-assignment-detail', detail || 'Élanyag nincs megadva'));
+      list.append(row);
+    });
+    return list;
+  }
+
+  function renderEdgeLengths(item) {
+    const list = element('div', 'edge-lengths');
+    edgeAssignmentsFor(item).forEach((assignment, index) => {
+      const value = hasNumericValue(assignment.length)
+        ? `${formatNumber(assignment.length, 3)} m`
+        : '—';
+      const length = element('span', 'edge-length', value);
+      length.setAttribute('aria-label', `${index + 1}. élanyag hossza`);
+      list.append(length);
+    });
+    return list;
+  }
+
   function formatMoney(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) return '—';
@@ -663,7 +730,7 @@
             .order('position', { ascending: true }),
           db
             .from('cutting_quote_items')
-            .select('id,quote_request_id,material_id,position,label,length_mm,width_mm,quantity,edge_code,edge_material_type,note,area_m2,edge_length_m')
+            .select('id,quote_request_id,material_id,position,label,length_mm,width_mm,quantity,edge_code,edge_material_type,edge_thickness_mm,edge_code_2,edge_material_type_2,edge_thickness_mm_2,note,area_m2,edge_length_m,edge_length_m_2')
             .eq('quote_request_id', numericId)
             .order('position', { ascending: true })
         );
@@ -838,7 +905,7 @@
       const table = element('table', 'cutting-table');
       const head = element('thead');
       const headRow = element('tr');
-      ['#', 'Megnevezés', 'Hossz / szálirány', 'Szélesség', 'Db', 'Élkód', 'Élanyag', 'Megjegyzés', 'm²', 'Él m'].forEach((label) => {
+      ['#', 'Megnevezés', 'Hossz / szálirány', 'Szélesség', 'Db', 'Élzárás', 'Megjegyzés', 'm²', 'Él m'].forEach((label) => {
         const columnHeading = element('th', '', label);
         columnHeading.scope = 'col';
         headRow.append(columnHeading);
@@ -858,13 +925,14 @@
           element('td', 'numeric', formatNumber(item.quantity, 0))
         );
         const edgeCell = element('td');
-        edgeCell.append(element('span', 'edge-code', item.edge_code));
+        edgeCell.append(renderEdgeAssignments(item));
+        const edgeLengthCell = element('td', 'numeric');
+        edgeLengthCell.append(renderEdgeLengths(item));
         row.append(
           edgeCell,
-          element('td', '', item.edge_material_type || '—'),
           element('td', '', item.note || '—'),
           element('td', 'numeric', formatNumber(item.area_m2, 3)),
-          element('td', 'numeric', formatNumber(item.edge_length_m, 3))
+          edgeLengthCell
         );
         body.append(row);
       });
@@ -872,7 +940,7 @@
       if (!materialItems.length) {
         const row = element('tr');
         const cell = element('td', 'muted', 'Ehhez az anyaghoz nincs tételsor.');
-        cell.colSpan = 10;
+        cell.colSpan = 9;
         row.append(cell);
         body.append(row);
       }

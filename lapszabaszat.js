@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const DRAFT_KEY = 'hepa_cutting_quote_draft_v4';
+  const DRAFT_KEY = 'hepa_cutting_quote_draft_v5';
+  const V4_DRAFT_KEY = 'hepa_cutting_quote_draft_v4';
   const V3_DRAFT_KEY = 'hepa_cutting_quote_draft_v3';
   const V2_DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
   const V1_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
@@ -46,15 +47,8 @@
     delivery: 'Átvétel vagy szállítás'
   };
   const EDGE_BAND_NAMES = { matching: 'dekorazonos ABS', different: 'eltérő színű ABS', customer: 'hozott élanyag', unknown: 'egyeztetendő' };
-  const EDGE_MATERIAL_OPTIONS = [
-    'Dekorazonos ABS · 0,4 mm',
-    'Dekorazonos ABS · 0,6 mm',
-    'Dekorazonos ABS · 1 mm',
-    'Dekorazonos ABS · 2 mm',
-    'Saját / hozott élanyag',
-    'Más / egyeztetést kérek'
-  ];
   const EDGE_CODES = ['0-0', '0-1', '0-2', '1-0', '1-1', '1-2', '2-0', '2-1', '2-2'];
+  const EDGE_CODES_WITH_MATERIAL = EDGE_CODES.filter((code) => code !== '0-0');
   const EDGE_CODE_NAMES = {
     '0-0': 'nincs élzárás',
     '0-1': '1 rövid él',
@@ -326,16 +320,36 @@
     return `<span class="part l-${longEdges} s-${shortEdges} ${extraClass}" aria-hidden="true"><i class="top"></i><i class="right"></i><i class="bottom"></i><i class="left"></i></span>`;
   }
 
-  function edgeMaterialOptionsMarkup(selectedValue) {
-    const selected = String(selectedValue || '').trim();
-    const options = ['<option value="">Válasszon…</option>'];
-    EDGE_MATERIAL_OPTIONS.forEach((value) => {
-      options.push(`<option value="${escapeHtml(value)}" ${selected === value ? 'selected' : ''}>${escapeHtml(value)}</option>`);
-    });
-    if (selected && !EDGE_MATERIAL_OPTIONS.includes(selected)) {
-      options.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)} · korábbi adat</option>`);
-    }
-    return options.join('');
+  function formatDecimal(value) {
+    const number = Number(String(value ?? '').replace(',', '.'));
+    if (!Number.isFinite(number)) return String(value ?? '').trim();
+    return new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 2 }).format(number);
+  }
+
+  function edgeAssignmentSummary(code, thicknessMm, identifier) {
+    if (!code) return 'Még nincs kitöltve';
+    if (code === '0-0') return '0-0 · élzárás nélkül';
+    const thickness = thicknessMm ? `${formatDecimal(thicknessMm)} mm` : 'vastagság nélkül';
+    return `${code} · ${thickness} · ${String(identifier || 'azonosító nélkül').trim()}`;
+  }
+
+  function edgeAssignmentMarkup(itemId, position, data = {}) {
+    const suffix = position === 1 ? '' : '2';
+    const codeField = `edgeCode${suffix}`;
+    const thicknessField = `edgeThicknessMm${suffix}`;
+    const identifierField = `edgeMaterialIdentifier${suffix}`;
+    const code = position === 1 ? edgeCodeFromData(data) : String(data[codeField] || '').trim();
+    const codes = position === 1 ? EDGE_CODES : EDGE_CODES_WITH_MATERIAL;
+    const hidden = position === 2 && !code;
+    return `
+      <div class="edge-assignment" data-edge-assignment="${position}" ${hidden ? 'hidden' : ''}>
+        <div class="edge-assignment-index"><span>Élanyag</span><strong>${position}</strong></div>
+        <div class="field edge-assignment-code"><label class="required" for="${itemId}-edge-code-${position}">Élzárás kódja</label><div class="edge-code-control"><select id="${itemId}-edge-code-${position}" data-item-field="${codeField}" ${position === 1 ? 'required aria-required="true"' : ''}><option value="">Válasszon…</option>${codes.map((value) => `<option value="${value}" ${code === value ? 'selected' : ''}>${value} · ${EDGE_CODE_NAMES[value]}</option>`).join('')}</select>${edgePreviewMarkup(code, 'edge-row-preview')}</div></div>
+        <div class="field edge-assignment-thickness"><label for="${itemId}-edge-thickness-${position}">ABS vastagsága</label><input id="${itemId}-edge-thickness-${position}" data-item-field="${thicknessField}" type="number" min="0.1" max="10" step="0.1" inputmode="decimal" value="${escapeHtml(data[thicknessField])}" placeholder="Pl. 0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="field edge-assignment-identifier"><label for="${itemId}-edge-identifier-${position}">ABS színe / azonosítója</label><input id="${itemId}-edge-identifier-${position}" data-item-field="${identifierField}" type="text" maxlength="120" value="${escapeHtml(data[identifierField])}" placeholder="Pl. U604 vagy lapazonos"></div>
+        <div class="edge-assignment-result" aria-live="polite"><span>Összefoglaló</span><strong data-edge-summary="${position}">${escapeHtml(edgeAssignmentSummary(code, data[thicknessField], data[identifierField]))}</strong></div>
+        ${position === 2 ? '<button class="icon-button delete edge-remove" type="button" data-item-action="remove-edge" aria-label="Második élanyag eltávolítása">Eltávolítás</button>' : ''}
+      </div>`;
   }
 
   function materialDisplayName(material, index) {
@@ -463,13 +477,22 @@
         <div class="field item-length"><label for="${id}-length"><span class="required">Hossz (mm)</span><small>Szálirány</small></label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" aria-label="Hossz milliméterben, szálirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="Szálirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-width"><label for="${id}-width"><span class="required">Szélesség (mm)</span><small>Keresztirány</small></label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" aria-label="Szélesség milliméterben, keresztirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="Keresztirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-quantity"><label class="required" for="${id}-quantity">Mennyiség</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
-        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa</label><select id="${id}-edge-material" data-item-field="edgeMaterialType">${edgeMaterialOptionsMarkup(data.edgeMaterialType)}</select></div>
-        <div class="field item-edge-code"><label class="required" for="${id}-edge-code">Élzárás kódja</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview')}</div></div>
         <div class="field item-note"><label for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
         <div class="item-actions">
           <button class="icon-button" type="button" data-item-action="duplicate">Másolás</button>
           <button class="icon-button delete" type="button" data-item-action="delete">Törlés</button>
         </div>
+        <section class="item-edge-section" aria-label="A tétel élzárásai">
+          <div class="edge-section-head"><div><strong>Élzárás</strong><small>Az élkód, a vastagság és az ABS színe külön tartozik össze.</small></div></div>
+          <div class="edge-assignment-list">
+            ${edgeAssignmentMarkup(id, 1, { ...data, edgeCode })}
+            ${edgeAssignmentMarkup(id, 2, data)}
+          </div>
+          <div class="edge-section-actions">
+            <button class="btn btn-small btn-ghost add-second-edge" type="button" data-item-action="add-edge">+ Második élanyag hozzáadása</button>
+            <small class="edge-side-hint" hidden>Ha két élanyag ugyanazon méretű élekre kerül, a Megjegyzésben írja le, melyik konkrét oldal melyiket kapja.</small>
+          </div>
+        </section>
       </div>
       <p class="item-error" id="${id}-error" role="alert"></p>`;
     itemList.append(card);
@@ -483,19 +506,47 @@
   }
 
   function syncEdgeRequirements(card) {
-    const edgeCodeControl = card.querySelector('[data-item-field="edgeCode"]');
-    const edgeCode = edgeCodeControl?.value || '';
-    const hasEdge = EDGE_CODES.includes(edgeCode) && edgeCode !== '0-0';
-    const explicitlyNoEdge = edgeCode === '0-0';
-    const [longEdges, shortEdges] = edgeCodeParts(edgeCode);
-    const preview = card.querySelector('.edge-row-preview');
-    if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
-    const control = card.querySelector('[data-item-field="edgeMaterialType"]');
-    control.required = hasEdge;
-    control.disabled = explicitlyNoEdge;
-    if (hasEdge) control.setAttribute('aria-required', 'true');
-    else control.removeAttribute('aria-required');
-    control.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
+    const secondaryRow = card.querySelector('[data-edge-assignment="2"]');
+    const secondaryActive = !secondaryRow.hidden;
+    [1, 2].forEach((position) => {
+      const suffix = position === 1 ? '' : '2';
+      const row = card.querySelector(`[data-edge-assignment="${position}"]`);
+      const codeControl = card.querySelector(`[data-item-field="edgeCode${suffix}"]`);
+      const thicknessControl = card.querySelector(`[data-item-field="edgeThicknessMm${suffix}"]`);
+      const identifierControl = card.querySelector(`[data-item-field="edgeMaterialIdentifier${suffix}"]`);
+      const active = position === 1 || secondaryActive;
+      const code = active ? codeControl.value : '';
+      const hasEdge = active && EDGE_CODES_WITH_MATERIAL.includes(code);
+      const explicitlyNoEdge = position === 1 && code === '0-0';
+      const [longEdges, shortEdges] = edgeCodeParts(code);
+      const preview = row.querySelector('.edge-row-preview');
+      if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
+
+      codeControl.disabled = !active;
+      codeControl.required = active;
+      if (active) codeControl.setAttribute('aria-required', 'true');
+      else codeControl.removeAttribute('aria-required');
+
+      [thicknessControl, identifierControl].forEach((control) => {
+        control.disabled = !active || explicitlyNoEdge || !hasEdge;
+        control.required = hasEdge;
+        if (hasEdge) control.setAttribute('aria-required', 'true');
+        else control.removeAttribute('aria-required');
+        control.closest('.field').querySelector('label').classList.toggle('required', hasEdge);
+      });
+
+      const summary = row.querySelector(`[data-edge-summary="${position}"]`);
+      if (summary) summary.textContent = edgeAssignmentSummary(code, thicknessControl.value, identifierControl.value);
+    });
+
+    const firstCode = card.querySelector('[data-item-field="edgeCode"]').value;
+    const secondCode = secondaryActive ? card.querySelector('[data-item-field="edgeCode2"]').value : '';
+    const addButton = card.querySelector('[data-item-action="add-edge"]');
+    addButton.hidden = secondaryActive;
+    addButton.disabled = !EDGE_CODES_WITH_MATERIAL.includes(firstCode);
+    const [longOne, shortOne] = edgeCodeParts(firstCode);
+    const [longTwo, shortTwo] = edgeCodeParts(secondCode);
+    card.querySelector('.edge-side-hint').hidden = !(secondaryActive && ((longOne && longTwo) || (shortOne && shortTwo)));
   }
 
   function readItem(card) {
@@ -532,11 +583,14 @@
       const quantity = Number(item.quantity) || 0;
       const length = Number(item.lengthMm) || 0;
       const width = Number(item.widthMm) || 0;
-      const [longEdges, shortEdges] = edgeCodeParts(item.edgeCode);
+      const edgeCodes = [item.edgeCode, item.edgeCode2].filter(Boolean);
       totals.rows += 1;
       totals.pieces += quantity;
       totals.area += quantity * length * width / 1_000_000;
-      totals.edge += quantity * (longEdges * length + shortEdges * width) / 1000;
+      edgeCodes.forEach((code) => {
+        const [longEdges, shortEdges] = edgeCodeParts(code);
+        totals.edge += quantity * (longEdges * length + shortEdges * width) / 1000;
+      });
       return totals;
     }, { rows: 0, pieces: 0, area: 0, edge: 0 });
   }
@@ -548,7 +602,12 @@
 
   function addItemRow() {
     const previous = readItems().at(-1) || {};
-    const card = newItem({ materialId: previous.materialId, quantity: 1, edgeMaterialType: previous.edgeCode === '0-0' ? '' : previous.edgeMaterialType });
+    const card = newItem({
+      materialId: previous.materialId,
+      quantity: 1,
+      edgeThicknessMm: previous.edgeCode === '0-0' ? '' : previous.edgeThicknessMm,
+      edgeMaterialIdentifier: previous.edgeCode === '0-0' ? '' : previous.edgeMaterialIdentifier
+    });
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     card.querySelector(previous.materialId ? '[data-item-field="name"]' : '[data-item-field="materialId"]').focus();
     queueSave();
@@ -563,14 +622,32 @@
     if (action === 'duplicate') {
       const clone = newItem({ ...readItem(card), id: undefined });
       card.after(clone); renumberItems(); queueSave();
+    } else if (action === 'add-edge') {
+      const row = card.querySelector('[data-edge-assignment="2"]');
+      row.hidden = false;
+      syncEdgeRequirements(card);
+      row.querySelector('[data-item-field="edgeCode2"]').focus();
+      queueSave();
+    } else if (action === 'remove-edge') {
+      const row = card.querySelector('[data-edge-assignment="2"]');
+      row.querySelectorAll('[data-item-field]').forEach((control) => { control.value = ''; });
+      row.hidden = true;
+      syncEdgeRequirements(card);
+      updateItemSummary();
+      queueSave();
     } else if (action === 'delete' && itemList.children.length > 1) {
       card.remove(); renumberItems(); queueSave();
     }
   });
-  itemList.addEventListener('input', () => { updateItemSummary(); queueSave(); });
+  itemList.addEventListener('input', (event) => {
+    const card = event.target.closest('.item-card');
+    if (card && event.target.matches('[data-item-field^="edge"]')) syncEdgeRequirements(card);
+    updateItemSummary();
+    queueSave();
+  });
   itemList.addEventListener('change', (event) => {
     const card = event.target.closest('.item-card');
-    if (card && event.target.matches('[data-item-field="edgeCode"]')) syncEdgeRequirements(card);
+    if (card && event.target.matches('[data-item-field^="edge"]')) syncEdgeRequirements(card);
     updateItemSummary();
     updateMaterialUsageState();
     queueSave();
@@ -688,8 +765,23 @@
       const quantity = Number(item.quantity);
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
       if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
-      const hasEdge = EDGE_CODES.includes(item.edgeCode) && item.edgeCode !== '0-0';
-      if (hasEdge && !item.edgeMaterialType) mark('edgeMaterialType', 'élzáró típusa / anyaga');
+      const hasEdge = EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode);
+      const firstThickness = Number(String(item.edgeThicknessMm || '').replace(',', '.'));
+      if (hasEdge && (!Number.isFinite(firstThickness) || firstThickness < 0.1 || firstThickness > 10)) mark('edgeThicknessMm', 'első ABS vastagsága');
+      if (hasEdge && !item.edgeMaterialIdentifier) mark('edgeMaterialIdentifier', 'első ABS színe / azonosítója');
+
+      const secondaryActive = !card.querySelector('[data-edge-assignment="2"]').hidden;
+      if (secondaryActive) {
+        if (!EDGE_CODES_WITH_MATERIAL.includes(item.edgeCode2)) mark('edgeCode2', 'második élkód');
+        const secondThickness = Number(String(item.edgeThicknessMm2 || '').replace(',', '.'));
+        if (!Number.isFinite(secondThickness) || secondThickness < 0.1 || secondThickness > 10) mark('edgeThicknessMm2', 'második ABS vastagsága');
+        if (!item.edgeMaterialIdentifier2) mark('edgeMaterialIdentifier2', 'második ABS színe / azonosítója');
+        const [longOne, shortOne] = edgeCodeParts(item.edgeCode);
+        const [longTwo, shortTwo] = edgeCodeParts(item.edgeCode2);
+        if (longOne + longTwo > 2 || shortOne + shortTwo > 2) {
+          mark('edgeCode2', 'az élkódok együtt legfeljebb 2 hosszú és 2 rövid élt jelölhetnek');
+        }
+      }
       if (messages.length) {
         card.classList.add('invalid');
         const errorId = `${card.id}-error`;
@@ -759,7 +851,7 @@
     const email = cleanText(fields.customer_email);
     const phone = cleanText(fields.customer_phone);
     const payload = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       flow,
       sizeBasis: 'finished',
       contact: {
@@ -784,17 +876,30 @@
           thicknessMm: Number(canonicalThickness(material.thicknessMm)),
           displayOrder: index + 1
         })),
-        items: items.map((item, index) => ({
-          materialClientId: cleanText(item.materialId),
-          name: cleanText(item.name),
-          lengthMm: Number(item.lengthMm),
-          widthMm: Number(item.widthMm),
-          quantity: Number(item.quantity),
-          edgeCode: cleanText(item.edgeCode),
-          edgeMaterialType: item.edgeCode === '0-0' ? null : cleanText(item.edgeMaterialType),
-          note: cleanText(item.note),
-          displayOrder: index + 1
-        }))
+        items: items.map((item, index) => {
+          const edgeBands = [{
+            code: cleanText(item.edgeCode),
+            thicknessMm: item.edgeCode === '0-0' ? null : optionalNumber(item.edgeThicknessMm),
+            materialType: item.edgeCode === '0-0' ? null : cleanText(item.edgeMaterialIdentifier)
+          }];
+          if (item.edgeCode2) {
+            edgeBands.push({
+              code: cleanText(item.edgeCode2),
+              thicknessMm: optionalNumber(item.edgeThicknessMm2),
+              materialType: cleanText(item.edgeMaterialIdentifier2)
+            });
+          }
+          return {
+            materialClientId: cleanText(item.materialId),
+            name: cleanText(item.name),
+            lengthMm: Number(item.lengthMm),
+            widthMm: Number(item.widthMm),
+            quantity: Number(item.quantity),
+            edgeBands,
+            note: cleanText(item.note),
+            displayOrder: index + 1
+          };
+        })
       };
     } else if (flow === 'upload') {
       payload.details = {
@@ -955,9 +1060,13 @@
       const items = readItems().map((item, index) => {
         const material = materials.find((profile) => profile.id === item.materialId);
         const materialName = material ? `${material.name || 'Névtelen anyag'}, ${material.thicknessMm || '?'} mm` : 'Anyag nincs kiválasztva';
+        const edgeAssignments = [
+          edgeAssignmentSummary(item.edgeCode, item.edgeThicknessMm, item.edgeMaterialIdentifier),
+          item.edgeCode2 ? edgeAssignmentSummary(item.edgeCode2, item.edgeThicknessMm2, item.edgeMaterialIdentifier2) : ''
+        ].filter(Boolean);
         const edgeData = item.edgeCode === '0-0'
-          ? 'élkód: 0-0, élzárás nélkül'
-          : `élkód: ${item.edgeCode || 'nincs megadva'} (${EDGE_CODE_NAMES[item.edgeCode] || 'egyeztetendő'}); ${item.edgeMaterialType || 'élanyag egyeztetendő'}`;
+          ? 'élzárás: 0-0 · élzárás nélkül'
+          : `élzárás: ${edgeAssignments.map((assignment, assignmentIndex) => `${assignmentIndex + 1}. ${assignment}`).join('; ')}`;
         return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${materialName}; ${item.lengthMm || '?'} × ${item.widthMm || '?'} mm (hossz/szálirány × szélesség/keresztirány), ${item.quantity || '?'} db; ${edgeData}${item.note ? `; megjegyzés: ${item.note}` : ''}`;
       }).join('\n');
       cards.push(reviewCard('Tételek', 'items', [
@@ -1091,7 +1200,7 @@
       fields[control.name] = control.type === 'checkbox' && control.name === 'privacy_consent' ? control.checked : fieldValue(control.name);
     });
     return {
-      schemaVersion: 4,
+      schemaVersion: 5,
       flow: activeFlow,
       stepIndex,
       submissionToken,
@@ -1110,6 +1219,7 @@
     if (!activeFlow) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
+      localStorage.removeItem(V4_DRAFT_KEY);
       localStorage.removeItem(V3_DRAFT_KEY);
       localStorage.removeItem(V2_DRAFT_KEY);
       localStorage.removeItem(V1_DRAFT_KEY);
@@ -1218,11 +1328,46 @@
     };
   }
 
+  function splitLegacyEdgeMaterial(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return { identifier: '', thicknessMm: '' };
+    const thicknessMatch = raw.match(/(?:^|[·,;\s])([0-9]+(?:[.,][0-9]+)?)\s*mm\s*$/i);
+    if (!thicknessMatch) return { identifier: raw, thicknessMm: '' };
+    const identifier = raw
+      .slice(0, thicknessMatch.index)
+      .replace(/[·,;\s-]+$/u, '')
+      .trim();
+    return {
+      identifier: identifier || 'Egyeztetendő élanyag',
+      thicknessMm: canonicalThickness(thicknessMatch[1])
+    };
+  }
+
+  function migrateV4ToV5(draft) {
+    if (draft?.schemaVersion !== 4) return draft;
+    const items = (Array.isArray(draft.items) ? draft.items : []).map((rawItem) => {
+      const item = rawItem && typeof rawItem === 'object' ? rawItem : {};
+      const legacy = splitLegacyEdgeMaterial(item.edgeMaterialType);
+      const { edgeMaterialType, ...rest } = item;
+      return {
+        ...rest,
+        edgeCode: edgeCodeFromData(item),
+        edgeThicknessMm: item.edgeThicknessMm || legacy.thicknessMm,
+        edgeMaterialIdentifier: item.edgeMaterialIdentifier || legacy.identifier,
+        edgeCode2: item.edgeCode2 || '',
+        edgeThicknessMm2: item.edgeThicknessMm2 || '',
+        edgeMaterialIdentifier2: item.edgeMaterialIdentifier2 || ''
+      };
+    });
+    return { ...draft, schemaVersion: 5, items };
+  }
+
   function migrateDraft(draft) {
     let migrated = draft;
     if (migrated?.schemaVersion === 1) migrated = migrateV1ToV2(migrated);
     if (migrated?.schemaVersion === 2) migrated = migrateV2ToV3(migrated);
     if (migrated?.schemaVersion === 3) migrated = migrateV3ToV4(migrated);
+    if (migrated?.schemaVersion === 4) migrated = migrateV4ToV5(migrated);
     return migrated;
   }
 
@@ -1239,7 +1384,7 @@
     const validItems = Array.isArray(items) && items.every((item) => item && typeof item === 'object');
     const validManualCollections = draft?.flow !== 'manual' || (validMaterials && materials.length > 0 && validItems);
     return Boolean(draft)
-      && draft.schemaVersion === 4
+      && draft.schemaVersion === 5
       && draft.fields?.manual_size_basis === 'finished'
       && draft.fields?.upload_size_basis === 'finished'
       && Boolean(FLOW_STEPS[draft.flow])
@@ -1254,7 +1399,7 @@
   }
 
   function readDraft() {
-    for (const key of [DRAFT_KEY, V3_DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
+    for (const key of [DRAFT_KEY, V4_DRAFT_KEY, V3_DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       try {
@@ -1264,6 +1409,7 @@
           continue;
         }
         if (key !== DRAFT_KEY) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        localStorage.removeItem(V4_DRAFT_KEY);
         localStorage.removeItem(V3_DRAFT_KEY);
         localStorage.removeItem(V2_DRAFT_KEY);
         localStorage.removeItem(V1_DRAFT_KEY);
@@ -1312,6 +1458,7 @@
   document.querySelector('#restore-draft').addEventListener('click', () => applyDraft(restoredDraft));
   document.querySelector('#delete-draft').addEventListener('click', () => {
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V4_DRAFT_KEY);
     localStorage.removeItem(V3_DRAFT_KEY);
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);
@@ -1322,6 +1469,7 @@
 
   function clearDraftStorage() {
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V4_DRAFT_KEY);
     localStorage.removeItem(V3_DRAFT_KEY);
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);

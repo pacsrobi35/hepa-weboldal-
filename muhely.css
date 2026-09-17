@@ -991,6 +991,39 @@ tbody tr:last-child td {
   font-weight: 900;
 }
 
+.edge-assignments,
+.edge-lengths {
+  display: grid;
+  gap: 7px;
+}
+
+.edge-assignment {
+  display: flex;
+  min-height: 27px;
+  align-items: center;
+  gap: 7px;
+}
+
+.edge-assignment + .edge-assignment,
+.edge-length + .edge-length {
+  padding-top: 7px;
+  border-top: 1px solid #ece7dc;
+}
+
+.edge-assignment-detail {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.edge-length {
+  display: flex;
+  min-height: 27px;
+  align-items: center;
+  white-space: nowrap;
+}
+
 .file-list,
 .offer-list {
   display: grid;
