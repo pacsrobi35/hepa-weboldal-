@@ -385,7 +385,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 .item-index { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; color: var(--green-900); }
 .item-index span { font-size: .82rem; font-weight: 800; }
 .item-index strong { width: 30px; height: 30px; display: grid; place-items: center; color: white; background: var(--green-800); border-radius: 50%; }
-.item-name, .item-material, .item-edge-material, .item-edge-code, .item-note, .item-actions { grid-column: 1 / -1; }
+.item-name, .item-material, .item-edge-material, .item-edge-code, .item-edge-material-2, .item-edge-code-2, .item-note, .item-actions { grid-column: 1 / -1; }
 .item-main-grid .field { position: relative; }
 .item-main-grid .field label small { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; font-weight: 650; }
 .item-main-grid .field input, .item-main-grid .field select { min-height: 44px; padding: 9px 10px; }
@@ -410,7 +410,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 
 @media (min-width: 1280px) {
   body.manual-workspace .wizard-body { padding-inline: 28px; }
-  .item-table-head, .item-main-grid { grid-template-columns: 42px minmax(116px, 1.05fr) minmax(98px, .9fr) 90px 98px 56px minmax(132px, 1.15fr) minmax(138px, 1.15fr) minmax(106px, .9fr) 132px; }
+  .item-table-head, .item-main-grid { grid-template-columns: 40px minmax(92px, 1fr) minmax(76px, .85fr) 74px 80px 48px minmax(96px, 1fr) 130px minmax(96px, 1fr) 130px minmax(76px, .8fr) 128px; }
   .item-table-head { display: grid; gap: 8px; align-items: end; padding: 10px 14px; color: #48534e; background: #eeeae3; border: 1px solid #d6d2ca; border-bottom: 0; border-radius: 10px 10px 0 0; font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; }
   .item-table-head small { display: block; margin-top: 2px; color: #68736d; font-size: .64rem; letter-spacing: 0; text-transform: none; }
   .item-list { gap: 0; border: 1px solid #d6d2ca; border-radius: 0 0 10px 10px; overflow: hidden; }
@@ -421,7 +421,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
   .item-index { grid-column: auto; align-self: center; justify-content: center; }
   .item-index span { display: none; }
   .item-index strong { width: 28px; height: 28px; }
-  .item-name, .item-material, .item-edge-material, .item-edge-code, .item-note, .item-actions { grid-column: auto; }
+  .item-name, .item-material, .item-edge-material, .item-edge-code, .item-edge-material-2, .item-edge-code-2, .item-note, .item-actions { grid-column: auto; }
   .item-main-grid .field input, .item-main-grid .field select { min-height: 42px; padding-block: 8px; }
   .item-actions { align-items: center; }
   .icon-button { min-width: 0; padding-inline: 9px; }
@@ -533,7 +533,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
   .items-toolbar .btn { width: 100%; }
   .items-footer .btn { width: 100%; }
   .item-main-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .item-index, .item-name, .item-material, .item-edge-material, .item-edge-code, .item-note, .item-actions { grid-column: 1 / -1; }
+  .item-index, .item-name, .item-material, .item-edge-material, .item-edge-code, .item-edge-material-2, .item-edge-code-2, .item-note, .item-actions { grid-column: 1 / -1; }
   .item-actions { justify-content: stretch; }
   .item-actions .icon-button { flex: 1 1 0; }
   .review-card dl { grid-template-columns: 1fr; gap: 2px; }
