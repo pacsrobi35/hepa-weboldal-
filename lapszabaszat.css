@@ -410,7 +410,7 @@ fieldset.field { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
 
 @media (min-width: 1280px) {
   body.manual-workspace .wizard-body { padding-inline: 28px; }
-  .item-table-head, .item-main-grid { grid-template-columns: 40px minmax(92px, 1fr) minmax(76px, .85fr) 74px 80px 48px minmax(96px, 1fr) 130px minmax(96px, 1fr) 130px minmax(76px, .8fr) 128px; }
+  .item-table-head, .item-main-grid { grid-template-columns: 40px minmax(68px, .65fr) minmax(76px, .85fr) minmax(112px, 1.15fr) minmax(112px, 1.15fr) 48px minmax(72px, .7fr) 130px minmax(72px, .7fr) 130px minmax(76px, .8fr) 128px; }
   .item-table-head { display: grid; gap: 8px; align-items: end; padding: 10px 14px; color: #48534e; background: #eeeae3; border: 1px solid #d6d2ca; border-bottom: 0; border-radius: 10px 10px 0 0; font-size: .72rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; }
   .item-table-head small { display: block; margin-top: 2px; color: #68736d; font-size: .64rem; letter-spacing: 0; text-transform: none; }
   .item-list { gap: 0; border: 1px solid #d6d2ca; border-radius: 0 0 10px 10px; overflow: hidden; }
