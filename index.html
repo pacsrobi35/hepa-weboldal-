@@ -1881,6 +1881,65 @@ nav .nav-cta:focus-visible { color: #17261f; background: #efbd68; }
 .design-feature h3 { margin-bottom: 6px; font-size: 25px; line-height: 1.2; }
 .design-feature p { max-width: 690px; color: #dbe6e1; }
 
+/* SAJÁT TERVEK ÉS MEGVALÓSULT KONYHÁK */
+.kitchen-showcase {
+    padding: 76px 8% 84px;
+    background: #eeeee8;
+    scroll-margin-top: 115px;
+}
+.showcase-inner { max-width: 1300px; margin: 0 auto; }
+.showcase-heading { max-width: 760px; margin-bottom: 34px; }
+.showcase-heading .design-feature-kicker { color: #88601e; font-size: 13px; }
+.showcase-heading h2 { margin: 8px 0 16px; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.12; letter-spacing: -1px; color: var(--green-900); }
+.showcase-heading p { font-size: 17px; color: #526058; line-height: 1.7; }
+.kitchen-project { padding: 28px; margin-bottom: 28px; background: #fff; border: 1px solid #dce0d8; border-radius: 16px; }
+.kitchen-project-title { display: flex; align-items: baseline; gap: 16px; margin-bottom: 22px; }
+.kitchen-project-number { color: #906522; font-size: 14px; font-weight: 700; }
+.kitchen-project h3 { margin: 0 0 5px; font-size: clamp(21px, 2vw, 27px); color: var(--green-900); line-height: 1.3; }
+.kitchen-project-title p { color: #617066; font-size: 15px; }
+.kitchen-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 20px; }
+.kitchen-pair figure { min-width: 0; margin: 0; }
+.kitchen-pair figcaption { display: flex; flex-direction: column; align-items: flex-start; min-height: 47px; margin-bottom: 10px; color: #263e32; font-size: 16px; font-weight: 750; }
+.kitchen-pair figcaption span { color: #69756c; font-size: 13px; font-weight: 400; }
+.showcase-image { display: block; position: relative; width: 100%; border: 0; padding: 0; overflow: hidden; border-radius: 9px; background: #e9e8e3; cursor: zoom-in; }
+.showcase-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.kitchen-pair .showcase-image { height: auto; }
+@media (min-width: 961px) {
+    .kitchen-pair { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
+    .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
+    .kitchen-pair .showcase-image img { height: auto; }
+}
+.showcase-zoom { position: absolute; right: 10px; bottom: 10px; padding: 6px 10px; color: #fff; background: rgba(18, 39, 32, .9); border: 1px solid rgba(255,255,255,.25); border-radius: 5px; font: 600 12px/1.3 Inter, sans-serif; }
+.showcase-image:hover .showcase-zoom { background: #122720; }
+.showcase-image:focus-visible, .kitchen-details summary:focus-visible { outline: 3px solid #b47d28; outline-offset: 4px; }
+.kitchen-details { margin-top: 23px; border-top: 1px solid #e4e7df; }
+.kitchen-details summary { width: fit-content; max-width: 100%; padding: 17px 0 3px; color: #304b3c; cursor: pointer; font-size: 15px; font-weight: 650; }
+.kitchen-detail-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; padding-top: 18px; }
+.kitchen-detail-grid figure { min-width: 0; margin: 0; }
+.kitchen-detail-grid .showcase-image { aspect-ratio: 4 / 3; }
+.kitchen-detail-grid img { object-fit: cover; }
+.kitchen-detail-grid figcaption { margin-top: 8px; color: #5b695f; font-size: 13px; line-height: 1.45; }
+.showcase-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 22px; margin-top: 36px; }
+.showcase-footer h3 { margin-bottom: 5px; color: #17382a; font-size: 23px; }
+.showcase-footer p { color: #526058; }
+@media (max-width: 960px) {
+    .kitchen-showcase { padding: 50px 20px 58px; scroll-margin-top: 90px; }
+    .kitchen-project { padding: 20px; }
+    .kitchen-pair { grid-template-columns: 1fr; gap: 24px; }
+    .kitchen-pair .showcase-image { height: auto; }
+    .kitchen-pair .showcase-image img { height: auto; }
+    .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: 360px; margin-inline: auto; }
+    .kitchen-detail-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .kitchen-project-title { gap: 10px; }
+    .showcase-footer { align-items: flex-start; }
+}
+@media (max-width: 420px) {
+    .kitchen-project { padding: 16px; }
+    .kitchen-pair figcaption { flex-wrap: wrap; }
+    .kitchen-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .showcase-footer .btn { width: 100%; text-align: center; }
+}
+
 .quote-benefits {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -2010,6 +2069,39 @@ textarea:focus {
     font-weight: 700;
 }
 
+.request-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 6px;
+}
+.request-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0;
+    padding: 18px;
+    border: 2px solid #dce1dc;
+    border-radius: 9px;
+    cursor: pointer;
+    color: #25342e;
+}
+.request-option:has(input:checked) { border-color: #ac7827; background: #faf5e9; }
+.request-option:has(input:focus-visible) { outline: 3px solid #152520; outline-offset: 3px; }
+.request-option input { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 4px; accent-color: #795015; }
+.request-option strong { display: block; font-size: 17px; }
+.request-option small { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; line-height: 1.5; }
+.request-intro { margin: 18px 0 22px; color: #53615a; font-size: 15px; }
+.quote-details legend { margin-bottom: 16px; font-size: 20px; color: #25342e; }
+.quote-details[hidden] { display: none; }
+.quote-form .checkbox-item { align-items: flex-start; font-size: 14px; font-weight: 400; }
+.quote-form .checkbox-item input { flex: 0 0 auto; margin-top: 5px; }
+.quote-required-note { margin-bottom: 16px; }
+@media (max-width: 600px) {
+    .request-options { grid-template-columns: 1fr; }
+    .request-option { padding: 14px; }
+}
+
 .checkbox-item a,
 .form-help a {
     color: #795015;
@@ -2104,6 +2196,7 @@ textarea:focus {
     <nav id="main-nav" aria-label="Főmenü">
         <a href="#szolgaltatasok">Szolgáltatások</a>
         <a href="#butorgyartas">Bútorgyártás</a>
+        <a href="#tervbol-valosag">Munkáink</a>
         <a href="#ajanlat" class="nav-cta">Árajánlatot kérek</a>
         <a href="#kapcsolat">Kapcsolat</a>
     </nav>
@@ -2128,7 +2221,7 @@ textarea:focus {
 
             <div class="hero-actions">
                 <a href="#ajanlat" class="btn">Egyedi árajánlatot kérek</a>
-                <a href="#butorgyartas" class="btn btn-secondary">Munkáink megtekintése</a>
+                <a href="#tervbol-valosag" class="btn btn-secondary">Munkáink megtekintése</a>
             </div>
 
             <ul class="hero-proof" aria-label="Szolgáltatásaink előnyei">
@@ -2398,6 +2491,86 @@ textarea:focus {
 
     </section>
 
+    <!-- LÁTVÁNYTERVBŐL VALÓSÁG – SAJÁT MUNKÁINK -->
+    <section class="kitchen-showcase" id="tervbol-valosag" aria-labelledby="showcase-title">
+        <div class="showcase-inner">
+            <div class="showcase-heading">
+                <span class="design-feature-kicker">Saját tervek. Saját munkák.</span>
+                <h2 id="showcase-title">Először a terven.<br>Aztán az otthonában.</h2>
+                <p>Két konyha, az első látványtervtől a megvalósításig. Nézze meg, hogyan öltöttek formát az elképzelések a megrendelőink otthonában.</p>
+            </div>
+
+            <article class="kitchen-project" aria-labelledby="wood-kitchen-title">
+                <div class="kitchen-project-title">
+                    <span class="kitchen-project-number" aria-hidden="true">01</span>
+                    <div><h3 id="wood-kitchen-title">Fa hatású felületek, letisztult szürkével</h3><p>Egységes mintázat, rejtett fogású frontok és egy különálló, fiókos sziget.</p></div>
+                </div>
+                <div class="kitchen-pair">
+                    <figure>
+                        <figcaption>A látványterv <span>3D tervezés</span></figcaption>
+                        <button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-terv-full.webp" aria-label="Fa hatású és szürke konyha – a látványterv nagyítása">
+                            <img src="terv-es-valosag/fa-szurke-terv.webp" alt="A fa hatású és szürke konyha eredeti 3D látványterve, magas tárolófallal és ablak körüli szekrényekkel" width="960" height="540" loading="lazy" decoding="async">
+                            <span class="showcase-zoom" aria-hidden="true">Nagyítás ↗</span>
+                        </button>
+                    </figure>
+                    <figure>
+                        <figcaption>A megvalósult konyha <span>Saját kivitelezés</span></figcaption>
+                        <button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-kesz-full.webp" aria-label="Fa hatású és szürke konyha – a megvalósult konyha nagyítása">
+                            <img src="terv-es-valosag/fa-szurke-kesz.webp" alt="A megvalósult fa hatású és szürke konyha, fekete fogásprofilokkal és fiókos konyhaszigettel" width="960" height="720" loading="lazy" decoding="async">
+                            <span class="showcase-zoom" aria-hidden="true">Nagyítás ↗</span>
+                        </button>
+                    </figure>
+                </div>
+                <details class="kitchen-details">
+                    <summary>További nézetek és részletek – 5 kép</summary>
+                    <div class="kitchen-detail-grid">
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-terv-masik-full.webp" aria-label="Fa hatású konyha – másik látványterv nagyítása"><img src="terv-es-valosag/fa-szurke-terv-masik.webp" alt="A fa hatású és szürke konyha látványterve közelebbről" width="960" height="540" loading="lazy" decoding="async"></button><figcaption>Látványterv, másik nézet</figcaption></figure>
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-ossz-full.webp" aria-label="Fa hatású konyha – teljes konyha nagyítása"><img src="terv-es-valosag/fa-szurke-ossz.webp" alt="A fa hatású konyha és sziget teljes nézete a beépítés után" width="960" height="928" loading="lazy" decoding="async"></button><figcaption>A konyha teljes nézete</figcaption></figure>
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-sziget-full.webp" aria-label="Fa hatású konyha – sziget nagyítása"><img src="terv-es-valosag/fa-szurke-sziget.webp" alt="A fa hatású konyhasziget és a vele összehangolt magas szekrényfal" width="720" height="960" loading="lazy" decoding="async"></button><figcaption>Sziget és szekrényfal</figcaption></figure>
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-fiok-full.webp" aria-label="Fa hatású konyha – fiókok részletének nagyítása"><img src="terv-es-valosag/fa-szurke-fiok.webp" alt="A konyhasziget fiókjainak fa hatású felülete és fekete fogásprofiljai közelről" width="720" height="960" loading="lazy" decoding="async"></button><figcaption>Fiókok, közelről</figcaption></figure>
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/fa-szurke-reszlet-full.webp" aria-label="Fa hatású konyha – munkapult részletének nagyítása"><img src="terv-es-valosag/fa-szurke-reszlet.webp" alt="A fa hatású munkapult, fekete mosogató és a felső szekrények alatti világítás" width="720" height="960" loading="lazy" decoding="async"></button><figcaption>Munkapult és világítás</figcaption></figure>
+                    </div>
+                </details>
+            </article>
+
+            <article class="kitchen-project kitchen-project--grey" aria-labelledby="grey-kitchen-title">
+                <div class="kitchen-project-title">
+                    <span class="kitchen-project-number" aria-hidden="true">02</span>
+                    <div><h3 id="grey-kitchen-title">Szürke árnyalatok, középpontban a konyhasziget</h3><p>Körbefutó tárolók, világos felső frontok és egy sziget a közös pillanatokhoz.</p></div>
+                </div>
+                <div class="kitchen-pair">
+                    <figure>
+                        <figcaption>A látványterv <span>3D tervezés</span></figcaption>
+                        <button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/szurke-terv-full.webp" aria-label="Szürke konyha – a látványterv nagyítása">
+                            <img src="terv-es-valosag/szurke-terv.webp" alt="A szürke, U alakú konyha eredeti 3D látványterve, középen konyhaszigettel" width="960" height="540" loading="lazy" decoding="async">
+                            <span class="showcase-zoom" aria-hidden="true">Nagyítás ↗</span>
+                        </button>
+                    </figure>
+                    <figure>
+                        <figcaption>A megvalósult konyha <span>Saját kivitelezés</span></figcaption>
+                        <button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/szurke-kesz-full.webp" aria-label="Szürke konyha – a megvalósult konyha nagyítása">
+                            <img src="terv-es-valosag/szurke-kesz.webp" alt="A megvalósult szürke konyha beépített sütővel, világos felső frontokkal és bárszékes konyhaszigettel" width="720" height="960" loading="lazy" decoding="async">
+                            <span class="showcase-zoom" aria-hidden="true">Nagyítás ↗</span>
+                        </button>
+                    </figure>
+                </div>
+                <details class="kitchen-details">
+                    <summary>További nézetek és részletek – 3 kép</summary>
+                    <div class="kitchen-detail-grid">
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/szurke-terv-masik-full.webp" aria-label="Szürke konyha – másik látványterv nagyítása"><img src="terv-es-valosag/szurke-terv-masik.webp" alt="A szürke konyha látványterve másik nézőpontból" width="960" height="540" loading="lazy" decoding="async"></button><figcaption>Látványterv, másik nézet</figcaption></figure>
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/szurke-sziget-full.webp" aria-label="Szürke konyha – sziget és tárolók nagyítása"><img src="terv-es-valosag/szurke-sziget.webp" alt="Az elkészült szürke konyha szigete és jobb oldali magas tárolói" width="720" height="960" loading="lazy" decoding="async"></button><figcaption>Sziget és magas tárolók</figcaption></figure>
+                        <figure><button type="button" class="showcase-image" data-lightbox data-full="terv-es-valosag/szurke-reszlet-full.webp" aria-label="Szürke konyha – munkapult és sarok nagyítása"><img src="terv-es-valosag/szurke-reszlet.webp" alt="A szürke konyha munkapultja, mosogatója és sarokszekrényei" width="720" height="960" loading="lazy" decoding="async"></button><figcaption>Munkapult és sarokkialakítás</figcaption></figure>
+                    </div>
+                </details>
+            </article>
+
+            <div class="showcase-footer">
+                <div><h3>Milyen lenne az Ön konyhája?</h3><p>Meséljen az elképzeléséről, a tervezésben segítünk.</p></div>
+                <a href="#ajanlat" class="btn">Megterveztetem a konyhámat</a>
+            </div>
+        </div>
+    </section>
+
     <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Referencia nagy méretben" aria-hidden="true">
         <button class="lightbox-close" type="button" aria-label="Nagyított kép bezárása">&times;</button>
         <img alt="">
@@ -2533,11 +2706,11 @@ textarea:focus {
 
             <div class="quote-header">
 
-                <h2>Kérjen személyre szabott árajánlatot!</h2>
+                <h2>Beszéljünk az elképzeléséről!</h2>
 
                 <p>
-                    Küldje el elképzelését vagy egy helyszínfotót. Nem kell kész tervvel érkeznie:
-                    az ingyenes felmérésben, a tervezésben és a látványterv elkészítésében is segítünk.
+                    Már körvonalazódott, milyen bútort szeretne? Küldje el a részleteket ajánlatkéréshez.
+                    Ha még vannak kérdései, kérjen visszahívást, és gondolkodjunk együtt.
                 </p>
 
             </div>
@@ -2551,11 +2724,21 @@ textarea:focus {
                 </label>
                 <input type="hidden" name="submission_token" id="submission_token">
 
-                <ul class="quote-benefits" aria-label="Az ajánlatkérés előnyei">
-                    <li>Nem kell kész terv</li>
-                    <li>Ingyenes helyszíni felmérés</li>
-                    <li>Látványtervezésben is segítünk</li>
-                </ul>
+                <fieldset class="form-fieldset" id="requestModeOptions">
+                    <legend>Hogyan induljunk el?</legend>
+                    <div class="request-options">
+                        <label class="request-option">
+                            <input type="radio" name="request_mode" value="quote" checked aria-controls="quoteDetails" aria-describedby="requestIntro">
+                            <span><strong>Árajánlatot kérek</strong><small>Megadom a méreteket és az elképzelésemet.</small></span>
+                        </label>
+                        <label class="request-option">
+                            <input type="radio" name="request_mode" value="callback" aria-controls="quoteDetails" aria-describedby="requestIntro">
+                            <span><strong>Visszahívást kérek</strong><small>Előbb átbeszélném a lehetőségeket.</small></span>
+                        </label>
+                    </div>
+                </fieldset>
+                <p class="request-intro" id="requestIntro" aria-live="polite">Az alábbi részletek segítenek az ajánlat előkészítésében. A pontos árhoz további egyeztetésre vagy helyszíni felmérésre lehet szükség.</p>
+                <p class="form-help quote-required-note">A * jelölt mezők kitöltése szükséges.</p>
 
                 <div class="form-row">
 
@@ -2597,9 +2780,11 @@ textarea:focus {
                 </div>
 
 
+                <fieldset class="form-fieldset quote-details" id="quoteDetails">
+                    <legend>Az elképzelés részletei</legend>
                 <div class="form-group">
 
-                    <label for="email">E-mail cím</label>
+                    <label for="email">E-mail cím *</label>
 
                     <input
                         id="email"
@@ -2608,6 +2793,7 @@ textarea:focus {
                         autocomplete="email"
                         maxlength="254"
                         placeholder="pelda@email.hu"
+                        required
                     >
 
                 </div>
@@ -2615,16 +2801,14 @@ textarea:focus {
 
                 <div class="form-group">
 
-                    <label for="project_type">Miben segíthetünk?</label>
+                    <label for="project_type">Milyen bútorra kér ajánlatot? *</label>
 
-                    <select id="project_type" name="project_type">
+                    <select id="project_type" name="project_type" required>
 
                         <option value="">
-                            Válasszon szolgáltatást...
+                            Válasszon bútortípust...
                         </option>
 
-                        <option>Lapszabászat és élzárás</option>
-                        <option>Látványtervezés és bútorgyártás</option>
                         <option>Konyhabútor</option>
                         <option>Gardrób</option>
                         <option>Előszobabútor</option>
@@ -2641,15 +2825,16 @@ textarea:focus {
                 <div class="form-group">
 
                     <label for="message">
-                        Írja le, mit szeretne!
+                        Röviden az elképzeléséről *
                     </label>
 
                     <textarea
                         id="message"
                         name="message"
                         minlength="3"
-                        maxlength="4000"
-                        placeholder="Például: Egy kb. 3 méteres gardróbot szeretnék tolóajtókkal..."
+                        maxlength="3700"
+                        placeholder="Például: Tolóajtós gardróbot szeretnék, fehér és fa hatású felületekkel, sok akasztós résszel."
+                        required
                     ></textarea>
 
                 </div>
@@ -2658,7 +2843,7 @@ textarea:focus {
                 <div class="form-group">
 
                     <label for="approximate_dimensions">
-                        Hozzávetőleges méretek
+                        Hozzávetőleges méretek *
                     </label>
 
                     <input
@@ -2666,15 +2851,22 @@ textarea:focus {
                         type="text"
                         name="approximate_dimensions"
                         maxlength="500"
+                        minlength="3"
                         placeholder="Például: szélesség 300 cm, magasság 250 cm"
+                        required
                     >
 
                 </div>
-                
+
+                <div class="form-group">
+                    <label for="project_location">Helyszín / település *</label>
+                    <input id="project_location" type="text" name="project_location" minlength="2" maxlength="200" autocomplete="address-level2" placeholder="Például: Aszód" required>
+                </div>
+
 <div class="form-group">
 
     <label for="attachments">
-        Kép, rajz vagy terv feltöltése
+        Kép, rajz vagy terv feltöltése (opcionális)
     </label>
 
     <p class="upload-text" id="attachments_help">
@@ -2693,35 +2885,12 @@ textarea:focus {
 
 </div>
 
-                <fieldset class="form-group form-fieldset">
-
-                    <legend>Mit szeretne?</legend>
-
-                    <div class="checkbox-group">
-
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="wants_callback">
-                            Visszahívást kérek
-                        </label>
-
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="wants_quote" checked>
-                            Árajánlatot kérek
-                        </label>
-
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="wants_consultation">
-                            Személyes egyeztetést szeretnék
-                        </label>
-
-                    </div>
-
                 </fieldset>
 
                 <div class="form-group">
                     <label class="checkbox-item">
                         <input type="checkbox" name="consent" required aria-describedby="consent_help">
-                        <span id="consent_help">Elolvastam az <a href="adatkezeles.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, és hozzájárulok, hogy a megadott adataimat az ajánlatkérés kezelése és kapcsolatfelvétel céljából felhasználják. *</span>
+                        <span id="consent_help">Elolvastam az <a href="adatkezeles.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, és tudomásul veszem, hogy a megadott adataimat az ajánlatkérés kezelése és a kapcsolatfelvétel céljából használják. *</span>
                     </label>
                 </div>
 
@@ -2855,6 +3024,7 @@ textarea:focus {
                     <li><a href="#szolgaltatasok">Szolgáltatások</a></li>
                     <li><a href="#lapszabaszat">Lapszabászat</a></li>
                     <li><a href="#butorgyartas">Bútorgyártás</a></li>
+                    <li><a href="#tervbol-valosag">Munkáink</a></li>
                     <li><a href="#ajanlat">Árajánlatkérés</a></li>
                     <li><a href="adatkezeles.html">Adatkezelési tájékoztató</a></li>
                 </ul>
@@ -2888,6 +3058,46 @@ textarea:focus {
         const quoteMessage = document.getElementById("success-message");
         const submissionTokenInput = document.getElementById("submission_token");
         const allowedFileTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+        const requestModeOptions = document.getElementById("requestModeOptions");
+        const quoteDetails = document.getElementById("quoteDetails");
+        const requestIntro = document.getElementById("requestIntro");
+
+        function getRequestMode() {
+            return quoteForm.querySelector('[name="request_mode"]:checked').value;
+        }
+
+        function syncRequestMode() {
+            const isCallback = getRequestMode() === "callback";
+            quoteDetails.hidden = isCallback;
+            quoteDetails.disabled = isCallback;
+            requestIntro.textContent = isCallback
+                ? "Adja meg a nevét és telefonszámát. Visszahívjuk, és együtt pontosítjuk, milyen megoldásra van szüksége."
+                : "Az alábbi részletek segítenek az ajánlat előkészítésében. A pontos árhoz további egyeztetésre vagy helyszíni felmérésre lehet szükség.";
+            quoteSubmitButton.textContent = isCallback ? "Visszahívást kérek" : "Árajánlatot kérek";
+        }
+
+        requestModeOptions.addEventListener("change", () => {
+            syncRequestMode();
+            quoteMessage.style.display = "none";
+        });
+        quoteForm.addEventListener("input", event => {
+            if (typeof event.target.setCustomValidity === "function") event.target.setCustomValidity("");
+        });
+        syncRequestMode();
+
+        function buildQuoteRequestData(mode) {
+            const data = new FormData(quoteForm);
+            data.delete("request_mode");
+            data.delete("project_location");
+            data.set("wants_callback", mode === "callback" ? "true" : "false");
+            data.set("wants_quote", mode === "quote" ? "true" : "false");
+            data.set("wants_consultation", "false");
+            if (mode === "quote") {
+                const location = document.getElementById("project_location").value.trim();
+                data.set("message", `Helyszín: ${location}\n\n${data.get("message").trim()}`);
+            }
+            return data;
+        }
 
         function createSubmissionToken() {
             if (crypto.randomUUID) return crypto.randomUUID();
@@ -2914,7 +3124,15 @@ textarea:focus {
 
         quoteForm.addEventListener("submit", async function(event) {
             event.preventDefault();
-            const attachments = Array.from(quoteForm.querySelector('[name="attachments"]').files);
+            if (quoteForm.getAttribute("aria-busy") === "true") return;
+            const mode = getRequestMode();
+            for (const field of quoteForm.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"], textarea')) {
+                if (!field.matches(":disabled")) field.value = field.value.trim();
+            }
+            const phone = document.getElementById("phone");
+            phone.setCustomValidity(phone.value.replace(/\D/g, "").length < 6 ? "Kérjük, adjon meg egy érvényes telefonszámot." : "");
+            if (!quoteForm.reportValidity()) return;
+            const attachments = mode === "callback" ? [] : Array.from(quoteForm.querySelector('[name="attachments"]').files);
             const invalidFiles = attachments.some(file => file.size > 10 * 1024 * 1024 || !allowedFileTypes.has(file.type));
 
             if (attachments.length > 5 || invalidFiles) {
@@ -2922,7 +3140,13 @@ textarea:focus {
                 return;
             }
 
+            const requestData = buildQuoteRequestData(mode);
+            if (String(requestData.get("message") || "").replace(/\r?\n/g, "\r\n").length > 4000) {
+                showQuoteMessage("Kérjük, rövidítse az elképzelés leírását: a helyszínnel együtt legfeljebb 4000 karakter küldhető.", true);
+                return;
+            }
             quoteForm.setAttribute("aria-busy", "true");
+            requestModeOptions.disabled = true;
             quoteSubmitButton.disabled = true;
             quoteSubmitButton.textContent = "Küldés...";
             quoteMessage.style.display = "none";
@@ -2933,7 +3157,7 @@ textarea:focus {
             try {
                 const response = await fetch(quoteForm.action, {
                     method: "POST",
-                    body: new FormData(quoteForm),
+                    body: requestData,
                     signal: controller.signal
                 });
 
@@ -2949,11 +3173,16 @@ textarea:focus {
                 }
 
                 const reference = payload.reference ? ` Hivatkozási szám: ${payload.reference}.` : "";
-                showQuoteMessage((payload.message || "Köszönjük az érdeklődést! Hamarosan felvesszük Önnel a kapcsolatot.") + reference + " ✓");
+                const successText = mode === "callback"
+                    ? "Köszönjük! Visszahívási kérését megkaptuk. Hamarosan telefonon jelentkezünk."
+                    : "Köszönjük! Ajánlatkérését megkaptuk. Átnézzük a részleteket, és felvesszük Önnel a kapcsolatot az egyeztetéshez.";
+                showQuoteMessage(successText + reference + " ✓");
+                window.dataLayer?.push({ event: "quote_request_success", request_mode: mode, reference: payload.reference || "" });
                 quoteForm.reset();
+                quoteForm.querySelector(`[name="request_mode"][value="${mode}"]`).checked = true;
+                syncRequestMode();
                 renewSubmissionToken();
-                window.dataLayer?.push({ event: "quote_request_success" });
-                window.dispatchEvent(new CustomEvent("hepa:quote-request-success", { detail: { reference: payload.reference || null } }));
+                window.dispatchEvent(new CustomEvent("hepa:quote-request-success", { detail: { reference: payload.reference || null, requestMode: mode } }));
             } catch (error) {
                 const message = error.name === "AbortError"
                     ? "A küldés túl sokáig tartott. Kérjük, ellenőrizze az internetkapcsolatot, majd próbálja újra."
@@ -2962,8 +3191,9 @@ textarea:focus {
             } finally {
                 clearTimeout(timeout);
                 quoteForm.removeAttribute("aria-busy");
+                requestModeOptions.disabled = false;
                 quoteSubmitButton.disabled = false;
-                quoteSubmitButton.textContent = "Árajánlatot kérek";
+                syncRequestMode();
             }
         });
 
@@ -2995,14 +3225,14 @@ textarea:focus {
 
         document.addEventListener("click", function(event) {
             if (!(event.target instanceof Element)) return;
-            const button = event.target.closest(".gallery-item");
+            const button = event.target.closest(".gallery-item, [data-lightbox]");
             if (!button) return;
 
             const image = button.querySelector("img");
             if (!image) return;
 
             lightboxTrigger = button;
-            lightboxImage.src = image.currentSrc || image.src;
+            lightboxImage.src = button.dataset.full || image.currentSrc || image.src;
             lightboxImage.alt = image.alt;
             lightbox.classList.add("active");
             lightbox.setAttribute("aria-hidden", "false");
@@ -3041,9 +3271,6 @@ textarea:focus {
 
                     const gallery = document.createElement("div");
                     gallery.className = "gallery";
-
-                    const categoryCover = document.querySelector(`.type[data-category="${category}"] .type-image`);
-                    if (categoryCover) categoryCover.src = categoryImages[0].url;
 
                     categoryImages.forEach(reference => {
                         const item = document.createElement("button");
