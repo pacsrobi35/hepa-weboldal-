@@ -14,6 +14,7 @@
   const MAX_MATERIALS = 50;
   const MAX_EDGE_PROFILES = 50;
   const MAX_ITEMS = 500;
+  const EDGE_MATERIAL_TYPE_MAX_LENGTH = 120;
   const FLOW_STEPS = {
     upload: ['details', 'logistics', 'contact', 'review'],
     manual: ['items', 'logistics', 'contact', 'review'],
@@ -296,6 +297,29 @@
     return code.split('-').map(Number);
   }
 
+  function hasSecondEdge(item = {}) {
+    return Boolean(item.edgeProfileId2 && EDGE_CODES.includes(item.edgeCode2) && item.edgeCode2 !== '0-0');
+  }
+
+  function combinedEdgeCode(item = {}) {
+    if (!hasSecondEdge(item)) return item.edgeCode;
+    const [longEdges1, shortEdges1] = edgeCodeParts(item.edgeCode);
+    const [longEdges2, shortEdges2] = edgeCodeParts(item.edgeCode2);
+    return `${longEdges1 + longEdges2}-${shortEdges1 + shortEdges2}`;
+  }
+
+  function combinedEdgeMaterialType(item = {}) {
+    if (!hasSecondEdge(item)) return item.edgeMaterialType;
+    return `${item.edgeCode}: ${item.edgeMaterialType} | ${item.edgeCode2}: ${item.edgeMaterialType2}`;
+  }
+
+  function secondEdgeDirectionsOverlap(item = {}) {
+    if (!hasSecondEdge(item)) return false;
+    const [longEdges1, shortEdges1] = edgeCodeParts(item.edgeCode);
+    const [longEdges2, shortEdges2] = edgeCodeParts(item.edgeCode2);
+    return (longEdges1 > 0 && longEdges2 > 0) || (shortEdges1 > 0 && shortEdges2 > 0);
+  }
+
   function legacyEdgeBandValue(value) {
     return EDGE_BAND_NAMES[value] || value || '';
   }
@@ -479,22 +503,33 @@
   function updateEdgeProfileOptions() {
     const profiles = readEdgeProfiles();
     const usableProfiles = profiles.filter(isUsableEdgeProfile);
-    itemList.querySelectorAll('[data-item-field="edgeProfileId"]').forEach((select) => {
-      const selectedId = select.value;
-      const placeholder = new Option(profiles.length ? 'Válasszon ABS élanyagot…' : 'Előbb vegyen fel ABS-t fent…', '');
-      select.replaceChildren(placeholder);
-      profiles.forEach((profile, index) => select.add(new Option(edgeProfileDisplayName(profile, index), profile.id)));
-      if (profiles.some((profile) => profile.id === selectedId)) select.value = selectedId;
-      else if (usableProfiles.length === 1 && select.closest('.item-card')?.querySelector('[data-item-field="edgeCode"]')?.value !== '0-0') select.value = usableProfiles[0].id;
+    itemList.querySelectorAll('.item-card').forEach((card) => {
+      const primarySelect = card.querySelector('[data-item-field="edgeProfileId"]');
+      const secondarySelect = card.querySelector('[data-item-field="edgeProfileId2"]');
+      const primarySelectedId = primarySelect.value;
+      const secondarySelectedId = secondarySelect.value;
+
+      primarySelect.replaceChildren(new Option(profiles.length ? 'Válasszon ABS élanyagot…' : 'Előbb vegyen fel ABS-t fent…', ''));
+      profiles.forEach((profile, index) => primarySelect.add(new Option(edgeProfileDisplayName(profile, index), profile.id)));
+      if (profiles.some((profile) => profile.id === primarySelectedId)) primarySelect.value = primarySelectedId;
+      else if (usableProfiles.length === 1 && card.querySelector('[data-item-field="edgeCode"]')?.value !== '0-0') primarySelect.value = usableProfiles[0].id;
+
+      secondarySelect.replaceChildren(new Option('Nincs második ABS', ''));
+      profiles.forEach((profile, index) => {
+        const option = new Option(edgeProfileDisplayName(profile, index), profile.id);
+        option.disabled = profile.id === primarySelect.value;
+        secondarySelect.add(option);
+      });
+      if (profiles.some((profile) => profile.id === secondarySelectedId)) secondarySelect.value = secondarySelectedId;
     });
   }
 
   function updateEdgeProfileUsageState() {
-    const usedIds = new Set(readItems()
-      .filter((item) => item.edgeCode && item.edgeCode !== '0-0')
-      .filter((item) => isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId)))
-      .map((item) => item.edgeProfileId)
-      .filter(Boolean));
+    const usedIds = new Set();
+    readItems().forEach((item) => {
+      if (item.edgeCode && item.edgeCode !== '0-0' && isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId))) usedIds.add(item.edgeProfileId);
+      if (item.edgeCode2 && item.edgeCode2 !== '0-0' && isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId2))) usedIds.add(item.edgeProfileId2);
+    });
     [...edgeProfileList.querySelectorAll('.edge-profile-card')].forEach((card, index) => {
       const button = card.querySelector('[data-edge-profile-action="delete"]');
       const inUse = usedIds.has(card.dataset.edgeProfileId);
@@ -570,6 +605,7 @@
     itemCounter += 1;
     const id = `item-${Date.now()}-${itemCounter}`;
     const edgeCode = edgeCodeFromData(data);
+    const edgeCode2 = EDGE_CODES.includes(data.edgeCode2) && data.edgeCode2 !== '0-0' ? data.edgeCode2 : '';
     const card = document.createElement('article');
     card.className = 'item-card';
     card.id = id;
@@ -584,9 +620,11 @@
         <div class="field item-length"><label for="${id}-length"><span class="required">Hossz (mm)</span><small>Szálirány</small></label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" aria-label="Hossz milliméterben, szálirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="Szálirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-width"><label for="${id}-width"><span class="required">Szélesség (mm)</span><small>Keresztirány</small></label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" aria-label="Szélesség milliméterben, keresztirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="Keresztirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-quantity"><label class="required" for="${id}-quantity">Mennyiség</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
-        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa</label><select id="${id}-edge-material" data-item-field="edgeProfileId"><option value="">Előbb vegyen fel ABS-t fent…</option></select></div>
-        <div class="field item-edge-code"><label class="required" for="${id}-edge-code">Élzárás kódja</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview')}</div></div>
-        <div class="field item-note"><label for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
+        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">1. ABS élanyag</label><select id="${id}-edge-material" data-item-field="edgeProfileId"><option value="">Előbb vegyen fel ABS-t fent…</option></select></div>
+        <div class="field item-edge-code"><label class="required" for="${id}-edge-code">1. élkód</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview edge-row-preview-1')}</div></div>
+        <div class="field item-edge-material-2"><label for="${id}-edge-material-2">2. ABS élanyag <small>Opcionális</small></label><select id="${id}-edge-material-2" data-item-field="edgeProfileId2"><option value="">Nincs második ABS</option></select></div>
+        <div class="field item-edge-code-2"><label class="edge-required-label-2" for="${id}-edge-code-2">2. élkód</label><div class="edge-code-control"><select id="${id}-edge-code-2" data-item-field="edgeCode2" disabled><option value="">Válasszon...</option>${EDGE_CODES.filter((code) => code !== '0-0').map((code) => `<option value="${code}">${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode2, 'edge-row-preview edge-row-preview-2')}</div></div>
+        <div class="field item-note"><label class="item-note-label" for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
         <div class="item-actions">
           <button class="icon-button" type="button" data-item-action="duplicate">Másolás</button>
           <button class="icon-button delete" type="button" data-item-action="delete">Törlés</button>
@@ -602,6 +640,12 @@
     const edgeProfileSelect = card.querySelector('[data-item-field="edgeProfileId"]');
     const requestedEdgeProfileId = String(data.edgeProfileId || '');
     if ([...edgeProfileSelect.options].some((option) => option.value === requestedEdgeProfileId)) edgeProfileSelect.value = requestedEdgeProfileId;
+    updateEdgeProfileOptions();
+    const edgeProfileSelect2 = card.querySelector('[data-item-field="edgeProfileId2"]');
+    const requestedEdgeProfileId2 = String(data.edgeProfileId2 || '');
+    if ([...edgeProfileSelect2.options].some((option) => option.value === requestedEdgeProfileId2)) edgeProfileSelect2.value = requestedEdgeProfileId2;
+    const edgeCodeSelect2 = card.querySelector('[data-item-field="edgeCode2"]');
+    if ([...edgeCodeSelect2.options].some((option) => option.value === edgeCode2)) edgeCodeSelect2.value = edgeCode2;
     syncEdgeRequirements(card);
     renumberItems();
     return card;
@@ -613,24 +657,69 @@
     const hasEdge = EDGE_CODES.includes(edgeCode) && edgeCode !== '0-0';
     const explicitlyNoEdge = edgeCode === '0-0';
     const [longEdges, shortEdges] = edgeCodeParts(edgeCode);
-    const preview = card.querySelector('.edge-row-preview');
-    if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
-    const control = card.querySelector('[data-item-field="edgeProfileId"]');
-    if (hasEdge && !control.value) {
+    const preview = card.querySelector('.edge-row-preview-1');
+    if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview edge-row-preview-1`;
+    const primaryProfileControl = card.querySelector('[data-item-field="edgeProfileId"]');
+    if (hasEdge && !primaryProfileControl.value) {
       const profiles = readEdgeProfiles().filter(isUsableEdgeProfile);
-      if (profiles.length === 1) control.value = profiles[0].id;
+      if (profiles.length === 1) primaryProfileControl.value = profiles[0].id;
     }
-    control.required = hasEdge;
-    control.disabled = explicitlyNoEdge;
-    if (hasEdge) control.setAttribute('aria-required', 'true');
-    else control.removeAttribute('aria-required');
-    control.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
+    primaryProfileControl.required = hasEdge;
+    primaryProfileControl.disabled = explicitlyNoEdge;
+    if (hasEdge) primaryProfileControl.setAttribute('aria-required', 'true');
+    else primaryProfileControl.removeAttribute('aria-required');
+    primaryProfileControl.closest('.field').querySelector('.edge-required-label').classList.toggle('required', hasEdge);
+
+    const secondaryProfileControl = card.querySelector('[data-item-field="edgeProfileId2"]');
+    const secondaryCodeControl = card.querySelector('[data-item-field="edgeCode2"]');
+    const secondaryUnavailable = !hasEdge || (longEdges === 2 && shortEdges === 2);
+    secondaryProfileControl.disabled = secondaryUnavailable;
+    if (secondaryUnavailable) {
+      secondaryProfileControl.value = '';
+      secondaryCodeControl.value = '';
+    }
+
+    [...secondaryProfileControl.options].forEach((option) => {
+      if (option.value) option.disabled = option.value === primaryProfileControl.value;
+    });
+    const remainingLongEdges = 2 - longEdges;
+    const remainingShortEdges = 2 - shortEdges;
+    [...secondaryCodeControl.options].forEach((option) => {
+      if (!option.value) return;
+      const [optionLongEdges, optionShortEdges] = edgeCodeParts(option.value);
+      option.disabled = optionLongEdges > remainingLongEdges || optionShortEdges > remainingShortEdges;
+    });
+    if (secondaryCodeControl.selectedOptions[0]?.disabled) secondaryCodeControl.value = '';
+
+    const hasSecondaryProfile = !secondaryUnavailable && Boolean(secondaryProfileControl.value);
+    secondaryCodeControl.disabled = !hasSecondaryProfile;
+    secondaryCodeControl.required = hasSecondaryProfile;
+    if (hasSecondaryProfile) secondaryCodeControl.setAttribute('aria-required', 'true');
+    else secondaryCodeControl.removeAttribute('aria-required');
+    card.querySelector('.edge-required-label-2').classList.toggle('required', hasSecondaryProfile);
+
+    const [longEdges2, shortEdges2] = edgeCodeParts(secondaryCodeControl.value);
+    const preview2 = card.querySelector('.edge-row-preview-2');
+    if (preview2) preview2.className = `part l-${longEdges2} s-${shortEdges2} edge-row-preview edge-row-preview-2`;
+
+    const item = {
+      edgeProfileId2: secondaryProfileControl.value,
+      edgeCode,
+      edgeCode2: secondaryCodeControl.value
+    };
+    const noteControl = card.querySelector('[data-item-field="note"]');
+    const noteRequired = secondEdgeDirectionsOverlap(item);
+    noteControl.required = noteRequired;
+    if (noteRequired) noteControl.setAttribute('aria-required', 'true');
+    else noteControl.removeAttribute('aria-required');
+    card.querySelector('.item-note-label').classList.toggle('required', noteRequired);
   }
 
   function readItem(card) {
     const data = { id: card.dataset.itemId };
     card.querySelectorAll('[data-item-field]').forEach((control) => { data[control.dataset.itemField] = control.value.trim(); });
     data.edgeMaterialType = edgeProfilePayloadName(getEdgeProfile(data.edgeProfileId));
+    data.edgeMaterialType2 = edgeProfilePayloadName(getEdgeProfile(data.edgeProfileId2));
     return data;
   }
 
@@ -664,10 +753,11 @@
       const length = Number(item.lengthMm) || 0;
       const width = Number(item.widthMm) || 0;
       const [longEdges, shortEdges] = edgeCodeParts(item.edgeCode);
+      const [longEdges2, shortEdges2] = edgeCodeParts(item.edgeCode2);
       totals.rows += 1;
       totals.pieces += quantity;
       totals.area += quantity * length * width / 1_000_000;
-      totals.edge += quantity * (longEdges * length + shortEdges * width) / 1000;
+      totals.edge += quantity * ((longEdges + longEdges2) * length + (shortEdges + shortEdges2) * width) / 1000;
       return totals;
     }, { rows: 0, pieces: 0, area: 0, edge: 0 });
   }
@@ -701,7 +791,18 @@
   itemList.addEventListener('input', () => { updateItemSummary(); queueSave(); });
   itemList.addEventListener('change', (event) => {
     const card = event.target.closest('.item-card');
-    if (card && event.target.matches('[data-item-field="edgeCode"]')) syncEdgeRequirements(card);
+    if (card && event.target.matches('[data-item-field="edgeProfileId"]')) {
+      updateEdgeProfileOptions();
+      const secondaryProfile = card.querySelector('[data-item-field="edgeProfileId2"]');
+      if (event.target.value && secondaryProfile.value === event.target.value) {
+        secondaryProfile.value = '';
+        card.querySelector('[data-item-field="edgeCode2"]').value = '';
+      }
+    }
+    if (card && event.target.matches('[data-item-field="edgeProfileId2"]') && !event.target.value) {
+      card.querySelector('[data-item-field="edgeCode2"]').value = '';
+    }
+    if (card && event.target.matches('[data-item-field="edgeCode"], [data-item-field="edgeProfileId"], [data-item-field="edgeProfileId2"], [data-item-field="edgeCode2"]')) syncEdgeRequirements(card);
     updateItemSummary();
     updateMaterialUsageState();
     updateEdgeProfileUsageState();
@@ -854,6 +955,28 @@
       if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
       const hasEdge = EDGE_CODES.includes(item.edgeCode) && item.edgeCode !== '0-0';
       if (hasEdge && !isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId))) mark('edgeProfileId', 'ABS élanyag');
+      const secondEdgeRequested = Boolean(item.edgeProfileId2 || item.edgeCode2);
+      if (secondEdgeRequested) {
+        const validSecondProfile = isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId2));
+        const validSecondCode = EDGE_CODES.includes(item.edgeCode2) && item.edgeCode2 !== '0-0';
+        if (!hasEdge) mark('edgeCode2', 'a 2. ABS csak az 1. élkód megadása mellett használható');
+        if (!validSecondProfile) mark('edgeProfileId2', '2. ABS élanyag');
+        if (!validSecondCode) mark('edgeCode2', '2. élkód');
+        if (item.edgeProfileId2 && item.edgeProfileId2 === item.edgeProfileId) mark('edgeProfileId2', 'a két ABS élanyag legyen különböző');
+        if (hasEdge && validSecondCode) {
+          const [longEdges1, shortEdges1] = edgeCodeParts(item.edgeCode);
+          const [longEdges2, shortEdges2] = edgeCodeParts(item.edgeCode2);
+          if (longEdges1 + longEdges2 > 2 || shortEdges1 + shortEdges2 > 2) {
+            mark('edgeCode2', 'a két élkód együtt legfeljebb 2 hosszanti és 2 rövid élt jelölhet');
+          }
+        }
+        if (hasEdge && validSecondProfile && validSecondCode && combinedEdgeMaterialType(item).length > EDGE_MATERIAL_TYPE_MAX_LENGTH) {
+          mark('edgeProfileId2', 'a két ABS megnevezése túl hosszú; rövidítse az ABS azonosítókat');
+        }
+        if (secondEdgeDirectionsOverlap(item) && !item.note.trim()) {
+          mark('note', 'megjegyzés: írja le, melyik oldal kapja az 1. és a 2. ABS-t');
+        }
+      }
       if (messages.length) {
         card.classList.add('invalid');
         const errorId = `${card.id}-error`;
@@ -948,17 +1071,20 @@
           thicknessMm: Number(canonicalThickness(material.thicknessMm)),
           displayOrder: index + 1
         })),
-        items: items.map((item, index) => ({
-          materialClientId: cleanText(item.materialId),
-          name: cleanText(item.name),
-          lengthMm: Number(item.lengthMm),
-          widthMm: Number(item.widthMm),
-          quantity: Number(item.quantity),
-          edgeCode: cleanText(item.edgeCode),
-          edgeMaterialType: item.edgeCode === '0-0' ? null : cleanText(item.edgeMaterialType),
-          note: cleanText(item.note),
-          displayOrder: index + 1
-        }))
+        items: items.map((item, index) => {
+          const edgeCode = combinedEdgeCode(item);
+          return {
+            materialClientId: cleanText(item.materialId),
+            name: cleanText(item.name),
+            lengthMm: Number(item.lengthMm),
+            widthMm: Number(item.widthMm),
+            quantity: Number(item.quantity),
+            edgeCode: cleanText(edgeCode),
+            edgeMaterialType: edgeCode === '0-0' ? null : cleanText(combinedEdgeMaterialType(item)),
+            note: cleanText(item.note),
+            displayOrder: index + 1
+          };
+        })
       };
     } else if (flow === 'upload') {
       payload.details = {
@@ -1121,7 +1247,9 @@
         const materialName = material ? `${material.name || 'Névtelen anyag'}, ${material.thicknessMm || '?'} mm` : 'Anyag nincs kiválasztva';
         const edgeData = item.edgeCode === '0-0'
           ? 'élkód: 0-0, élzárás nélkül'
-          : `élkód: ${item.edgeCode || 'nincs megadva'} (${EDGE_CODE_NAMES[item.edgeCode] || 'egyeztetendő'}); ${item.edgeMaterialType || 'élanyag egyeztetendő'}`;
+          : hasSecondEdge(item)
+            ? `1. ABS: ${item.edgeCode} (${EDGE_CODE_NAMES[item.edgeCode] || 'egyeztetendő'}), ${item.edgeMaterialType || 'élanyag egyeztetendő'}; 2. ABS: ${item.edgeCode2} (${EDGE_CODE_NAMES[item.edgeCode2] || 'egyeztetendő'}), ${item.edgeMaterialType2 || 'élanyag egyeztetendő'}`
+            : `élkód: ${item.edgeCode || 'nincs megadva'} (${EDGE_CODE_NAMES[item.edgeCode] || 'egyeztetendő'}); ${item.edgeMaterialType || 'élanyag egyeztetendő'}`;
         return `${index + 1}. ${item.name || 'Névtelen tétel'} – ${materialName}; ${item.lengthMm || '?'} × ${item.widthMm || '?'} mm (hossz/szálirány × szélesség/keresztirány), ${item.quantity || '?'} db; ${edgeData}${item.note ? `; megjegyzés: ${item.note}` : ''}`;
       }).join('\n');
       cards.push(reviewCard('Tételek', 'items', [
@@ -1262,7 +1390,7 @@
       fields,
       materialProfiles: readMaterials(),
       edgeProfiles: readEdgeProfiles(),
-      items: readItems().map(({ edgeMaterialType, ...item }) => item),
+      items: readItems().map(({ edgeMaterialType, edgeMaterialType2, ...item }) => item),
       filesMeta: {
         upload: files.upload.length ? files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.upload,
         help: files.help.length ? files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.help
