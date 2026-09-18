@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const DRAFT_KEY = 'hepa_cutting_quote_draft_v4';
+  const DRAFT_KEY = 'hepa_cutting_quote_draft_v5';
+  const V4_DRAFT_KEY = 'hepa_cutting_quote_draft_v4';
   const V3_DRAFT_KEY = 'hepa_cutting_quote_draft_v3';
   const V2_DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
   const V1_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
@@ -11,6 +12,7 @@
   const MAX_FILE_SIZE = 6 * 1024 * 1024;
   const MAX_TOTAL_FILE_SIZE = 15 * 1024 * 1024;
   const MAX_MATERIALS = 50;
+  const MAX_EDGE_PROFILES = 50;
   const MAX_ITEMS = 500;
   const FLOW_STEPS = {
     upload: ['details', 'logistics', 'contact', 'review'],
@@ -46,14 +48,6 @@
     delivery: 'Átvétel vagy szállítás'
   };
   const EDGE_BAND_NAMES = { matching: 'dekorazonos ABS', different: 'eltérő színű ABS', customer: 'hozott élanyag', unknown: 'egyeztetendő' };
-  const EDGE_MATERIAL_OPTIONS = [
-    'Dekorazonos ABS · 0,4 mm',
-    'Dekorazonos ABS · 0,6 mm',
-    'Dekorazonos ABS · 1 mm',
-    'Dekorazonos ABS · 2 mm',
-    'Saját / hozott élanyag',
-    'Más / egyeztetést kérek'
-  ];
   const EDGE_CODES = ['0-0', '0-1', '0-2', '1-0', '1-1', '1-2', '2-0', '2-1', '2-2'];
   const EDGE_CODE_NAMES = {
     '0-0': 'nincs élzárás',
@@ -82,6 +76,7 @@
   const errorSummary = document.querySelector('#error-summary');
   const errorList = document.querySelector('#error-list');
   const materialList = document.querySelector('#material-list');
+  const edgeProfileList = document.querySelector('#edge-profile-list');
   const itemList = document.querySelector('#item-list');
   const itemSummary = document.querySelector('#items-summary');
   const draftBanner = document.querySelector('#draft-banner');
@@ -91,6 +86,7 @@
   let activeFlow = null;
   let stepIndex = 0;
   let materialCounter = 0;
+  let edgeProfileCounter = 0;
   let itemCounter = 0;
   let saveTimer = null;
   let restoredDraft = null;
@@ -326,16 +322,32 @@
     return `<span class="part l-${longEdges} s-${shortEdges} ${extraClass}" aria-hidden="true"><i class="top"></i><i class="right"></i><i class="bottom"></i><i class="left"></i></span>`;
   }
 
-  function edgeMaterialOptionsMarkup(selectedValue) {
-    const selected = String(selectedValue || '').trim();
-    const options = ['<option value="">Válasszon…</option>'];
-    EDGE_MATERIAL_OPTIONS.forEach((value) => {
-      options.push(`<option value="${escapeHtml(value)}" ${selected === value ? 'selected' : ''}>${escapeHtml(value)}</option>`);
-    });
-    if (selected && !EDGE_MATERIAL_OPTIONS.includes(selected)) {
-      options.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)} · korábbi adat</option>`);
-    }
-    return options.join('');
+  function edgeProfilePairKey(identifier, thicknessMm) {
+    const normalizedIdentifier = String(identifier ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('hu-HU');
+    return `${normalizedIdentifier}\u001f${canonicalThickness(thicknessMm)}`;
+  }
+
+  function edgeProfileDisplayName(profile, index) {
+    const identifier = String(profile?.identifier || '').trim();
+    const thickness = String(profile?.thicknessMm || '').trim();
+    if (!identifier && !thickness) return `${index + 1}. ABS – még nincs kitöltve`;
+    if (!identifier) return `${index + 1}. ABS – ${thickness.replace('.', ',')} mm`;
+    return thickness ? `${identifier} – ${thickness.replace('.', ',')} mm` : `${identifier} – vastagság nélkül`;
+  }
+
+  function edgeProfilePayloadName(profile) {
+    if (!profile) return '';
+    const identifier = String(profile.identifier || '').trim();
+    const thickness = canonicalThickness(profile.thicknessMm);
+    return [identifier, thickness ? `${thickness.replace('.', ',')} mm` : ''].filter(Boolean).join(' · ');
+  }
+
+  function parseLegacyEdgeProfile(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(.*?)\s*(?:·|–|-)\s*(\d+(?:[.,]\d+)?)\s*mm$/i);
+    return match
+      ? { identifier: match[1].trim(), thicknessMm: canonicalThickness(match[2]) }
+      : { identifier: text, thicknessMm: '' };
   }
 
   function materialDisplayName(material, index) {
@@ -445,6 +457,115 @@
     queueSave();
   });
 
+  function readEdgeProfile(card) {
+    const data = { id: card.dataset.edgeProfileId };
+    card.querySelectorAll('[data-edge-profile-field]').forEach((control) => { data[control.dataset.edgeProfileField] = control.value.trim(); });
+    return data;
+  }
+
+  function readEdgeProfiles() {
+    return [...edgeProfileList.querySelectorAll('.edge-profile-card')].map(readEdgeProfile);
+  }
+
+  function getEdgeProfile(profileId) {
+    return readEdgeProfiles().find((profile) => profile.id === profileId) || null;
+  }
+
+  function isUsableEdgeProfile(profile) {
+    const thickness = Number(canonicalThickness(profile?.thicknessMm));
+    return String(profile?.identifier || '').trim().length >= 2 && Number.isFinite(thickness) && thickness >= 0.1 && thickness <= 10;
+  }
+
+  function updateEdgeProfileOptions() {
+    const profiles = readEdgeProfiles();
+    const usableProfiles = profiles.filter(isUsableEdgeProfile);
+    itemList.querySelectorAll('[data-item-field="edgeProfileId"]').forEach((select) => {
+      const selectedId = select.value;
+      const placeholder = new Option(profiles.length ? 'Válasszon ABS élanyagot…' : 'Előbb vegyen fel ABS-t fent…', '');
+      select.replaceChildren(placeholder);
+      profiles.forEach((profile, index) => select.add(new Option(edgeProfileDisplayName(profile, index), profile.id)));
+      if (profiles.some((profile) => profile.id === selectedId)) select.value = selectedId;
+      else if (usableProfiles.length === 1 && select.closest('.item-card')?.querySelector('[data-item-field="edgeCode"]')?.value !== '0-0') select.value = usableProfiles[0].id;
+    });
+  }
+
+  function updateEdgeProfileUsageState() {
+    const usedIds = new Set(readItems()
+      .filter((item) => item.edgeCode && item.edgeCode !== '0-0')
+      .filter((item) => isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId)))
+      .map((item) => item.edgeProfileId)
+      .filter(Boolean));
+    [...edgeProfileList.querySelectorAll('.edge-profile-card')].forEach((card, index) => {
+      const button = card.querySelector('[data-edge-profile-action="delete"]');
+      const inUse = usedIds.has(card.dataset.edgeProfileId);
+      button.disabled = inUse;
+      button.title = inUse
+        ? 'Ezt az ABS élanyagot használja egy tételsor. Előbb válasszon ott másikat.'
+        : `${index + 1}. ABS élanyag törlése`;
+    });
+  }
+
+  function renumberEdgeProfiles() {
+    const cards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
+    cards.forEach((card, index) => {
+      card.querySelector('.edge-profile-number').textContent = String(index + 1);
+      card.querySelector('.edge-profile-number-a11y').textContent = String(index + 1);
+      card.querySelector('[data-edge-profile-action="delete"]').setAttribute('aria-label', `${index + 1}. ABS élanyag törlése`);
+    });
+    document.querySelector('#add-edge-profile').disabled = cards.length >= MAX_EDGE_PROFILES;
+    updateEdgeProfileOptions();
+    updateEdgeProfileUsageState();
+  }
+
+  function newEdgeProfile(data = {}) {
+    if (edgeProfileList.children.length >= MAX_EDGE_PROFILES) return null;
+    edgeProfileCounter += 1;
+    const domId = `edge-profile-${Date.now()}-${edgeProfileCounter}`;
+    const usedIds = new Set(readEdgeProfiles().map((profile) => profile.id));
+    const preferredId = String(data.id || '').trim();
+    const profileId = preferredId && !usedIds.has(preferredId) ? preferredId : `edge-${Date.now()}-${edgeProfileCounter}`;
+    const card = document.createElement('article');
+    card.className = 'material-card edge-profile-card';
+    card.id = domId;
+    card.tabIndex = -1;
+    card.dataset.edgeProfileId = profileId;
+    card.innerHTML = `
+      <h4 class="sr-only"><span class="edge-profile-number-a11y"></span>. ABS élanyag</h4>
+      <div class="material-grid">
+        <div class="material-index"><span>ABS</span><strong class="edge-profile-number"></strong></div>
+        <div class="field material-profile-name"><label class="required" for="${domId}-identifier">ABS színe / azonosítója</label><input id="${domId}-identifier" data-edge-profile-field="identifier" type="text" required aria-required="true" maxlength="100" value="${escapeHtml(data.identifier)}" placeholder="Pl. U604 lapazonos vagy Fehér"></div>
+        <div class="field material-profile-thickness"><label class="required" for="${domId}-thickness">Vastagság (mm)</label><input id="${domId}-thickness" data-edge-profile-field="thicknessMm" type="number" required aria-required="true" min="0.1" max="10" step="0.1" inputmode="decimal" value="${escapeHtml(data.thicknessMm)}" placeholder="0,8"><span class="input-unit" aria-hidden="true">mm</span></div>
+        <div class="material-actions"><button class="icon-button delete" type="button" data-edge-profile-action="delete">Törlés</button></div>
+      </div>
+      <p class="material-error" id="${domId}-error" role="alert"></p>`;
+    edgeProfileList.append(card);
+    renumberEdgeProfiles();
+    return card;
+  }
+
+  document.querySelector('#add-edge-profile').addEventListener('click', () => {
+    const card = newEdgeProfile();
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.querySelector('[data-edge-profile-field="identifier"]').focus();
+    queueSave();
+  });
+
+  edgeProfileList.addEventListener('click', (event) => {
+    const card = event.target.closest('.edge-profile-card');
+    const button = event.target.closest('[data-edge-profile-action="delete"]');
+    if (!card || !button || button.disabled) return;
+    card.remove();
+    renumberEdgeProfiles();
+    queueSave();
+  });
+
+  edgeProfileList.addEventListener('input', () => {
+    updateEdgeProfileOptions();
+    updateEdgeProfileUsageState();
+    queueSave();
+  });
+
   function newItem(data = {}) {
     itemCounter += 1;
     const id = `item-${Date.now()}-${itemCounter}`;
@@ -463,7 +584,7 @@
         <div class="field item-length"><label for="${id}-length"><span class="required">Hossz (mm)</span><small>Szálirány</small></label><input id="${id}-length" data-item-field="lengthMm" type="number" required aria-required="true" aria-label="Hossz milliméterben, szálirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.lengthMm)}" placeholder="Szálirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-width"><label for="${id}-width"><span class="required">Szélesség (mm)</span><small>Keresztirány</small></label><input id="${id}-width" data-item-field="widthMm" type="number" required aria-required="true" aria-label="Szélesség milliméterben, keresztirány" min="10" max="5000" step="0.1" inputmode="decimal" value="${escapeHtml(data.widthMm)}" placeholder="Keresztirány"><span class="input-unit" aria-hidden="true">mm</span></div>
         <div class="field item-quantity"><label class="required" for="${id}-quantity">Mennyiség</label><input id="${id}-quantity" data-item-field="quantity" type="number" required aria-required="true" min="1" max="999" step="1" inputmode="numeric" value="${escapeHtml(data.quantity ?? 1)}"></div>
-        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa</label><select id="${id}-edge-material" data-item-field="edgeMaterialType">${edgeMaterialOptionsMarkup(data.edgeMaterialType)}</select></div>
+        <div class="field item-edge-material"><label class="edge-required-label" for="${id}-edge-material">Élzáró típusa</label><select id="${id}-edge-material" data-item-field="edgeProfileId"><option value="">Előbb vegyen fel ABS-t fent…</option></select></div>
         <div class="field item-edge-code"><label class="required" for="${id}-edge-code">Élzárás kódja</label><div class="edge-code-control"><select id="${id}-edge-code" data-item-field="edgeCode" required aria-required="true"><option value="">Válasszon...</option>${EDGE_CODES.map((code) => `<option value="${code}" ${edgeCode === code ? 'selected' : ''}>${code} · ${EDGE_CODE_NAMES[code]}</option>`).join('')}</select>${edgePreviewMarkup(edgeCode, 'edge-row-preview')}</div></div>
         <div class="field item-note"><label for="${id}-note">Megjegyzés</label><input id="${id}-note" data-item-field="note" type="text" maxlength="500" value="${escapeHtml(data.note)}" placeholder="Egyedi kérés"></div>
         <div class="item-actions">
@@ -474,9 +595,13 @@
       <p class="item-error" id="${id}-error" role="alert"></p>`;
     itemList.append(card);
     updateMaterialOptions();
+    updateEdgeProfileOptions();
     const materialSelect = card.querySelector('[data-item-field="materialId"]');
     const requestedMaterialId = String(data.materialId || '');
     if ([...materialSelect.options].some((option) => option.value === requestedMaterialId)) materialSelect.value = requestedMaterialId;
+    const edgeProfileSelect = card.querySelector('[data-item-field="edgeProfileId"]');
+    const requestedEdgeProfileId = String(data.edgeProfileId || '');
+    if ([...edgeProfileSelect.options].some((option) => option.value === requestedEdgeProfileId)) edgeProfileSelect.value = requestedEdgeProfileId;
     syncEdgeRequirements(card);
     renumberItems();
     return card;
@@ -490,7 +615,11 @@
     const [longEdges, shortEdges] = edgeCodeParts(edgeCode);
     const preview = card.querySelector('.edge-row-preview');
     if (preview) preview.className = `part l-${longEdges} s-${shortEdges} edge-row-preview`;
-    const control = card.querySelector('[data-item-field="edgeMaterialType"]');
+    const control = card.querySelector('[data-item-field="edgeProfileId"]');
+    if (hasEdge && !control.value) {
+      const profiles = readEdgeProfiles().filter(isUsableEdgeProfile);
+      if (profiles.length === 1) control.value = profiles[0].id;
+    }
     control.required = hasEdge;
     control.disabled = explicitlyNoEdge;
     if (hasEdge) control.setAttribute('aria-required', 'true');
@@ -501,6 +630,7 @@
   function readItem(card) {
     const data = { id: card.dataset.itemId };
     card.querySelectorAll('[data-item-field]').forEach((control) => { data[control.dataset.itemField] = control.value.trim(); });
+    data.edgeMaterialType = edgeProfilePayloadName(getEdgeProfile(data.edgeProfileId));
     return data;
   }
 
@@ -520,6 +650,7 @@
     });
     updateItemSummary();
     updateMaterialUsageState();
+    updateEdgeProfileUsageState();
   }
 
   function isMeaningfulItem(item) {
@@ -548,7 +679,7 @@
 
   function addItemRow() {
     const previous = readItems().at(-1) || {};
-    const card = newItem({ materialId: previous.materialId, quantity: 1, edgeMaterialType: previous.edgeCode === '0-0' ? '' : previous.edgeMaterialType });
+    const card = newItem({ materialId: previous.materialId, quantity: 1, edgeProfileId: previous.edgeCode === '0-0' ? '' : previous.edgeProfileId });
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     card.querySelector(previous.materialId ? '[data-item-field="name"]' : '[data-item-field="materialId"]').focus();
     queueSave();
@@ -573,6 +704,7 @@
     if (card && event.target.matches('[data-item-field="edgeCode"]')) syncEdgeRequirements(card);
     updateItemSummary();
     updateMaterialUsageState();
+    updateEdgeProfileUsageState();
     queueSave();
   });
 
@@ -585,6 +717,7 @@
   }
 
   materialList.addEventListener('keydown', (event) => moveToNextManualField(event, '#material-list [data-material-field]', '#item-list [data-item-field="materialId"]'));
+  edgeProfileList.addEventListener('keydown', (event) => moveToNextManualField(event, '#edge-profile-list [data-edge-profile-field]', '#item-list [data-item-field="materialId"]'));
   itemList.addEventListener('keydown', (event) => moveToNextManualField(event, '#item-list [data-item-field]', '.items-footer [data-add-item]'));
 
   function clearErrors() {
@@ -665,6 +798,37 @@
         errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. anyag: ${messages.join(', ')}.` });
       }
     });
+    const edgeProfileCards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
+    const seenEdgeProfilePairs = new Set();
+    if (edgeProfileCards.length > MAX_EDGE_PROFILES) errors.push({ id: 'add-edge-profile', message: `Legfeljebb ${MAX_EDGE_PROFILES} különböző ABS élanyag adható meg.` });
+    edgeProfileCards.forEach((card, index) => {
+      const profile = readEdgeProfile(card);
+      const messages = [];
+      const invalidControls = [];
+      const mark = (field, label) => {
+        messages.push(label);
+        const control = card.querySelector(`[data-edge-profile-field="${field}"]`);
+        if (control) invalidControls.push(control);
+      };
+      if (profile.identifier.length < 2) mark('identifier', 'ABS színe / azonosítója');
+      const thickness = Number(canonicalThickness(profile.thicknessMm));
+      if (!Number.isFinite(thickness) || thickness < 0.1 || thickness > 10) mark('thicknessMm', 'vastagság');
+      const pairKey = edgeProfilePairKey(profile.identifier, profile.thicknessMm);
+      if (profile.identifier.length >= 2 && thickness >= 0.1 && thickness <= 10) {
+        if (seenEdgeProfilePairs.has(pairKey)) mark('identifier', 'már felvett ABS–vastagság páros');
+        else seenEdgeProfilePairs.add(pairKey);
+      }
+      if (messages.length) {
+        card.classList.add('invalid');
+        const errorId = `${card.id}-error`;
+        card.querySelector('.material-error').textContent = `Ellenőrizze: ${messages.join(', ')}.`;
+        invalidControls.forEach((control) => {
+          control.setAttribute('aria-invalid', 'true');
+          control.setAttribute('aria-describedby', errorId);
+        });
+        errors.push({ id: invalidControls[0]?.id || card.id, message: `${index + 1}. ABS élanyag: ${messages.join(', ')}.` });
+      }
+    });
     const cards = [...itemList.querySelectorAll('.item-card')];
     if (!cards.length) {
       errors.push({ id: 'add-item', message: 'Vegyen fel legalább egy tételt.' });
@@ -689,7 +853,7 @@
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) mark('quantity', 'darabszám');
       if (!EDGE_CODES.includes(item.edgeCode)) mark('edgeCode', 'élkód');
       const hasEdge = EDGE_CODES.includes(item.edgeCode) && item.edgeCode !== '0-0';
-      if (hasEdge && !item.edgeMaterialType) mark('edgeMaterialType', 'élzáró típusa / anyaga');
+      if (hasEdge && !isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId))) mark('edgeProfileId', 'ABS élanyag');
       if (messages.length) {
         card.classList.add('invalid');
         const errorId = `${card.id}-error`;
@@ -1091,13 +1255,14 @@
       fields[control.name] = control.type === 'checkbox' && control.name === 'privacy_consent' ? control.checked : fieldValue(control.name);
     });
     return {
-      schemaVersion: 4,
+      schemaVersion: 5,
       flow: activeFlow,
       stepIndex,
       submissionToken,
       fields,
       materialProfiles: readMaterials(),
-      items: readItems(),
+      edgeProfiles: readEdgeProfiles(),
+      items: readItems().map(({ edgeMaterialType, ...item }) => item),
       filesMeta: {
         upload: files.upload.length ? files.upload.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.upload,
         help: files.help.length ? files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.help
@@ -1110,6 +1275,7 @@
     if (!activeFlow) return;
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
+      localStorage.removeItem(V4_DRAFT_KEY);
       localStorage.removeItem(V3_DRAFT_KEY);
       localStorage.removeItem(V2_DRAFT_KEY);
       localStorage.removeItem(V1_DRAFT_KEY);
@@ -1218,11 +1384,40 @@
     };
   }
 
+  function migrateV4ToV5(draft) {
+    if (draft?.schemaVersion !== 4) return draft;
+    const edgeProfiles = [];
+    const profileIdByPair = new Map();
+    const getEdgeProfileId = (value) => {
+      const parsed = parseLegacyEdgeProfile(value);
+      if (!parsed.identifier) return '';
+      const pairKey = edgeProfilePairKey(parsed.identifier, parsed.thicknessMm);
+      if (!profileIdByPair.has(pairKey)) {
+        const id = `edge-migrated-${edgeProfiles.length + 1}`;
+        edgeProfiles.push({ id, identifier: parsed.identifier, thicknessMm: parsed.thicknessMm });
+        profileIdByPair.set(pairKey, id);
+      }
+      return profileIdByPair.get(pairKey);
+    };
+    const items = (Array.isArray(draft.items) ? draft.items : []).map((rawItem) => {
+      const item = rawItem && typeof rawItem === 'object' ? rawItem : {};
+      const { edgeMaterialType, ...rest } = item;
+      const edgeCode = edgeCodeFromData(item);
+      return {
+        ...rest,
+        edgeCode,
+        edgeProfileId: edgeCode === '0-0' ? '' : getEdgeProfileId(edgeMaterialType)
+      };
+    });
+    return { ...draft, schemaVersion: 5, edgeProfiles, items };
+  }
+
   function migrateDraft(draft) {
     let migrated = draft;
     if (migrated?.schemaVersion === 1) migrated = migrateV1ToV2(migrated);
     if (migrated?.schemaVersion === 2) migrated = migrateV2ToV3(migrated);
     if (migrated?.schemaVersion === 3) migrated = migrateV3ToV4(migrated);
+    if (migrated?.schemaVersion === 4) migrated = migrateV4ToV5(migrated);
     return migrated;
   }
 
@@ -1232,14 +1427,18 @@
       && Number(draft.stepIndex) >= 0
       && Number(draft.stepIndex) < (FLOW_STEPS[draft?.flow]?.length || 0);
     const materials = draft?.materialProfiles;
+    const edgeProfiles = draft?.edgeProfiles;
     const items = draft?.items;
     const validMaterials = Array.isArray(materials)
       && materials.every((material) => material && typeof material === 'object' && typeof material.id === 'string' && material.id.trim());
     const uniqueMaterialIds = validMaterials && new Set(materials.map((material) => material.id)).size === materials.length;
+    const validEdgeProfiles = Array.isArray(edgeProfiles)
+      && edgeProfiles.every((profile) => profile && typeof profile === 'object' && typeof profile.id === 'string' && profile.id.trim());
+    const uniqueEdgeProfileIds = validEdgeProfiles && new Set(edgeProfiles.map((profile) => profile.id)).size === edgeProfiles.length;
     const validItems = Array.isArray(items) && items.every((item) => item && typeof item === 'object');
     const validManualCollections = draft?.flow !== 'manual' || (validMaterials && materials.length > 0 && validItems);
     return Boolean(draft)
-      && draft.schemaVersion === 4
+      && draft.schemaVersion === 5
       && draft.fields?.manual_size_basis === 'finished'
       && draft.fields?.upload_size_basis === 'finished'
       && Boolean(FLOW_STEPS[draft.flow])
@@ -1249,12 +1448,14 @@
       && validStep
       && validMaterials
       && uniqueMaterialIds
+      && validEdgeProfiles
+      && uniqueEdgeProfileIds
       && validItems
       && validManualCollections;
   }
 
   function readDraft() {
-    for (const key of [DRAFT_KEY, V3_DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
+    for (const key of [DRAFT_KEY, V4_DRAFT_KEY, V3_DRAFT_KEY, V2_DRAFT_KEY, V1_DRAFT_KEY]) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       try {
@@ -1264,6 +1465,7 @@
           continue;
         }
         if (key !== DRAFT_KEY) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        localStorage.removeItem(V4_DRAFT_KEY);
         localStorage.removeItem(V3_DRAFT_KEY);
         localStorage.removeItem(V2_DRAFT_KEY);
         localStorage.removeItem(V1_DRAFT_KEY);
@@ -1287,10 +1489,14 @@
     setFieldValue('upload_size_basis', 'finished');
     document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
     materialList.innerHTML = '';
+    edgeProfileList.innerHTML = '';
     itemList.innerHTML = '';
     const materialsToRestore = draft.materialProfiles?.length ? draft.materialProfiles : draft.flow === 'manual' ? [{}] : [];
+    const edgeProfilesToRestore = Array.isArray(draft.edgeProfiles) ? draft.edgeProfiles : [];
     const itemsToRestore = draft.items?.length ? draft.items : draft.flow === 'manual' ? [{ quantity: 1 }] : [];
     materialsToRestore.forEach((material) => newMaterial(material));
+    edgeProfilesToRestore.forEach((profile) => newEdgeProfile(profile));
+    renumberEdgeProfiles();
     itemsToRestore.forEach((item) => newItem(item));
     restoredFilesMeta = { upload: Array.isArray(draft.filesMeta?.upload) ? draft.filesMeta.upload : [], help: Array.isArray(draft.filesMeta?.help) ? draft.filesMeta.help : [] };
     renderFiles('upload');
@@ -1312,6 +1518,7 @@
   document.querySelector('#restore-draft').addEventListener('click', () => applyDraft(restoredDraft));
   document.querySelector('#delete-draft').addEventListener('click', () => {
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V4_DRAFT_KEY);
     localStorage.removeItem(V3_DRAFT_KEY);
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);
@@ -1322,6 +1529,7 @@
 
   function clearDraftStorage() {
     localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(V4_DRAFT_KEY);
     localStorage.removeItem(V3_DRAFT_KEY);
     localStorage.removeItem(V2_DRAFT_KEY);
     localStorage.removeItem(V1_DRAFT_KEY);
@@ -1435,7 +1643,9 @@
   document.querySelector('#new-request').addEventListener('click', () => {
     form.reset();
     materialList.innerHTML = '';
+    edgeProfileList.innerHTML = '';
     itemList.innerHTML = '';
+    renumberEdgeProfiles();
     files = { upload: [], help: [] };
     restoredFilesMeta = { upload: [], help: [] };
     renderFiles('upload'); renderFiles('help');
