@@ -525,18 +525,22 @@
   }
 
   function updateEdgeProfileUsageState() {
+    const cards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
     const usedIds = new Set();
     readItems().forEach((item) => {
       if (item.edgeCode && item.edgeCode !== '0-0' && isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId))) usedIds.add(item.edgeProfileId);
       if (item.edgeCode2 && item.edgeCode2 !== '0-0' && isUsableEdgeProfile(getEdgeProfile(item.edgeProfileId2))) usedIds.add(item.edgeProfileId2);
     });
-    [...edgeProfileList.querySelectorAll('.edge-profile-card')].forEach((card, index) => {
+    cards.forEach((card, index) => {
       const button = card.querySelector('[data-edge-profile-action="delete"]');
+      const onlyEdgeProfile = cards.length === 1;
       const inUse = usedIds.has(card.dataset.edgeProfileId);
-      button.disabled = inUse;
-      button.title = inUse
-        ? 'Ezt az ABS élanyagot használja egy tételsor. Előbb válasszon ott másikat.'
-        : `${index + 1}. ABS élanyag törlése`;
+      button.disabled = onlyEdgeProfile || inUse;
+      button.title = onlyEdgeProfile
+        ? 'Legalább egy ABS élanyag szükséges.'
+        : inUse
+          ? 'Ezt az ABS élanyagot használja egy tételsor. Előbb válasszon ott másikat.'
+          : `${index + 1}. ABS élanyag törlése`;
     });
   }
 
@@ -901,6 +905,7 @@
     });
     const edgeProfileCards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
     const seenEdgeProfilePairs = new Set();
+    if (!edgeProfileCards.length) errors.push({ id: 'add-edge-profile', message: 'Vegyen fel legalább egy ABS élanyagot.' });
     if (edgeProfileCards.length > MAX_EDGE_PROFILES) errors.push({ id: 'add-edge-profile', message: `Legfeljebb ${MAX_EDGE_PROFILES} különböző ABS élanyag adható meg.` });
     edgeProfileCards.forEach((card, index) => {
       const profile = readEdgeProfile(card);
@@ -1326,6 +1331,7 @@
     document.querySelectorAll('[data-flow-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.flowPanel === flow));
     if (flow === 'manual') {
       if (!materialList.children.length) newMaterial();
+      if (!edgeProfileList.children.length) newEdgeProfile();
       if (!itemList.children.length) newItem({ quantity: 1 });
     }
     updateStep();
@@ -1620,7 +1626,7 @@
     edgeProfileList.innerHTML = '';
     itemList.innerHTML = '';
     const materialsToRestore = draft.materialProfiles?.length ? draft.materialProfiles : draft.flow === 'manual' ? [{}] : [];
-    const edgeProfilesToRestore = Array.isArray(draft.edgeProfiles) ? draft.edgeProfiles : [];
+    const edgeProfilesToRestore = draft.edgeProfiles?.length ? draft.edgeProfiles : draft.flow === 'manual' ? [{}] : [];
     const itemsToRestore = draft.items?.length ? draft.items : draft.flow === 'manual' ? [{ quantity: 1 }] : [];
     materialsToRestore.forEach((material) => newMaterial(material));
     edgeProfilesToRestore.forEach((profile) => newEdgeProfile(profile));
