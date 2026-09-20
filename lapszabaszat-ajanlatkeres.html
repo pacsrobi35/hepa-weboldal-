@@ -194,35 +194,12 @@
                 <h2 id="items-title" tabindex="-1">Tételek megadása</h2>
                 <p class="step-lead">Először vegye fel az anyagot a vastagságával, utána adja meg az abból készülő darabokat.</p>
 
-                <div class="project-settings">
-                  <div class="workspace-section-head">
-                    <span class="workspace-step">1</span>
-                    <div><h3>Munka alapadatai</h3><p>Jelölje meg az anyag forrását; a méreteknél mindig a kész darab méretét kérjük.</p></div>
-                  </div>
-                  <div class="project-settings-grid">
-                    <fieldset class="field" data-field="manual-material-source" aria-required="true" aria-describedby="manual-material-source-error">
-                      <legend class="fieldset-label required">Honnan legyen az anyag?</legend>
-                      <div class="radio-cards compact">
-                        <div class="radio-card"><input id="manual-source-hepa" type="radio" name="manual_material_source" value="hepa" required><label for="manual-source-hepa">A HEPA szerezze be</label></div>
-                        <div class="radio-card"><input id="manual-source-own" type="radio" name="manual_material_source" value="own"><label for="manual-source-own">Saját anyagot hozok</label></div>
-                        <div class="radio-card"><input id="manual-source-unknown" type="radio" name="manual_material_source" value="unknown"><label for="manual-source-unknown">Még nem tudom</label></div>
-                      </div>
-                      <p class="field-error" id="manual-material-source-error"></p>
-                    </fieldset>
-                    <div class="finished-size-rule" role="note" aria-label="A megadott méretek szabálya">
-                      <input type="hidden" name="manual_size_basis" value="finished">
-                      <span class="finished-size-icon" aria-hidden="true">✓</span>
-                      <div>
-                        <strong>Mindig kész méretet adjon meg</strong>
-                        <p>A Hossz és Szélesség mezőkbe az elkészült darab végleges méretét írja, élzárással együtt. Az ABS vastagságát ne vonja le; ezt mi vesszük figyelembe.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <input type="hidden" name="manual_material_source" value="hepa">
+                <input type="hidden" name="manual_size_basis" value="finished">
 
                 <section class="materials-workspace" aria-labelledby="materials-title">
                   <div class="workspace-section-head materials-heading">
-                    <span class="workspace-step">2</span>
+                    <span class="workspace-step">1</span>
                     <div><h3 id="materials-title">Anyagok és vastagságok</h3><p>A vastagságot itt csak egyszer kell megadni. Ha többféle dekor vagy vastagság kell, vegye fel külön anyagként.</p></div>
                   </div>
                   <div class="material-list" id="material-list" aria-label="A szabászjegyzék anyagai"></div>
@@ -254,7 +231,7 @@
                 </details>
 
                 <div class="workspace-section-head list-heading">
-                  <span class="workspace-step">3</span>
+                  <span class="workspace-step">2</span>
                   <div><h3>Szabászjegyzék</h3><p>A hossz a szálirány, a szélesség a keresztirány. Mindig a kész darab méretét adja meg, élzárással együtt; az ABS vastagságát ne vonja le.</p></div>
                 </div>
                 <div class="items-toolbar">

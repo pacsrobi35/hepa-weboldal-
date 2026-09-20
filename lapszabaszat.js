@@ -1619,6 +1619,7 @@
       if (name === 'manual_size_basis' || name === 'upload_size_basis') return;
       setFieldValue(name, value);
     });
+    if (draft.flow === 'manual' && !fieldValue('manual_material_source')) setFieldValue('manual_material_source', 'hepa');
     setFieldValue('manual_size_basis', 'finished');
     setFieldValue('upload_size_basis', 'finished');
     document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
