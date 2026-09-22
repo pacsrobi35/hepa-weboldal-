@@ -139,10 +139,7 @@ h3 { font-size: 1.25rem; }
 .board-visual { position: relative; min-height: 430px; display: grid; place-items: center; }
 .board-sheet {
   position: relative; width: min(92%, 420px); aspect-ratio: 1.35;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 10px, rgba(88,55,27,.1) 10px 11px, transparent 11px 18px),
-    linear-gradient(0deg, rgba(88,55,27,.15), transparent 18%, rgba(91,57,31,.12) 36%, transparent 57%, rgba(88,55,27,.11) 76%, transparent),
-    #d2ad78;
+  background: #d2ad78 url("lapszabaszat-faerezet.webp") center / cover no-repeat;
   border: 9px solid #e5c18d; border-radius: 5px;
   box-shadow: 26px 30px 0 rgba(7,18,14,.28), 0 35px 70px rgba(0,0,0,.28);
   transform: rotate(-3deg);
