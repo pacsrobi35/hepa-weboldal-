@@ -2794,6 +2794,20 @@ textarea:focus {
 
                 </div>
 
+                <div class="form-group" id="callbackLocationGroup" hidden>
+                    <label for="callback_location">Település *</label>
+                    <input
+                        id="callback_location"
+                        type="text"
+                        name="callback_location"
+                        autocomplete="address-level2"
+                        minlength="2"
+                        maxlength="200"
+                        placeholder="Pl. Gödöllő"
+                        disabled
+                    >
+                </div>
+
 
                 <fieldset class="form-fieldset quote-details" id="quoteDetails">
                     <legend>Az elképzelés részletei</legend>
@@ -3075,6 +3089,8 @@ textarea:focus {
         const allowedFileTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
         const requestModeOptions = document.getElementById("requestModeOptions");
         const quoteDetails = document.getElementById("quoteDetails");
+        const callbackLocationGroup = document.getElementById("callbackLocationGroup");
+        const callbackLocationInput = document.getElementById("callback_location");
         const requestIntro = document.getElementById("requestIntro");
 
         function getRequestMode() {
@@ -3085,6 +3101,9 @@ textarea:focus {
             const isCallback = getRequestMode() === "callback";
             quoteDetails.hidden = isCallback;
             quoteDetails.disabled = isCallback;
+            callbackLocationGroup.hidden = !isCallback;
+            callbackLocationInput.disabled = !isCallback;
+            callbackLocationInput.required = isCallback;
             requestIntro.textContent = isCallback
                 ? "Adja meg a nevét és telefonszámát. Visszahívjuk, és együtt pontosítjuk, milyen megoldásra van szüksége."
                 : "Az alábbi részletek segítenek az ajánlat előkészítésében. A pontos árhoz további egyeztetésre vagy helyszíni felmérésre lehet szükség.";
@@ -3104,12 +3123,15 @@ textarea:focus {
             const data = new FormData(quoteForm);
             data.delete("request_mode");
             data.delete("project_location");
+            data.delete("callback_location");
             data.set("wants_callback", mode === "callback" ? "true" : "false");
             data.set("wants_quote", mode === "quote" ? "true" : "false");
             data.set("wants_consultation", "false");
             if (mode === "quote") {
                 const location = document.getElementById("project_location").value.trim();
                 data.set("message", `Helyszín: ${location}\n\n${data.get("message").trim()}`);
+            } else {
+                data.set("message", `Település: ${callbackLocationInput.value.trim()}`);
             }
             return data;
         }
