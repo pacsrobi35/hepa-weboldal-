@@ -262,6 +262,19 @@
             color: #666;
             margin-bottom: 25px;
         }
+
+        .card-detail-link {
+            display: block;
+            width: fit-content;
+            margin: 14px auto 0;
+            color: #1a342b;
+            font-weight: 800;
+            text-underline-offset: 3px;
+        }
+
+        .card-detail-link:hover {
+            color: #8f611b;
+        }
 /* BÚTORGYÁRTÁS */
 
 .furniture {
@@ -2194,10 +2207,10 @@ textarea:focus {
     <button class="menu-toggle" type="button" aria-label="Menü megnyitása" aria-controls="main-nav" aria-expanded="false">☰</button>
 
     <nav id="main-nav" aria-label="Főmenü">
-        <a href="#szolgaltatasok">Szolgáltatások</a>
+        <a href="lapszabaszat.html">Online lapszabászat</a>
         <a href="#butorgyartas">Bútorgyártás</a>
         <a href="#tervbol-valosag">Munkáink</a>
-        <a href="#ajanlat" class="nav-cta">Árajánlatot kérek</a>
+        <a href="#ajanlat" class="nav-cta">Bútorajánlatot kérek</a>
         <a href="#kapcsolat">Kapcsolat</a>
     </nav>
 </header>
@@ -2258,13 +2271,15 @@ textarea:focus {
                 <h3>Online lapszabászat</h3>
 
                 <p>
-                    Online ajánlatkérőnkben feltöltheti meglévő szabászjegyzékét,
-                    vagy egyszerűen összeállíthatja a tételeket.
+                    Regisztráció nélkül feltöltheti szabászjegyzékét, megadhatja a tételeket,
+                    vagy segítséget kérhet. Beküldés után szakember ellenőrzi az adatokat.
                 </p>
 
-                <a href="lapszabaszat.html" class="btn">
-                    Lapszabászat és ajánlatkérés
+                <a href="lapszabaszat-ajanlatkeres.html" class="btn">
+                    Online ajánlatkérés indítása
                 </a>
+
+                <a href="lapszabaszat.html" class="card-detail-link">Részletek a lapszabászatról</a>
 
             </div>
 
@@ -2985,14 +3000,14 @@ textarea:focus {
 
                 <div class="contact-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-clipboard"></use></svg></div>
 
-                <h3>Árajánlat</h3>
+                <h3>Bútorajánlat</h3>
 
                 <p>
                     Küldje el elképzelését, és segítünk megvalósítani!
                 </p>
 
                 <a href="#ajanlat" class="contact-btn">
-                    Árajánlatot kérek
+                    Bútorajánlatot kérek
                 </a>
 
             </div>
@@ -3025,7 +3040,7 @@ textarea:focus {
                     <li><a href="#lapszabaszat">Lapszabászat</a></li>
                     <li><a href="#butorgyartas">Bútorgyártás</a></li>
                     <li><a href="#tervbol-valosag">Munkáink</a></li>
-                    <li><a href="#ajanlat">Árajánlatkérés</a></li>
+                    <li><a href="#ajanlat">Bútorajánlat</a></li>
                     <li><a href="adatkezeles.html">Adatkezelési tájékoztató</a></li>
                 </ul>
             </div>
@@ -3046,7 +3061,7 @@ textarea:focus {
         </div>
     </footer>
 
-    <a class="mobile-quote-cta" href="#ajanlat">Árajánlatot kérek</a>
+    <a class="mobile-quote-cta" href="#ajanlat">Bútorajánlatot kérek</a>
 
 
     <script>

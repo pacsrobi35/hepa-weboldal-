@@ -1297,12 +1297,15 @@
   function updateStep() {
     const steps = FLOW_STEPS[activeFlow];
     const activeStep = steps[stepIndex];
+    const isLastStep = stepIndex === steps.length - 1;
     document.querySelectorAll('.step-panel').forEach((panel) => panel.classList.toggle('active', panel.dataset.step === activeStep));
     stepLabel.textContent = `${stepIndex + 1}/${steps.length}. lépés · ${STEP_NAMES[activeStep]}`;
     progressBar.style.width = `${((stepIndex + 1) / steps.length) * 100}%`;
-    backButton.textContent = stepIndex === 0 ? 'Kezdőképernyő' : 'Vissza';
-    nextButton.hidden = stepIndex === steps.length - 1;
-    submitButton.hidden = stepIndex !== steps.length - 1;
+    backButton.textContent = stepIndex === 0 ? 'Vissza a választáshoz' : 'Vissza';
+    nextButton.hidden = isLastStep;
+    nextButton.disabled = isLastStep;
+    submitButton.hidden = !isLastStep;
+    submitButton.disabled = !isLastStep || isSubmitting;
     nextButton.textContent = activeFlow === 'manual' && activeStep === 'items' ? 'Ajánlatkérés folytatása →' : 'Tovább →';
     document.querySelector('#change-flow').hidden = stepIndex === 0;
     if (activeStep === 'items') {
@@ -1690,7 +1693,10 @@
   function setSubmitting(submitting) {
     isSubmitting = submitting;
     form.setAttribute('aria-busy', String(submitting));
-    submitButton.disabled = submitting;
+    const steps = activeFlow ? FLOW_STEPS[activeFlow] : [];
+    const isLastStep = steps.length > 0 && stepIndex === steps.length - 1;
+    nextButton.disabled = submitting || isLastStep;
+    submitButton.disabled = submitting || !isLastStep;
     backButton.disabled = submitting;
     document.querySelector('#change-flow').disabled = submitting;
     submitButton.textContent = submitting ? 'Küldés folyamatban…' : 'Ajánlatkérés elküldése';
