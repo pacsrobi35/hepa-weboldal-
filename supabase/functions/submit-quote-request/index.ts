@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.115.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.115.0";
 
 const allowedOrigins = new Set([
   "https://hepa-weboldal.vercel.app",
@@ -52,7 +52,6 @@ async function hasValidFileSignature(file: File) {
   }
 }
 
-type SupabaseClient = ReturnType<typeof createClient>;
 
 function json(
   body: Record<string, unknown>,
@@ -71,12 +70,17 @@ function json(
     headers["vary"] = "Origin";
   }
 
-  return new Response(JSON.stringify(body), { status, headers });
+  const payload = status >= 400
+    ? { ok: false, code: status === 429 ? "rate-limit-exceeded" : status >= 500 ? "service-unavailable" : "validation-failed", retryable: status >= 500 || status === 429, ...body }
+    : body;
+  return new Response(JSON.stringify(payload), { status, headers });
 }
 
-function success(id: string | number, origin: string, status = 201) {
+function success(id: string | number, origin: string, status = 201, duplicate = false) {
   return json({
     ok: true,
+    state: "ready",
+    duplicate,
     message: "Köszönjük az érdeklődést! Hamarosan felvesszük Önnel a kapcsolatot.",
     reference: `HEPA-${String(id).padStart(6, "0")}`,
   }, status, origin);
@@ -157,6 +161,7 @@ async function rateLimitExceeded(
 }
 
 async function sendQuoteNotification(details: {
+  quoteId: number;
   customerName: string;
   phone: string;
   email: string;
@@ -198,6 +203,7 @@ async function sendQuoteNotification(details: {
       headers: {
         "content-type": "application/json",
         "authorization": `Bearer ${apiKey}`,
+        "idempotency-key": `hepa-furniture-new-${details.quoteId}`,
       },
       body: JSON.stringify({
         from: Deno.env.get("QUOTE_NOTIFICATION_FROM") ||
@@ -214,6 +220,8 @@ async function sendQuoteNotification(details: {
       return { sent: false, error: `resend-http-${response.status}` };
     }
 
+    const result = await response.json().catch(() => null);
+    if (!result?.id) return { sent: false, error: "resend-response-missing-id" };
     return { sent: true, error: null };
   } catch (error) {
     return {
@@ -225,7 +233,7 @@ async function sendQuoteNotification(details: {
   }
 }
 
-Deno.serve(async (request) => {
+async function handleRequest(request: Request) {
   const origin = request.headers.get("origin") ?? "";
 
   if (!allowedOrigins.has(origin)) {
@@ -300,9 +308,10 @@ Deno.serve(async (request) => {
   const wantsQuote = checked(formData, "wants_quote");
   const wantsConsultation = checked(formData, "wants_consultation");
   const requestedSubmissionToken = text(formData, "submission_token", 36);
-  const submissionToken = uuidPattern.test(requestedSubmissionToken)
-    ? requestedSubmissionToken
-    : null;
+  if (!uuidPattern.test(requestedSubmissionToken)) {
+    return json({ code: "invalid-submission-token", error: "Az ajánlatkérés azonosítója hibás. Frissítse az oldalt, majd próbálja újra." }, 400, origin);
+  }
+  const submissionToken = requestedSubmissionToken;
 
   if (customerName.length < 2) {
     return json({ error: "Kérjük, adja meg a nevét." }, 400, origin);
@@ -357,110 +366,141 @@ Deno.serve(async (request) => {
     }
   }
 
-  const { data: quote, error: quoteError } = await supabase
-    .from("quote_requests")
-    .insert({
-      customer_name: customerName,
-      phone,
-      email: emailValue || null,
-      project_type: typeMap[furnitureLabel.toLowerCase()] ?? (furnitureLabel ? "other" : null),
-      message: message || null,
-      approximate_dimensions: dimensions || null,
-      wants_callback: wantsCallback,
-      wants_quote: wantsQuote,
-      wants_consultation: wantsConsultation,
-      consent: true,
-      source: "website",
-      submission_token: submissionToken,
-    })
-    .select("id")
-    .single();
-
-  if (quoteError || !quote) {
-    if (quoteError?.code === "23505" && submissionToken) {
-      const { data: existing } = await supabase
-        .from("quote_requests")
-        .select("id")
-        .eq("submission_token", submissionToken)
-        .maybeSingle();
-
-      if (existing) return success(existing.id, origin, 200);
-    }
-
-    console.error("quote insert failed", quoteError?.code);
-    return json({ error: "Az ajánlatkérés mentése nem sikerült." }, 500, origin);
-  }
-
-  const uploadedPaths: string[] = [];
-  const fileRows: Array<Record<string, unknown>> = [];
-
+  const fileManifest = [];
   for (const file of files) {
-    const extension = fileTypes[file.type];
-    const storagePath = `${quote.id}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage
-      .from("quote-request-files")
-      .upload(storagePath, file, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("quote file upload failed", uploadError.message);
-      if (uploadedPaths.length) {
-        await supabase.storage.from("quote-request-files").remove(uploadedPaths);
-      }
-      await supabase.from("quote_requests").delete().eq("id", quote.id);
-      return json({ error: "A fájl feltöltése nem sikerült." }, 500, origin);
-    }
-
-    uploadedPaths.push(storagePath);
-    fileRows.push({
-      quote_request_id: quote.id,
-      storage_path: storagePath,
-      original_name: file.name.slice(0, 255) || `feltoltes.${extension}`,
+    fileManifest.push({
+      original_name: file.name.slice(0, 255) || `feltoltes.${fileTypes[file.type]}`,
       content_type: file.type,
       size_bytes: file.size,
+      content_sha256: await sha256(await file.arrayBuffer()),
     });
   }
+  const requestDetails = {
+    customer_name: customerName,
+    phone,
+    email: emailValue || null,
+    project_type: typeMap[furnitureLabel.toLowerCase()] ?? (furnitureLabel ? "other" : null),
+    message: message || null,
+    approximate_dimensions: dimensions || null,
+    wants_callback: wantsCallback,
+    wants_quote: wantsQuote,
+    wants_consultation: wantsConsultation,
+  };
+  const payloadHash = await sha256(new TextEncoder().encode(JSON.stringify({
+    request: requestDetails,
+    furnitureLabel,
+    files: fileManifest,
+  })));
+  const { data: startedData, error: startError } = await supabase.rpc(
+    "begin_furniture_quote_submission",
+    {
+      p_submission_token: submissionToken,
+      p_payload_hash: payloadHash,
+      p_expected_files: files.length,
+      p_request: requestDetails,
+    },
+  );
+  if (startError) {
+    console.error("furniture submission begin failed", startError.code);
+    return json({ code: "save-unconfirmed", error: "Az ajánlatkérés mentése még nem igazolható. Az űrlap adatait megtartottuk; próbálja újra." }, 503, origin);
+  }
+  const started = firstRow(startedData);
+  const quoteId = Number(started?.quote_id);
+  if (started?.state === "conflict" || started?.state === "legacy") {
+    const reference = Number.isSafeInteger(quoteId) && quoteId > 0
+      ? `HEPA-${String(quoteId).padStart(6, "0")}` : null;
+    return json({
+      code: started.state === "legacy" ? "legacy-submission-unconfirmed" : "submission-token-conflict",
+      error: started.state === "legacy"
+        ? "A korábbi beküldést megtaláltuk, de a teljes mentését nem tudjuk automatikusan ellenőrizni. Kérjük, egyeztessen velünk a hivatkozási számmal."
+        : "A korábbi beküldéshez képest megváltoztak az adatok vagy a fájlok. A módosításokat nem mentettük; kérjük, egyeztessen velünk a hivatkozási számmal.",
+      reference,
+      retryable: false,
+    }, 409, origin);
+  }
+  if (!started || !Number.isSafeInteger(quoteId) || quoteId < 1 || typeof started.state !== "string" || !["ingesting", "ready"].includes(started.state)) {
+    return json({ code: "save-unconfirmed", error: "A mentést nem sikerült ellenőrizni. Próbálja újra ugyanazt a beküldést." }, 503, origin);
+  }
 
-  if (fileRows.length) {
-    const { error: fileRowsError } = await supabase
-      .from("quote_request_files")
-      .insert(fileRows);
-
-    if (fileRowsError) {
-      console.error("quote file metadata insert failed", fileRowsError.code);
-      await supabase.storage.from("quote-request-files").remove(uploadedPaths);
-      await supabase.from("quote_requests").delete().eq("id", quote.id);
-      return json({ error: "A fájl adatainak mentése nem sikerült." }, 500, origin);
+  if (started.state === "ingesting") {
+    const fileRows = [];
+    for (const [index, file] of files.entries()) {
+      const metadata = fileManifest[index];
+      const storagePath = `furniture/${quoteId}/${String(index + 1).padStart(2, "0")}-${metadata.content_sha256.slice(0, 24)}.${fileTypes[file.type]}`;
+      const { error: uploadError } = await supabase.storage
+        .from("quote-request-files")
+        .upload(storagePath, file, { contentType: file.type, upsert: false });
+      if (uploadError) {
+        // A retry or concurrent request may have stored this immutable object.
+        // Never overwrite it or trust only its name: verify the actual bytes.
+        const { data: existingFile, error: readError } = await supabase.storage
+          .from("quote-request-files").download(storagePath);
+        if (readError || !existingFile) {
+          console.error("furniture file upload unconfirmed", uploadError.message);
+          return json({ code: "file-upload-incomplete", error: "A fájlok feltöltése nem fejeződött be. Az adatok megmaradtak; próbálja újra ugyanazt a beküldést." }, 503, origin, { "retry-after": "3" });
+        }
+        if (existingFile.size !== file.size || await sha256(await existingFile.arrayBuffer()) !== metadata.content_sha256) {
+          return json({ code: "file-content-conflict", retryable: false, error: "Az egyik melléklet tartalmát nem sikerült biztonságosan egyeztetni. Kérjük, vegye fel velünk a kapcsolatot." }, 409, origin);
+        }
+      }
+      fileRows.push({ ...metadata, storage_path: storagePath });
+    }
+    // The RPC atomically checks stored objects, registers all files, and marks ready.
+    // Repeating it also handles a successful commit whose response was lost.
+    let finalized = false;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { data, error } = await supabase.rpc("finalize_furniture_quote_submission", {
+        p_quote_id: quoteId,
+        p_payload_hash: payloadHash,
+        p_files: fileRows,
+      });
+      if (!error && firstRow(data)?.state === "ready") { finalized = true; break; }
+      console.error("furniture submission finalize unconfirmed", error?.code);
+    }
+    if (!finalized) {
+      return json({ code: "finalize-unconfirmed", error: "A beküldés eredményét még nem sikerült ellenőrizni. Az adatok megmaradtak; próbálja újra ugyanazt a beküldést." }, 503, origin, { "retry-after": "3" });
     }
   }
 
-  const notification = await sendQuoteNotification({
-    customerName,
-    phone,
-    email: emailValue,
-    furnitureLabel,
-    message,
-    dimensions,
-    wantsCallback,
-    wantsQuote,
-    wantsConsultation,
-    fileCount: files.length,
-  });
-
-  const notificationUpdate = notification.sent
-    ? { notification_sent_at: new Date().toISOString(), notification_error: null }
-    : { notification_sent_at: null, notification_error: notification.error };
-  const { error: notificationUpdateError } = await supabase
-    .from("quote_requests")
-    .update(notificationUpdate)
-    .eq("id", quote.id);
-
-  if (notificationUpdateError) {
-    console.error("quote notification status update failed", notificationUpdateError.code);
+  // Notification failure must not turn a safely stored inquiry into a failed one.
+  try {
+    const { data: claimed, error: claimError } = await supabase.rpc("claim_furniture_quote_notification", {
+      p_quote_id: quoteId, p_payload_hash: payloadHash,
+    });
+    if (claimError) console.error("furniture notification claim unconfirmed", claimError.code);
+    if (!claimError && claimed === true) {
+      const notification = await sendQuoteNotification({
+        quoteId, customerName, phone, email: emailValue, furnitureLabel, message,
+        dimensions, wantsCallback, wantsQuote, wantsConsultation, fileCount: files.length,
+      });
+      const update = notification.sent
+        ? { notification_sent_at: new Date().toISOString(), notification_error: null }
+        : { notification_error: notification.error };
+      const { error } = await supabase.from("quote_requests").update(update)
+        .eq("id", quoteId).is("notification_sent_at", null);
+      if (error) console.error("furniture notification state update failed", error.code);
+    }
+  } catch {
+    console.error("furniture notification attempt failed");
   }
+  return success(quoteId, origin, started.duplicate ? 200 : 201, Boolean(started.duplicate));
+}
 
-  return success(quote.id, origin);
+async function sha256(value: BufferSource) {
+  const digest = await crypto.subtle.digest("SHA-256", value);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function firstRow(value: unknown): Record<string, unknown> | null {
+  const row = Array.isArray(value) ? value[0] : value;
+  return row && typeof row === "object" ? row as Record<string, unknown> : null;
+}
+
+Deno.serve(async (request: Request) => {
+  try {
+    return await handleRequest(request);
+  } catch {
+    console.error("unexpected furniture submission failure");
+    return json({ code: "save-unconfirmed", error: "A beküldés eredményét még nem sikerült ellenőrizni. Az űrlap adatait megtartottuk; próbálja újra." }, 503, request.headers.get("origin") ?? "");
+  }
 });
-

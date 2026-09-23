@@ -3192,9 +3192,9 @@ textarea:focus {
                 showQuoteMessage("Kérjük, rövidítse az elképzelés leírását: a helyszínnel együtt legfeljebb 4000 karakter küldhető.", true);
                 return;
             }
+            const enabledControls = Array.from(quoteForm.elements).filter(control => !control.matches(":disabled"));
             quoteForm.setAttribute("aria-busy", "true");
-            requestModeOptions.disabled = true;
-            quoteSubmitButton.disabled = true;
+            enabledControls.forEach(control => { control.disabled = true; });
             quoteSubmitButton.textContent = "Küldés...";
             quoteMessage.style.display = "none";
             quoteMessage.classList.remove("error");
@@ -3215,14 +3215,17 @@ textarea:focus {
                     payload = {};
                 }
 
-                if (!response.ok || payload.ok !== true) {
-                    throw new Error(payload.error || payload.message || "Az ajánlatkérés küldése nem sikerült.");
-                }
-
                 const reference = payload.reference ? ` Hivatkozási szám: ${payload.reference}.` : "";
-                const successText = mode === "callback"
-                    ? "Köszönjük! Visszahívási kérését megkaptuk. Hamarosan telefonon jelentkezünk."
-                    : "Köszönjük! Ajánlatkérését megkaptuk. Átnézzük a részleteket, és felvesszük Önnel a kapcsolatot az egyeztetéshez.";
+                if (!response.ok || payload.ok !== true || payload.state !== "ready" || !payload.reference) {
+                    throw new Error((payload.error || "A beküldés teljes mentése még nem igazolható. Az adatokat megtartottuk; próbálja újra ugyanazt a beküldést.") + reference);
+                }
+                const successText = payload.duplicate
+                    ? "Ezt a beküldést már megkaptuk; újabb példány nem készült."
+                    : mode === "callback"
+                        ? "Köszönjük! Visszahívási kérését megkaptuk. Hamarosan telefonon jelentkezünk."
+                        : attachments.length
+                            ? "Köszönjük! Ajánlatkérését és a csatolt fájlokat megkaptuk. Hamarosan felvesszük Önnel a kapcsolatot."
+                            : "Köszönjük! Ajánlatkérését megkaptuk. Átnézzük a részleteket, és felvesszük Önnel a kapcsolatot az egyeztetéshez.";
                 showQuoteMessage(successText + reference + " ✓");
                 window.dataLayer?.push({ event: "quote_request_success", request_mode: mode, reference: payload.reference || "" });
                 quoteForm.reset();
@@ -3232,14 +3235,13 @@ textarea:focus {
                 window.dispatchEvent(new CustomEvent("hepa:quote-request-success", { detail: { reference: payload.reference || null, requestMode: mode } }));
             } catch (error) {
                 const message = error.name === "AbortError"
-                    ? "A küldés túl sokáig tartott. Kérjük, ellenőrizze az internetkapcsolatot, majd próbálja újra."
+                    ? "A beküldés eredményét még nem sikerült ellenőrizni. Az adatokat megtartottuk; próbálja újra ugyanazt a beküldést."
                     : (error.message || "Az ajánlatkérés küldése nem sikerült. Kérjük, próbálja újra.");
                 showQuoteMessage(message, true);
             } finally {
                 clearTimeout(timeout);
                 quoteForm.removeAttribute("aria-busy");
-                requestModeOptions.disabled = false;
-                quoteSubmitButton.disabled = false;
+                enabledControls.forEach(control => { control.disabled = false; });
                 syncRequestMode();
             }
         });
