@@ -904,11 +904,14 @@
       }
     });
     const edgeProfileCards = [...edgeProfileList.querySelectorAll('.edge-profile-card')];
+    const edgedItems = readItems().filter((item) => EDGE_CODES.includes(item.edgeCode) && item.edgeCode !== '0-0');
+    const usedEdgeProfileIds = new Set(edgedItems.flatMap((item) => [item.edgeProfileId, item.edgeProfileId2]).filter(Boolean));
     const seenEdgeProfilePairs = new Set();
-    if (!edgeProfileCards.length) errors.push({ id: 'add-edge-profile', message: 'Vegyen fel legalább egy ABS élanyagot.' });
+    if (edgedItems.length && !edgeProfileCards.length) errors.push({ id: 'add-edge-profile', message: 'Vegyen fel legalább egy ABS élanyagot.' });
     if (edgeProfileCards.length > MAX_EDGE_PROFILES) errors.push({ id: 'add-edge-profile', message: `Legfeljebb ${MAX_EDGE_PROFILES} különböző ABS élanyag adható meg.` });
     edgeProfileCards.forEach((card, index) => {
       const profile = readEdgeProfile(card);
+      if (!edgedItems.length || (!usedEdgeProfileIds.has(profile.id) && !profile.identifier && !profile.thicknessMm)) return;
       const messages = [];
       const invalidControls = [];
       const mark = (field, label) => {
