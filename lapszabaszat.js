@@ -7,6 +7,11 @@
   const V2_DRAFT_KEY = 'hepa_cutting_quote_draft_v2';
   const V1_DRAFT_KEY = 'hepa_cutting_quote_draft_v1';
   const DRAFT_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+  const DRAFT_FIELD_NAMES = new Set([
+    'manual_material_source', 'manual_size_basis',
+    'upload_material_source', 'upload_material', 'upload_thickness', 'upload_size_basis', 'upload_note',
+    'help_topics', 'help_description', 'fulfillment', 'target_date', 'project_note'
+  ]);
   const SUBMIT_ENDPOINT = 'https://torczkyodukcvxwzutgf.supabase.co/functions/v1/submit-cutting-quote-request';
   const MAX_FILES = 5;
   const MAX_FILE_SIZE = 6 * 1024 * 1024;
@@ -1390,9 +1395,9 @@
     const fields = {};
     const handled = new Set();
     [...form.elements].forEach((control) => {
-      if (!control.name || handled.has(control.name) || control.type === 'file') return;
+      if (!DRAFT_FIELD_NAMES.has(control.name) || handled.has(control.name) || control.type === 'file') return;
       handled.add(control.name);
-      fields[control.name] = control.type === 'checkbox' && control.name === 'privacy_consent' ? control.checked : fieldValue(control.name);
+      fields[control.name] = fieldValue(control.name);
     });
     return {
       schemaVersion: 5,
@@ -1408,6 +1413,13 @@
         help: files.help.length ? files.help.map(({ name, size, type, lastModified }) => ({ name, size, type, lastModified })) : restoredFilesMeta.help
       },
       updatedAt: new Date().toISOString()
+    };
+  }
+
+  function sanitizeDraft(draft) {
+    return {
+      ...draft,
+      fields: Object.fromEntries(Object.entries(draft.fields || {}).filter(([name]) => DRAFT_FIELD_NAMES.has(name)))
     };
   }
 
@@ -1604,12 +1616,15 @@
           localStorage.removeItem(key);
           continue;
         }
-        if (key !== DRAFT_KEY) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        const safeDraft = sanitizeDraft(draft);
+        if (key !== DRAFT_KEY || Object.keys(draft.fields).length !== Object.keys(safeDraft.fields).length) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(safeDraft));
+        }
         localStorage.removeItem(V4_DRAFT_KEY);
         localStorage.removeItem(V3_DRAFT_KEY);
         localStorage.removeItem(V2_DRAFT_KEY);
         localStorage.removeItem(V1_DRAFT_KEY);
-        return draft;
+        return safeDraft;
       } catch (_) {
         localStorage.removeItem(key);
       }
@@ -1618,28 +1633,29 @@
   }
 
   function applyDraft(draft) {
+    const safeDraft = sanitizeDraft(draft);
     form.reset();
     files = { upload: [], help: [] };
-    submissionToken = isUuid(draft.submissionToken) ? draft.submissionToken : createSubmissionToken();
-    Object.entries(draft.fields || {}).forEach(([name, value]) => {
+    submissionToken = isUuid(safeDraft.submissionToken) ? safeDraft.submissionToken : createSubmissionToken();
+    Object.entries(safeDraft.fields).forEach(([name, value]) => {
       if (name === 'manual_size_basis' || name === 'upload_size_basis') return;
       setFieldValue(name, value);
     });
-    if (draft.flow === 'manual' && !fieldValue('manual_material_source')) setFieldValue('manual_material_source', 'hepa');
+    if (safeDraft.flow === 'manual' && !fieldValue('manual_material_source')) setFieldValue('manual_material_source', 'hepa');
     setFieldValue('manual_size_basis', 'finished');
     setFieldValue('upload_size_basis', 'finished');
-    document.querySelector('#privacy-consent').checked = Boolean(draft.fields?.privacy_consent);
+    document.querySelector('#privacy-consent').checked = false;
     materialList.innerHTML = '';
     edgeProfileList.innerHTML = '';
     itemList.innerHTML = '';
-    const materialsToRestore = draft.materialProfiles?.length ? draft.materialProfiles : draft.flow === 'manual' ? [{}] : [];
-    const edgeProfilesToRestore = draft.edgeProfiles?.length ? draft.edgeProfiles : draft.flow === 'manual' ? [{}] : [];
-    const itemsToRestore = draft.items?.length ? draft.items : draft.flow === 'manual' ? [{ quantity: 1 }] : [];
+    const materialsToRestore = safeDraft.materialProfiles?.length ? safeDraft.materialProfiles : safeDraft.flow === 'manual' ? [{}] : [];
+    const edgeProfilesToRestore = safeDraft.edgeProfiles?.length ? safeDraft.edgeProfiles : safeDraft.flow === 'manual' ? [{}] : [];
+    const itemsToRestore = safeDraft.items?.length ? safeDraft.items : safeDraft.flow === 'manual' ? [{ quantity: 1 }] : [];
     materialsToRestore.forEach((material) => newMaterial(material));
     edgeProfilesToRestore.forEach((profile) => newEdgeProfile(profile));
     renumberEdgeProfiles();
     itemsToRestore.forEach((item) => newItem(item));
-    restoredFilesMeta = { upload: Array.isArray(draft.filesMeta?.upload) ? draft.filesMeta.upload : [], help: Array.isArray(draft.filesMeta?.help) ? draft.filesMeta.help : [] };
+    restoredFilesMeta = { upload: Array.isArray(safeDraft.filesMeta?.upload) ? safeDraft.filesMeta.upload : [], help: Array.isArray(safeDraft.filesMeta?.help) ? safeDraft.filesMeta.help : [] };
     renderFiles('upload');
     renderFiles('help');
     const delivery = fieldValue('fulfillment') === 'delivery';
@@ -1648,7 +1664,10 @@
     if (delivery) document.querySelector('#postal-code').setAttribute('aria-required', 'true');
     else document.querySelector('#postal-code').removeAttribute('aria-required');
     draftBanner.classList.remove('visible');
-    startFlow(draft.flow, draft);
+    const steps = FLOW_STEPS[safeDraft.flow];
+    const resumeAt = safeDraft.fields.fulfillment === 'delivery' && steps.includes('logistics')
+      ? steps.indexOf('logistics') : steps.indexOf('contact');
+    startFlow(safeDraft.flow, { ...safeDraft, stepIndex: Math.min(Number(safeDraft.stepIndex), resumeAt) });
   }
 
   restoredDraft = readDraft();

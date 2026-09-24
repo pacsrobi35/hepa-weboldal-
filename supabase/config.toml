@@ -7,6 +7,9 @@ verify_jwt = false
 [functions.send-quote-offer]
 verify_jwt = true
 
+[functions.retry-intake-notification]
+verify_jwt = true
+
 [functions.submit-cutting-quote-request]
 verify_jwt = false
 
