@@ -1,0 +1,36 @@
+[data-marketing-settings] {
+  padding: 0; border: 0; border-radius: 0; background: none; color: inherit;
+  font: inherit; text-align: left; text-decoration: underline; cursor: pointer;
+}
+[data-marketing-settings]:focus-visible { outline: 3px solid #daa651; outline-offset: 4px; }
+.hepa-consent[hidden], .hepa-consent [hidden] { display: none !important; }
+.hepa-consent {
+  position: fixed; z-index: 11000; inset: auto 18px 18px; max-width: 1040px; margin: 0 auto;
+  display: flex; align-items: center; gap: 24px; padding: 22px 26px;
+  color: #172b24; background: #fff; border: 1px solid #a6b5ad; border-radius: 14px;
+  box-shadow: 0 10px 50px #142a2533; font: 15px/1.5 Arial, Helvetica, sans-serif;
+  max-height: calc(100dvh - 36px); overflow: auto; box-sizing: border-box;
+}
+.hepa-consent h2 { margin: 0 0 8px; font-size: 19px; line-height: 1.3; color: #172b24; }
+.hepa-consent p { margin: 0 0 8px; color: #35483e; font-size: 14px; line-height: 1.5; }
+.hepa-consent p:last-child { margin-bottom: 0; }
+.hepa-consent a { color: #172b24; text-decoration: underline; font-weight: 700; }
+.hepa-consent [data-consent-status] { display: block; margin-top: 5px; }
+.hepa-consent-actions { display: flex; flex-direction: column; flex: 0 0 180px; gap: 10px; }
+.hepa-consent-actions button {
+  box-sizing: border-box; width: 100%; min-height: 44px; padding: 11px 14px;
+  border: 1px solid #172b24; border-radius: 7px; background: #f1f5f2; color: #172b24;
+  font: 700 14px/1.4 Arial, Helvetica, sans-serif; cursor: pointer;
+}
+.hepa-consent-actions button:hover { background: #e0e9e3; }
+.hepa-consent-actions button:focus-visible, .hepa-consent a:focus-visible { outline: 3px solid #bd862b; outline-offset: 3px; }
+.hepa-consent-actions .hepa-consent-close { border: 0; background: transparent; font-size: 12px; text-decoration: underline; }
+.hepa-consent-open .mobile-quote-cta { visibility: hidden; }
+@media (max-width: 640px) {
+  .hepa-consent { inset: auto 10px 10px; padding: 18px; gap: 12px; display: block; max-height: calc(100dvh - 20px); }
+  .hepa-consent h2 { font-size: 17px; }
+  .hepa-consent p { font-size: 13px; }
+  .hepa-consent-actions { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; }
+  .hepa-consent-actions button { padding: 10px 8px; font-size: 13px; }
+  .hepa-consent-actions .hepa-consent-close { grid-column: 1 / -1; }
+}
