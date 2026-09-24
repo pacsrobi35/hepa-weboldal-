@@ -28,6 +28,9 @@
     <link rel="apple-touch-icon" href="hepa-logo-emblem.png">
     <link rel="preload" href="konyhabutor-hero.webp" as="image" type="image/webp" fetchpriority="high">
 
+    <link rel="stylesheet" href="/marketing-consent.css">
+    <script defer src="/marketing-consent.js"></script>
+
     <title>Egyedi bútorgyártás és lapszabászat Aszódon | HEPA</title>
 
     <script type="application/ld+json">
@@ -3066,6 +3069,7 @@ textarea:focus {
                     <li><a href="#tervbol-valosag">Munkáink</a></li>
                     <li><a href="#ajanlat">Bútorajánlat</a></li>
                     <li><a href="adatkezeles.html">Adatkezelési tájékoztató</a></li>
+                    <li><button type="button" data-marketing-settings>Adatvédelmi beállítások</button></li>
                 </ul>
             </div>
 
@@ -3102,6 +3106,11 @@ textarea:focus {
         const callbackLocationGroup = document.getElementById("callbackLocationGroup");
         const callbackLocationInput = document.getElementById("callback_location");
         const requestIntro = document.getElementById("requestIntro");
+
+        if (new URLSearchParams(window.location.search).get("tipus") === "konyha") {
+            document.getElementById("project_type").value = "Konyhabútor";
+            document.getElementById("message").placeholder = "Például: L alakú konyhabútort szeretnék, világos frontokkal, fa hatású munkalappal és beépített gépekkel.";
+        }
 
         function getRequestMode() {
             return quoteForm.querySelector('[name="request_mode"]:checked').value;
@@ -3227,7 +3236,16 @@ textarea:focus {
                             ? "Köszönjük! Ajánlatkérését és a csatolt fájlokat megkaptuk. Hamarosan felvesszük Önnel a kapcsolatot."
                             : "Köszönjük! Ajánlatkérését megkaptuk. Átnézzük a részleteket, és felvesszük Önnel a kapcsolatot az egyeztetéshez.";
                 showQuoteMessage(successText + reference + " ✓");
-                window.dataLayer?.push({ event: "quote_request_success", request_mode: mode, reference: payload.reference || "" });
+                // Measurement must never interrupt a successfully saved inquiry.
+                try {
+                    window.HEPAMarketing?.recordQuoteSubmission({
+                        requestMode: mode,
+                        responseOk: response.ok,
+                        ok: payload.ok,
+                        state: payload.state,
+                        submissionToken: requestData.get("submission_token")
+                    });
+                } catch { /* The quote is saved even if optional measurement is unavailable. */ }
                 quoteForm.reset();
                 quoteForm.querySelector(`[name="request_mode"][value="${mode}"]`).checked = true;
                 syncRequestMode();
