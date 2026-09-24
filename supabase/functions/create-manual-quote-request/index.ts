@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.115.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.115.0";
 
 const allowedOrigins = new Set([
   "https://hepa-ugyfelkezeles.vercel.app",
@@ -61,7 +61,7 @@ const fileTypes: Record<string, string> = {
   "application/pdf": "pdf",
 };
 
-type ServiceClient = ReturnType<typeof createClient>;
+type ServiceClient = SupabaseClient<any>;
 
 function responseHeaders(origin: string) {
   const headers: Record<string, string> = {
@@ -121,11 +121,14 @@ function checked(formData: FormData, name: string) {
   return ["on", "true", "1"].includes(text(formData, name, 10).toLowerCase());
 }
 
-function optionalAmount(formData: FormData, name: string) {
+function optionalAmountInCents(formData: FormData, name: string) {
   const raw = text(formData, name, 30).replace(/\s/g, "").replace(",", ".");
   if (!raw) return null;
   if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) return Number.NaN;
-  return Number(raw);
+  const [whole, fraction = ""] = raw.split(".");
+  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  return Number.isSafeInteger(cents) && cents <= 99999999999900
+    ? cents : Number.NaN;
 }
 
 function optionalDate(formData: FormData, name: string) {
@@ -155,6 +158,15 @@ async function sha256Hex(value: string) {
     .join("");
 }
 
+async function fileSha256Hex(file: Blob) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+type PreparedFile = { file: File; sha256: string };
+
 function startsWithBytes(bytes: Uint8Array, expected: number[], offset = 0) {
   return expected.every((value, index) => bytes[offset + index] === value);
 }
@@ -180,43 +192,39 @@ async function hasValidFileSignature(file: File) {
   }
 }
 
-async function rollbackQuote(
-  supabase: ServiceClient,
-  quoteId: number,
-  uploadedPaths: string[],
-) {
-  if (uploadedPaths.length) {
-    const { error: storageError } = await supabase.storage
-      .from("quote-request-files")
-      .remove(uploadedPaths);
-    if (storageError) {
-      console.error("manual quote rollback storage failed", storageError.message);
-    }
-  }
-
-  const { error: quoteError } = await supabase
-    .from("quote_requests")
-    .delete()
-    .eq("id", quoteId);
-  if (quoteError) {
-    console.error("manual quote rollback row failed", quoteError.code);
-  }
-}
-
 async function storeQuoteFiles(
   supabase: ServiceClient,
-  userId: string,
   quoteId: number,
-  files: File[],
+  files: PreparedFile[],
   filePurpose: string,
 ) {
-  const uploadedPaths: string[] = [];
-  const fileRows: Array<Record<string, unknown>> = [];
+  if (!files.length) {
+    return { ok: true as const, uploaded: 0, alreadyPresent: 0 };
+  }
+  const hashes = files.map(({ sha256 }) => sha256);
+  const { data: existingFiles, error: lookupError } = await supabase
+    .from("quote_request_files")
+    .select("content_sha256")
+    .eq("quote_request_id", quoteId)
+    .eq("file_purpose", filePurpose)
+    .in("content_sha256", hashes);
+  if (lookupError) {
+    console.error("manual quote file duplicate lookup failed", lookupError.code);
+    return { ok: false as const, uploaded: 0, alreadyPresent: 0, status: 500,
+      message: "A meglévő fájlok ellenőrzése nem sikerült." };
+  }
+  const existingHashes = new Set(existingFiles?.map((row) => row.content_sha256));
+  let alreadyPresent = 0;
+  let uploaded = 0;
 
-  for (const file of files) {
+  for (const { file, sha256 } of files) {
+    if (existingHashes.has(sha256)) {
+      alreadyPresent++;
+      continue;
+    }
     const extension = fileTypes[file.type];
     const storagePath =
-      `manual/${userId}/${quoteId}/${crypto.randomUUID()}.${extension}`;
+      `manual/${quoteId}/${filePurpose}/${sha256}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from("quote-request-files")
       .upload(storagePath, file, {
@@ -225,37 +233,60 @@ async function storeQuoteFiles(
       });
 
     if (uploadError) {
-      console.error("manual quote file upload failed", uploadError.message);
-      if (uploadedPaths.length) {
-        await supabase.storage.from("quote-request-files").remove(uploadedPaths);
+      const alreadyStored = ("code" in uploadError &&
+          uploadError.code === "ResourceAlreadyExists") ||
+        uploadError.status === 409 || uploadError.statusCode === "409" ||
+        ((uploadError.status === 400 || uploadError.statusCode === "400") &&
+          /Asset Already Exists/i.test(uploadError.message));
+      if (!alreadyStored) {
+        console.error("manual quote file upload failed", uploadError.message);
+        return { ok: false as const, uploaded, alreadyPresent, status: 500,
+          message: "A fájl feltöltése nem sikerült." };
       }
-      return { ok: false as const, message: "A fájl feltöltése nem sikerült." };
+      // A previous attempt may have uploaded the object but died before saving
+      // its metadata. Verify its bytes before attaching it on this retry.
+      const { data: storedBlob, error: downloadError } = await supabase.storage
+        .from("quote-request-files").download(storagePath);
+      if (downloadError || !storedBlob ||
+          await fileSha256Hex(storedBlob) !== sha256) {
+        return { ok: false as const, uploaded, alreadyPresent, status: 409,
+          message: "A fájl feltöltése még folyamatban van. Várj egy pillanatot, majd próbáld újra." };
+      }
     }
 
-    uploadedPaths.push(storagePath);
-    fileRows.push({
-      content_type: file.type,
-      file_purpose: filePurpose,
-      original_name: file.name.slice(0, 255) || `feltoltes.${extension}`,
-      quote_request_id: quoteId,
-      size_bytes: file.size,
-      storage_path: storagePath,
-    });
-  }
-
-  if (fileRows.length) {
-    const { error: fileRowsError } = await supabase
+    const { error: fileRowError } = await supabase
       .from("quote_request_files")
-      .insert(fileRows);
-
-    if (fileRowsError) {
-      console.error("manual quote file metadata insert failed", fileRowsError.code);
-      await supabase.storage.from("quote-request-files").remove(uploadedPaths);
-      return { ok: false as const, message: "A fájl adatainak mentése nem sikerült." };
+      .insert({
+        content_sha256: sha256,
+        content_type: file.type,
+        file_purpose: filePurpose,
+        original_name: file.name.slice(0, 255) || `feltoltes.${extension}`,
+        quote_request_id: quoteId,
+        size_bytes: file.size,
+        storage_path: storagePath,
+      });
+    if (fileRowError) {
+      if (fileRowError.code === "23505") {
+        const { data: existingRow, error: retryLookupError } = await supabase
+          .from("quote_request_files")
+          .select("id")
+          .eq("quote_request_id", quoteId)
+          .eq("file_purpose", filePurpose)
+          .eq("content_sha256", sha256)
+          .maybeSingle();
+        if (!retryLookupError && existingRow) {
+          alreadyPresent++;
+          continue;
+        }
+      }
+      console.error("manual quote file metadata insert failed", fileRowError.code);
+      return { ok: false as const, uploaded, alreadyPresent, status: 500,
+        message: "A fájl adatainak mentése nem sikerült. Próbáld újra ugyanazokkal a fájlokkal." };
     }
+    uploaded++;
   }
 
-  return { ok: true as const, uploadedPaths };
+  return { ok: true as const, uploaded, alreadyPresent };
 }
 
 Deno.serve(async (request: Request) => {
@@ -377,6 +408,17 @@ Deno.serve(async (request: Request) => {
     }
   }
 
+  const preparedFiles: PreparedFile[] = [];
+  const batchHashes = new Set<string>();
+  for (const file of files) {
+    const sha256 = await fileSha256Hex(file);
+    if (batchHashes.has(sha256)) {
+      return json({ error: "Ugyanazt a fájlt csak egyszer válaszd ki." }, 400, origin);
+    }
+    batchHashes.add(sha256);
+    preparedFiles.push({ file, sha256 });
+  }
+
   const action = text(formData, "action", 20) || "create";
   if (action === "append_files") {
     const rawQuoteId = text(formData, "quote_request_id", 30);
@@ -405,25 +447,26 @@ Deno.serve(async (request: Request) => {
 
     const stored = await storeQuoteFiles(
       serviceClient,
-      userData.user.id,
       quoteId,
-      files,
+      preparedFiles,
       filePurpose,
     );
-    if (!stored.ok) return json({ error: stored.message }, 500, origin);
-
-    const { error: activityError } = await serviceClient
-      .from("quote_activities")
-      .insert({
-        quote_request_id: quoteId,
-        body: `${files.length} új fájl csatolva.`,
-        created_by: userData.user.id,
-      });
-    if (activityError) {
-      console.error("manual quote file activity failed", activityError.code);
+    if (stored.uploaded > 0) {
+      const { error: activityError } = await serviceClient
+        .from("quote_activities")
+        .insert({
+          quote_request_id: quoteId,
+          body: `${stored.uploaded} új fájl csatolva.`,
+          created_by: userData.user.id,
+        });
+      if (activityError) {
+        console.error("manual quote file activity failed", activityError.code);
+      }
     }
+    if (!stored.ok) return json({ error: stored.message }, stored.status, origin);
 
-    return json({ ok: true, quoteId, uploaded: files.length }, 201, origin);
+    return json({ ok: true, quoteId, uploaded: stored.uploaded, alreadyPresent: stored.alreadyPresent },
+      stored.uploaded ? 201 : 200, origin);
   }
   if (action !== "create") {
     return json({ error: "Érvénytelen művelet." }, 400, origin);
@@ -456,9 +499,9 @@ Deno.serve(async (request: Request) => {
   const fulfillment = text(formData, "fulfillment", 20) || "unknown";
   const targetDate = optionalDate(formData, "target_date");
   const address = text(formData, "address", 1000);
-  const agreedTotal = optionalAmount(formData, "agreed_total");
-  const depositPaid = optionalAmount(formData, "deposit_paid") ?? 0;
-  const otherPaid = optionalAmount(formData, "other_paid") ?? 0;
+  const agreedTotalCents = optionalAmountInCents(formData, "agreed_total");
+  const depositPaidCents = optionalAmountInCents(formData, "deposit_paid") ?? 0;
+  const otherPaidCents = optionalAmountInCents(formData, "other_paid") ?? 0;
   const promisedDate = optionalDate(formData, "promised_date");
   const nextAction = text(formData, "next_action", 500);
   const nextActionDate = optionalDate(formData, "next_action_date");
@@ -468,9 +511,6 @@ Deno.serve(async (request: Request) => {
   if (!entryTypes.has(entryType) || !requestKinds.has(requestKind)) {
     return json({ error: "Válassz érvényes felviteli és munkatípust." }, 400, origin);
   }
-  const initialActivityBody = entryType === "direct_order"
-    ? "Közvetlen rendelés kézzel rögzítve."
-    : "Árajánlatkérés kézzel rögzítve.";
   if (!manualSources.has(source)) {
     return json({ error: "Válassz érvényes beérkezési módot." }, 400, origin);
   }
@@ -565,10 +605,10 @@ Deno.serve(async (request: Request) => {
     return json({ error: "Az egyik dátum érvénytelen." }, 400, origin);
   }
   if (
-    [agreedTotal, depositPaid, otherPaid].some(
-      (value) => value !== null && (!Number.isFinite(value) || value < 0 || value > 999999999999),
+    [agreedTotalCents, depositPaidCents, otherPaidCents].some(
+      (value) => value !== null && (!Number.isSafeInteger(value) || value < 0 || value > 99999999999900),
     ) ||
-    (agreedTotal !== null && depositPaid + otherPaid > agreedTotal)
+    (agreedTotalCents !== null && depositPaidCents + otherPaidCents > agreedTotalCents)
   ) {
     return json({ error: "Ellenőrizd a megadott összegeket." }, 400, origin);
   }
@@ -580,195 +620,129 @@ Deno.serve(async (request: Request) => {
     return json({ error: "Ellenőrizd a következő teendő adatait." }, 400, origin);
   }
 
-  const { data: quote, error: quoteError } = await serviceClient
-    .from("quote_requests")
-    .insert({
-      approximate_dimensions: approximateDimensions || null,
-      budget_range: budgetRange || null,
-      city: city || null,
-      company_name: companyName || null,
-      consent: null,
-      customer_name: customerName,
-      email: email || null,
-      entered_by: userData.user.id,
-      message: message || null,
-      phone: phone || null,
-      postcode: postcode || null,
-      preferred_contact: preferredContact,
-      project_type: projectType || null,
-      request_kind: requestKind,
-      request_confirmed_at: new Date().toISOString(),
-      source,
-      status: entryType === "direct_order" ? "ordered" : "needs_quote",
-      submission_token: submissionToken,
-      wants_callback: wantsCallback,
-      wants_consultation: wantsConsultation,
-      wants_quote: entryType === "quote_request",
-    })
-    .select("id,request_kind")
-    .single();
-
-  if (quoteError?.code === "23505") {
-    const { data: existingQuote } = await serviceClient
-      .from("quote_requests")
-      .select("id,request_kind")
-      .eq("submission_token", submissionToken)
-      .eq("entered_by", userData.user.id)
-      .neq("source", "website")
-      .maybeSingle();
-
-    if (existingQuote) {
-      const existingId = Number(existingQuote.id);
-      const existingKind = existingQuote.request_kind === "cutting"
-        ? "cutting"
-        : "furniture";
-      const { data: readyWorkflow, error: workflowLookupError } = await serviceClient
-        .from("quote_workflows")
-        .select("quote_request_id")
-        .eq("quote_request_id", existingId)
-        .maybeSingle();
-      const { data: readyActivity, error: activityLookupError } = await serviceClient
-        .from("quote_activities")
-        .select("id")
-        .eq("quote_request_id", existingId)
-        .eq("body", initialActivityBody)
-        .limit(1)
-        .maybeSingle();
-
-      let cuttingReady = true;
-      let cuttingLookupFailed = false;
-      if (existingKind === "cutting") {
-        const { data: readyCutting, error: cuttingLookupError } = await serviceClient
-          .from("cutting_quote_requests")
-          .select("quote_request_id")
-          .eq("quote_request_id", existingId)
-          .eq("submission_state", "ready")
-          .maybeSingle();
-        cuttingReady = Boolean(readyCutting);
-        cuttingLookupFailed = Boolean(cuttingLookupError);
-      }
-
-      if (workflowLookupError || activityLookupError || cuttingLookupFailed) {
-        console.error("manual quote duplicate readiness lookup failed");
-        return json({ error: "A korábbi felvitel ellenőrzése nem sikerült." }, 500, origin);
-      }
-      if (!readyWorkflow || !readyActivity || !cuttingReady) {
-        return json(
-          { error: "A rögzítés még folyamatban van. Várj egy pillanatot, majd próbáld újra." },
-          409,
-          origin,
-        );
-      }
-
-      return json(
-        {
-          ok: true,
-          quoteId: existingId,
-          reference: existingKind === "cutting"
-            ? `HEPA-LSZ-${String(existingId).padStart(6, "0")}`
-            : `HEPA-${String(existingId).padStart(6, "0")}`,
-        },
-        200,
-        origin,
-      );
-    }
-  }
-
-  if (quoteError || !quote) {
-    console.error("manual quote insert failed", quoteError?.code);
-    return json({ error: "Az ajánlatkérés mentése nem sikerült." }, 500, origin);
-  }
-
-  const quoteId = Number(quote.id);
-  if (requestKind === "cutting") {
-    const payloadHash = await sha256Hex(
-      JSON.stringify({ quoteId, submissionToken, message, targetDate }),
-    );
-    const { error: cuttingError } = await serviceClient
-      .from("cutting_quote_requests")
-      .insert({
-        flow: files.length ? "upload" : "manual",
-        fulfillment,
-        material_source: materialSource,
-        payload_hash: payloadHash,
-        postal_code: fulfillment === "delivery" ? postcode : null,
-        project_note: message.slice(0, 2000),
-        quote_request_id: quoteId,
-        size_basis: "finished",
-        submission_state: "ready",
-        target_date: targetDate,
-      });
-    if (cuttingError) {
-      console.error("manual cutting detail insert failed", cuttingError.code);
-      await rollbackQuote(serviceClient, quoteId, []);
-      return json({ error: "A lapszabászati adatok mentése nem sikerült." }, 500, origin);
-    }
-  }
-
-  const { error: workflowError } = await serviceClient
-    .from("quote_workflows")
-    .upsert({
-      address: address || null,
-      agreed_total: agreedTotal,
-      deposit_paid: depositPaid,
-      next_action: nextAction || null,
-      next_action_date: nextAction ? nextActionDate : null,
-      next_action_kind: nextAction ? nextActionKind : null,
-      next_action_time: nextAction && nextActionTime ? nextActionTime : null,
-      other_paid: otherPaid,
-      promised_date: promisedDate,
-      quote_request_id: quoteId,
-      work_stage: entryType === "direct_order" && requestKind === "cutting"
-        ? "cutting_received"
-        : "not_started",
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "quote_request_id" });
-  if (workflowError) {
-    console.error("manual quote workflow insert failed", workflowError.code);
-    await rollbackQuote(serviceClient, quoteId, []);
-    return json({ error: "A munkalap mentése nem sikerült." }, 500, origin);
-  }
+  // A reused submission token may only acknowledge the exact same request.
+  // Preserve the first payload's hash so edits after an uncertain response
+  // cannot silently open an older, different order as though it were saved.
+  const manualPayloadHash = await sha256Hex(JSON.stringify({
+    entryType, requestKind, source, customerName, companyName, phone, email,
+    projectType, postcode, city, budgetRange, preferredContact, message,
+    approximateDimensions, wantsCallback, wantsConsultation, confirmedRequest,
+    materialSource: requestKind === "cutting" ? materialSource : null,
+    fulfillment: requestKind === "cutting" ? fulfillment : null,
+    targetDate: requestKind === "cutting" ? targetDate : null,
+    address: entryType === "direct_order" ? address : null,
+    agreedTotalCents: entryType === "direct_order" ? agreedTotalCents : null,
+    depositPaidCents: entryType === "direct_order" ? depositPaidCents : null,
+    otherPaidCents: entryType === "direct_order" ? otherPaidCents : null,
+    promisedDate: entryType === "direct_order" ? promisedDate : null,
+    nextAction: entryType === "direct_order" ? nextAction : null,
+    nextActionDate: entryType === "direct_order" ? nextActionDate : null,
+    nextActionTime: entryType === "direct_order" ? nextActionTime : null,
+    nextActionKind: entryType === "direct_order" ? nextActionKind : null,
+    files: preparedFiles.map(({ file, sha256 }) => ({
+      sha256, name: file.name.slice(0, 255), type: file.type, size: file.size,
+    })),
+  }));
 
   const initialPurpose = entryType === "direct_order"
     ? "paper_order"
     : requestKind === "cutting"
     ? "cutting_list"
     : "reference";
-  const stored = await storeQuoteFiles(
-    serviceClient,
-    userData.user.id,
-    quoteId,
-    files,
-    initialPurpose,
+  const { data: initialized, error: initializeError } = await serviceClient.rpc(
+    "create_manual_quote_request",
+    { p_request: {
+      submission_token: submissionToken,
+      entered_by: userData.user.id,
+      payload_hash: manualPayloadHash,
+      request_kind: requestKind,
+      entry_type: entryType,
+      expected_files: files.length,
+      quote: {
+        approximate_dimensions: approximateDimensions,
+        budget_range: budgetRange,
+        city, company_name: companyName,
+        customer_name: customerName, email, message, phone, postcode,
+        preferred_contact: preferredContact, project_type: projectType,
+        source, wants_callback: wantsCallback,
+        wants_consultation: wantsConsultation,
+      },
+      cutting: requestKind === "cutting" ? {
+        fulfillment, material_source: materialSource,
+        postal_code: fulfillment === "delivery" ? postcode : null,
+        project_note: message.slice(0, 2000), target_date: targetDate,
+      } : null,
+      workflow: {
+        address: address || null,
+        agreed_total: agreedTotalCents === null ? null : agreedTotalCents / 100,
+        deposit_paid: depositPaidCents / 100,
+        next_action: nextAction || null,
+        next_action_date: nextAction ? nextActionDate : null,
+        next_action_kind: nextAction ? nextActionKind : null,
+        next_action_time: nextAction && nextActionTime ? nextActionTime : null,
+        other_paid: otherPaidCents / 100,
+        promised_date: promisedDate,
+      },
+    } },
   );
-  if (!stored.ok) {
-    await rollbackQuote(serviceClient, quoteId, []);
-    return json({ error: stored.message }, 500, origin);
+  if (initializeError || !initialized || typeof initialized !== "object") {
+    console.error("manual quote initialization failed", initializeError?.code);
+    return json({ error: "Az ügy létrehozása nem sikerült. Próbáld újra." }, 500, origin);
+  }
+  const quoteId = Number(initialized.quote_id);
+  const reference = Number.isSafeInteger(quoteId) && quoteId > 0
+    ? requestKind === "cutting"
+      ? `HEPA-LSZ-${String(quoteId).padStart(6, "0")}`
+      : `HEPA-${String(quoteId).padStart(6, "0")}`
+    : null;
+  if (initialized.state === "conflict") {
+    return json({
+      error: "Ezzel a beküldéssel már létrejött egy ügy, de az űrlap azóta megváltozott. Nyisd meg a korábbi ügyet, és ott végezd el a módosításokat.",
+      ...(reference ? { quoteId, reference } : {}),
+    }, 409, origin);
+  }
+  if (!reference || !["ingesting", "ready"].includes(initialized.state)) {
+    console.error("manual quote initialization returned an invalid result");
+    return json({ error: "A felvitel eredményét nem sikerült ellenőrizni. Próbáld újra." }, 500, origin);
   }
 
-  const { error: activityError } = await serviceClient
-    .from("quote_activities")
-    .insert({
-      quote_request_id: quoteId,
-      body: initialActivityBody,
-      created_by: userData.user.id,
-    });
-  if (activityError) {
-    console.error("manual quote activity insert failed", activityError.code);
-    await rollbackQuote(serviceClient, quoteId, stored.uploadedPaths);
-    return json({ error: "Az előzmény mentése nem sikerült." }, 500, origin);
+  // An identical retry resumes missing files. The initializer never repeats
+  // the quote/workflow/activity inserts, and each file is stored by its hash.
+  const stored = await storeQuoteFiles(
+    serviceClient, quoteId, preparedFiles, initialPurpose,
+  );
+  if (!stored.ok) {
+    return json({
+      error: `Az ügy létrejött (${reference}), de a csatolmányok mentése nem fejeződött be. Próbáld újra ugyanebből az űrlapból. ${stored.message}`,
+      quoteId, reference,
+    }, stored.status, origin);
+  }
+  const { data: ready, error: finalizeError } = await serviceClient.rpc(
+    "finalize_manual_quote_request",
+    {
+      p_quote_id: quoteId,
+      p_submission_token: submissionToken,
+      p_payload_hash: manualPayloadHash,
+      p_expected_files: preparedFiles.map(({ sha256 }) => ({
+        sha256, purpose: initialPurpose,
+      })),
+    },
+  );
+  if (finalizeError || ready !== true) {
+    console.error("manual quote finalization failed", finalizeError?.code);
+    return json({
+      error: `Az ügy létrejött (${reference}), de a csatolmányok ellenőrzése nem fejeződött be. Próbáld újra ugyanebből az űrlapból.`,
+      quoteId, reference,
+    }, 500, origin);
   }
 
   return json(
     {
       ok: true,
       quoteId,
-      reference: requestKind === "cutting"
-        ? `HEPA-LSZ-${String(quoteId).padStart(6, "0")}`
-        : `HEPA-${String(quoteId).padStart(6, "0")}`,
+      reference,
     },
-    201,
+    initialized.duplicate ? 200 : 201,
     origin,
   );
 });
-
