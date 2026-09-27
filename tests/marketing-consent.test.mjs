@@ -6,6 +6,9 @@ import test from 'node:test';
 // No browser network, real Google tag, real backend or production lead is used.
 const source = await readFile(new URL('../marketing-consent.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const cuttingSource = await readFile(new URL('../lapszabaszat.js', import.meta.url), 'utf8');
+const cuttingPages = await Promise.all(['lapszabaszat.html', 'lapszabaszat-ajanlatkeres.html']
+  .map(path => readFile(new URL('../' + path, import.meta.url), 'utf8')));
 const token = '10000000-0000-4000-8000-000000000001';
 const secondToken = '10000000-0000-4000-8000-000000000002';
 const choiceKey = 'hepa-marketing-consent-v1';
@@ -249,4 +252,155 @@ test('measurement failure cannot turn a successful saved quote into an error', a
   const result = await submitForm({ payload: { ok: true, state: 'ready', reference: 'HEPA-000123' }, measurementThrows: true });
   assert.equal(result.form.wasReset, true);
   assert.match(result.message, /Ajánlatkérését megkaptuk/);
+});
+
+test('both cutting pages offer consent and withdrawal; the form initializes measurement first', () => {
+  for (const page of cuttingPages) {
+    assert.match(page, /<link rel="stylesheet" href="\/marketing-consent\.css">/);
+    assert.match(page, /<script defer src="\/marketing-consent\.js"><\/script>/);
+    assert.match(page, /<button type="button" data-marketing-settings>/);
+  }
+  assert.ok(cuttingPages[1].indexOf('/marketing-consent.js') < cuttingPages[1].indexOf('src="lapszabaszat.js"'));
+});
+
+const validCutting = { responseOk: true, ok: true, reference: 'HEPA-LSZ-000123', submissionToken: token };
+
+test('cutting measurement requires a confirmed reference and UUID and shares quote deduplication', () => {
+  const app = harness();
+  app.choose('granted');
+  const record = data => app.window.HEPAMarketing.recordCuttingQuoteSubmission(data);
+  for (const change of [
+    { responseOk: false }, { ok: false }, { reference: '' }, { reference: undefined },
+    { reference: 'customer@example.test' }, { reference: 'HEPA-000123' },
+    { submissionToken: 'customer@example.test' }, { submissionToken: '' },
+  ]) assert.equal(record({ ...validCutting, ...change }), false);
+  assert.equal(record(validCutting), true);
+  assert.equal(record(validCutting), false, 'pending event deduplicates');
+  assert.equal(app.conversions().length, 0);
+  app.loaded();
+  assert.equal(record(validCutting), false, 'sent event deduplicates');
+  assert.equal(app.record(), false, 'same UUID cannot be counted through the other form API');
+  assert.equal(app.conversions().length, 1);
+  const payload = app.conversions()[0][2];
+  assert.deepEqual(Object.keys(payload).sort(), ['send_to', 'transaction_id']);
+  assert.equal(payload.send_to, 'AW-10787294242/s7xoCNDcyPQcEKKY5Jco');
+  assert.equal(payload.transaction_id, token);
+  const returning = harness({
+    local: { [choiceKey]: app.window.localStorage.getItem(choiceKey) },
+    session: { [sentKey]: app.window.sessionStorage.getItem(sentKey) },
+  });
+  returning.loaded();
+  assert.equal(returning.window.HEPAMarketing.recordCuttingQuoteSubmission(validCutting), false);
+  assert.equal(returning.conversions().length, 0);
+});
+
+test('cutting submissions without consent are not queued or replayed after later consent', () => {
+  const app = harness();
+  assert.equal(app.window.HEPAMarketing.recordCuttingQuoteSubmission(validCutting), false);
+  app.choose('denied');
+  assert.equal(app.window.HEPAMarketing.recordCuttingQuoteSubmission(validCutting), false);
+  assert.equal(app.scripts.length, 0);
+  app.choose('granted');
+  app.loaded();
+  assert.equal(app.conversions().length, 0);
+  const settingsOnly = harness({ settingsOnly: true });
+  settingsOnly.choose('granted');
+  assert.equal(settingsOnly.window.HEPAMarketing.recordCuttingQuoteSubmission(validCutting), false);
+  assert.equal(settingsOnly.scripts.length, 0);
+});
+
+test('withdrawal before the tag loads discards a pending cutting conversion', () => {
+  const app = harness();
+  app.choose('granted');
+  app.window.HEPAMarketing.recordCuttingQuoteSubmission(validCutting);
+  app.choose('denied');
+  app.loaded();
+  assert.equal(app.conversions().length, 0);
+  assert.equal(app.window.HEPAMarketing.recordCuttingQuoteSubmission(validCutting), false);
+});
+
+async function submitCuttingForm({
+  payload = { ok: true, reference: 'HEPA-LSZ-000123' }, responseOk = true, status = 201,
+  networkFailure = false, invalidJson = false, consent = 'granted', flow = 'manual',
+  measurementThrows = false, measurementMissing = false,
+} = {}) {
+  const app = harness();
+  if (consent) app.choose(consent);
+  if (consent === 'granted') app.loaded();
+  if (measurementThrows) app.window.HEPAMarketing = { recordCuttingQuoteSubmission() { throw new Error('tag unavailable'); } };
+  if (measurementMissing) app.window.HEPAMarketing = undefined;
+  const form = element();
+  const successes = [];
+  const feedback = [];
+  const submittedTokens = [];
+  const context = {
+    form, activeFlow: flow, isSubmitting: false, FLOW_STEPS: { [flow]: ['contact', 'review'] }, stepIndex: 1,
+    validateStep: () => [], clearTimeout() {}, saveTimer: null, saveDraft() {},
+    buildSubmissionPayload: value => value, collectSubmissionFields: () => ({ customer_email: 'private@example.test' }),
+    readMaterials: () => [], readItems: () => [], files: { upload: [], help: [] },
+    submissionToken: token, createSubmissionToken: () => secondToken, fieldValue: () => '',
+    buildMultipartBody(payload, submittedToken) { submittedTokens.push(submittedToken); return payload; },
+    document: { querySelector: () => ({ innerHTML: '<p>private@example.test</p>' }) },
+    setSubmitFeedback(message, kind) { feedback.push({ message, kind }); },
+    setSubmitting(value) { context.isSubmitting = value; },
+    submitFeedback: element(), SUBMIT_ENDPOINT: 'https://backend.example.test/quote',
+    fetch: async () => {
+      if (networkFailure) throw new Error('network');
+      return { ok: responseOk, status, headers: { get: () => null }, json: async () => {
+        if (invalidJson) throw new Error('invalid json');
+        return payload;
+      } };
+    },
+    cleanText: value => String(value ?? '').trim(),
+    submissionErrorMessage: () => 'Backend save not confirmed',
+    showSuccessfulSubmission(reference) { successes.push(reference); context.submissionToken = secondToken; },
+    window: app.window,
+  };
+  const readJson = cuttingSource.slice(cuttingSource.indexOf('  async function readJsonResponse('), cuttingSource.indexOf('  function setSubmitting('));
+  const handler = cuttingSource.slice(cuttingSource.indexOf("  form.addEventListener('submit'"), cuttingSource.indexOf("  document.querySelector('#print-summary')"));
+  assert.ok(readJson.length > 0 && handler.length > 0);
+  vm.runInNewContext(readJson + handler, context);
+  await form.listeners.submit({ preventDefault() {} });
+  return { app, context, form, successes, feedback, submittedTokens };
+}
+
+test('real cutting handler measures confirmed manual, upload and help inquiries using the submitted UUID', async () => {
+  for (const flow of ['manual', 'upload', 'help']) {
+    const result = await submitCuttingForm({ flow });
+    assert.deepEqual(result.successes, ['HEPA-LSZ-000123']);
+    assert.equal(result.app.conversions().length, 1);
+    assert.equal(result.app.conversions()[0][2].transaction_id, token);
+    assert.equal(result.context.submissionToken, secondToken, 'success UI has already reset the next submission token');
+    assert.deepEqual(result.submittedTokens, [token]);
+    assert.equal(JSON.stringify(result.app.conversions()).includes('private@example.test'), false);
+    result.context.submissionToken = token;
+    await result.form.listeners.submit({ preventDefault() {} });
+    assert.equal(result.app.conversions().length, 1, 'repeated confirmed response cannot duplicate the event');
+  }
+});
+
+test('real cutting handler does not measure unconfirmed saves, honeypot replies, invalid JSON or network errors', async () => {
+  for (const options of [
+    { networkFailure: true }, { invalidJson: true },
+    { responseOk: false, status: 503 }, { responseOk: false, status: 409, payload: { code: 'submission-token-conflict' } },
+    { payload: { ok: false, reference: 'HEPA-LSZ-000123' } },
+    { payload: { ok: true } }, { payload: null },
+  ]) {
+    const result = await submitCuttingForm(options);
+    assert.equal(result.app.conversions().length, 0);
+    assert.equal(result.successes.length, 0);
+    assert.ok(result.feedback.some(item => item.kind === 'error'));
+  }
+});
+
+test('confirmed cutting inquiry succeeds without consent or an available measuring module', async () => {
+  for (const options of [
+    { consent: null }, { consent: 'denied' }, { measurementThrows: true }, { measurementMissing: true },
+  ]) {
+    const result = await submitCuttingForm(options);
+    assert.deepEqual(result.successes, ['HEPA-LSZ-000123']);
+    assert.equal(result.app.conversions().length, 0);
+    assert.equal(result.feedback.some(item => item.kind === 'error'), false);
+    if (!options.consent && !options.measurementThrows && !options.measurementMissing) assert.equal(result.app.scripts.length, 0);
+  }
 });
