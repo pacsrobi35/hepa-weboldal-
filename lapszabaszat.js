@@ -1770,7 +1770,8 @@
       items: flowAtSubmission === 'manual' ? readItems() : []
     });
     const attachments = flowAtSubmission === 'upload' ? files.upload : flowAtSubmission === 'help' ? files.help : [];
-    const multipartBody = buildMultipartBody(payload, submissionToken, fieldValue('company_website'), attachments);
+    const tokenAtSubmission = submissionToken;
+    const multipartBody = buildMultipartBody(payload, tokenAtSubmission, fieldValue('company_website'), attachments);
     const reviewHtml = document.querySelector('#review-list').innerHTML;
 
     setSubmitFeedback('Az ajánlatkérés küldése folyamatban van…', 'info');
@@ -1794,6 +1795,15 @@
         return;
       }
       showSuccessfulSubmission(reference, reviewHtml);
+      // Optional measurement must not change the outcome of a confirmed saved inquiry.
+      try {
+        window.HEPAMarketing?.recordCuttingQuoteSubmission({
+          responseOk: response.ok,
+          ok: responseBody.ok,
+          reference,
+          submissionToken: tokenAtSubmission
+        });
+      } catch (_) { /* The inquiry remains saved if advertising measurement is unavailable. */ }
     } catch (_) {
       setSubmitFeedback('Nem sikerült kapcsolódni az ajánlatkérőhöz. Az adatai megmaradtak; ellenőrizze az internetkapcsolatát, majd próbálja újra.', 'error');
       submitFeedback.focus();

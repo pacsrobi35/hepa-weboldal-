@@ -165,11 +165,22 @@
     if (!preference) openPanel();
   }
 
-  // Called only from the furniture form's backend-confirmed success branch.
+  // Called only from the corresponding form's backend-confirmed success branch.
   window.HEPAMarketing = Object.freeze({
     recordQuoteSubmission({ requestMode, responseOk, ok, state, submissionToken } = {}) {
       if (!hasConsent() || settingsOnly || requestMode !== 'quote' || responseOk !== true || ok !== true
           || state !== 'ready' || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
+      if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
+      pending.add(submissionToken);
+      flush();
+      return true;
+    },
+    recordCuttingQuoteSubmission({ responseOk, ok, reference, submissionToken } = {}) {
+      // The cutting endpoint confirms finalization with ok + reference, without a state field.
+      // Its honeypot response has no reference and must never count as an inquiry.
+      if (!hasConsent() || settingsOnly || responseOk !== true || ok !== true
+          || typeof reference !== 'string' || !/^HEPA-LSZ-\d{6,}$/.test(reference)
+          || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
       if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
       pending.add(submissionToken);
       flush();
