@@ -2500,11 +2500,11 @@ textarea:focus {
             </div>
         </div>
 
-        <div class="reference-container" id="gardrob"><div class="reference-heading"><h2>Egyedi gardrób az Ön méreteire</h2></div><div class="empty-reference"><h3>Használjuk ki jól a rendelkezésre álló helyet</h3><p>Írja meg, mekkora gardróbot szeretne, és segítünk az elrendezéstől a látványterven át a beépítésig.</p><a href="#ajanlat" class="btn">Gardróbajánlatot kérek</a></div></div>
-        <div class="reference-container" id="eloszoba"><div class="reference-heading"><h2>Praktikus előszobabútor egyedi kialakítással</h2></div><div class="empty-reference"><h3>Mindennek meglesz a helye</h3><p>A cipőtárolótól a fogasokon át a beépített szekrényig az otthonához igazítjuk a megoldást.</p><a href="#ajanlat" class="btn">Előszobabútor-ajánlatot kérek</a></div></div>
-        <div class="reference-container" id="furdo"><div class="reference-heading"><h2>Méretre készített fürdőszobabútor</h2></div><div class="empty-reference"><h3>Kis helyen is átgondolt tárolás</h3><p>A mosdóhoz, a gépészethez és a helyiség méreteihez illeszkedő bútort tervezünk és készítünk.</p><a href="#ajanlat" class="btn">Fürdőszobabútor-ajánlatot kérek</a></div></div>
-        <div class="reference-container" id="nappali"><div class="reference-heading"><h2>Egyedi nappalibútor az enteriőrhöz igazítva</h2></div><div class="empty-reference"><h3>Egységes megjelenés, praktikus tárolás</h3><p>TV-falat, polcrendszert és tárolóbútort is az elképzeléseihez és a helyiséghez tervezünk.</p><a href="#ajanlat" class="btn">Nappalibútor-ajánlatot kérek</a></div></div>
-        <div class="reference-container" id="egyedi"><div class="reference-heading"><h2>Van egy különleges elképzelése?</h2></div><div class="empty-reference"><h3>Megtervezzük, megmutatjuk, elkészítjük</h3><p>Küldjön egy fotót, rajzot vagy inspirációs képet. Segítünk műszaki megoldást és látványtervet készíteni hozzá.</p><a href="#ajanlat" class="btn">Elmondom az elképzelésem</a></div></div>
+        <div class="reference-container" id="gardrob"><div class="reference-heading"><h2>Egyedi gardrób az Ön méreteire</h2></div><div class="empty-reference"><h3>Használjuk ki jól a rendelkezésre álló helyet</h3><p>Visszahíváskor átbeszéljük, milyen gardróbot szeretne, és segítünk az elrendezéstől a beépítésig.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="eloszoba"><div class="reference-heading"><h2>Praktikus előszobabútor egyedi kialakítással</h2></div><div class="empty-reference"><h3>Mindennek meglesz a helye</h3><p>A cipőtárolótól a fogasokon át a beépített szekrényig az otthonához igazítjuk a megoldást.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="furdo"><div class="reference-heading"><h2>Méretre készített fürdőszobabútor</h2></div><div class="empty-reference"><h3>Kis helyen is átgondolt tárolás</h3><p>A mosdóhoz, a gépészethez és a helyiség méreteihez illeszkedő bútort tervezünk és készítünk.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="nappali"><div class="reference-heading"><h2>Egyedi nappalibútor az enteriőrhöz igazítva</h2></div><div class="empty-reference"><h3>Egységes megjelenés, praktikus tárolás</h3><p>TV-falat, polcrendszert és tárolóbútort is az elképzeléseihez és a helyiséghez tervezünk.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="egyedi"><div class="reference-heading"><h2>Van egy különleges elképzelése?</h2></div><div class="empty-reference"><h3>Megtervezzük, megmutatjuk, elkészítjük</h3><p>Egy beszélgetés is elég az induláshoz. Ha van fotója vagy vázlata, később megmutathatja.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
 
     </section>
 
@@ -2922,7 +2922,7 @@ textarea:focus {
                     <li><a href="#lapszabaszat">Lapszabászat</a></li>
                     <li><a href="#butorgyartas">Bútorgyártás</a></li>
                     <li><a href="#tervbol-valosag">Munkáink</a></li>
-                    <li><a href="#ajanlat">Bútorajánlat</a></li>
+                    <li><a href="#ajanlat">Visszahívást kérek</a></li>
                     <li><a href="adatkezeles.html">Adatkezelési tájékoztató</a></li>
                     <li><button type="button" data-marketing-settings>Adatvédelmi beállítások</button></li>
                 </ul>
@@ -3078,7 +3078,7 @@ textarea:focus {
             } catch (error) {
                 const message = error.name === "AbortError"
                     ? "A beküldés eredményét még nem sikerült ellenőrizni. Az adatokat megtartottuk; próbálja újra ugyanazt a beküldést."
-                    : (error.message || "Az ajánlatkérés küldése nem sikerült. Kérjük, próbálja újra.");
+                    : (error.message || "A visszahíváskérés küldése nem sikerült. Kérjük, próbálja újra.");
                 showQuoteMessage(message, true);
             } finally {
                 clearTimeout(timeout);
