@@ -4,7 +4,8 @@
   const ADS_ID = 'AW-10787294242';
   const SEND_TO = 'AW-10787294242/s7xoCNDcyPQcEKKY5Jco';
   const settingsOnly = document.currentScript?.hasAttribute('data-consent-settings-only') === true;
-  const CONSENT_KEY = 'hepa-marketing-consent-v1';
+  const CONSENT_KEY = 'hepa-marketing-consent-v2';
+  const PREVIOUS_CONSENT_KEY = 'hepa-marketing-consent-v1';
   const SENT_KEY = 'hepa-quote-conversions-v1';
   const CONSENT_LIFETIME = 180 * 24 * 60 * 60 * 1000;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,8 +23,15 @@
   function readPreference() {
     try {
       const saved = JSON.parse(window.localStorage.getItem(CONSENT_KEY));
-      if (saved?.version === 1 && ['granted', 'denied'].includes(saved.choice)
+      if (saved?.version === 2 && ['granted', 'denied'].includes(saved.choice)
           && Number.isFinite(saved.expiresAt) && saved.expiresAt > Date.now()) return saved;
+      // The previous wording excluded callback measurement. Preserve a valid refusal,
+      // but ask again before extending an old grant to furniture callbacks.
+      const previous = JSON.parse(window.localStorage.getItem(PREVIOUS_CONSENT_KEY));
+      if (previous?.version === 1 && previous.choice === 'denied'
+          && Number.isFinite(previous.expiresAt) && previous.expiresAt > Date.now()) {
+        return { version: 2, choice: 'denied', expiresAt: previous.expiresAt };
+      }
     } catch { /* Storage may be blocked; default remains no measurement. */ }
     return null;
   }
@@ -112,7 +120,7 @@
   }
 
   function choose(choice) {
-    preference = { version: 1, choice, expiresAt: Date.now() + CONSENT_LIFETIME };
+    preference = { version: 2, choice, expiresAt: Date.now() + CONSENT_LIFETIME };
     try { window.localStorage.setItem(CONSENT_KEY, JSON.stringify(preference)); } catch { /* Keep this page's choice. */ }
     if (choice === 'granted') startMeasurement();
     else stopMeasurement();
@@ -144,7 +152,7 @@
     panel.innerHTML = `
       <div class="hepa-consent-copy">
         <h2 id="hepa-consent-title">Segíthet mérni hirdetéseink eredményét</h2>
-        <p>Engedélyezi, hogy a Google Ads sütikkel és technikai adatokkal mérje, mely hirdetésekből érkezik sikeres ajánlatkérés? Az űrlap adatait nem adjuk át a Google-nek, és nem használunk személyre szabott hirdetést. Az oldal és az ajánlatkérés engedély nélkül is működik.</p>
+        <p>Engedélyezi, hogy a Google Ads sütikkel és technikai adatokkal mérje, mely hirdetésekből érkezik sikeres bútoros visszahíváskérés vagy lapszabászati ajánlatkérés? Az űrlap adatait nem adjuk át a Google-nek, és nem használunk személyre szabott hirdetést. Az oldal és az ajánlatkérés engedély nélkül is működik.</p>
         <p><a href="/adatkezeles.html#meres">Részletek az adatkezelésről</a><span data-consent-status></span></p>
       </div>
       <div class="hepa-consent-actions">
@@ -167,9 +175,11 @@
 
   // Called only from the corresponding form's backend-confirmed success branch.
   window.HEPAMarketing = Object.freeze({
-    recordQuoteSubmission({ requestMode, responseOk, ok, state, submissionToken } = {}) {
-      if (!hasConsent() || settingsOnly || requestMode !== 'quote' || responseOk !== true || ok !== true
-          || state !== 'ready' || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
+    recordQuoteSubmission({ requestMode, responseOk, ok, state, reference, submissionToken } = {}) {
+      if (!hasConsent() || settingsOnly || !['quote', 'callback'].includes(requestMode)
+          || responseOk !== true || ok !== true || state !== 'ready'
+          || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
+      if (requestMode === 'callback' && (typeof reference !== 'string' || !/^HEPA-\d{6,}$/.test(reference))) return false;
       if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
       pending.add(submissionToken);
       flush();
