@@ -11,7 +11,7 @@ const cuttingPages = await Promise.all(['lapszabaszat.html', 'lapszabaszat-ajanl
   .map(path => readFile(new URL('../' + path, import.meta.url), 'utf8')));
 const token = '10000000-0000-4000-8000-000000000001';
 const secondToken = '10000000-0000-4000-8000-000000000002';
-const choiceKey = 'hepa-marketing-consent-v1';
+const choiceKey = 'hepa-marketing-consent-v2';
 const sentKey = 'hepa-quote-conversions-v1';
 const valid = { requestMode: 'quote', responseOk: true, ok: true, state: 'ready', submissionToken: token };
 
@@ -131,15 +131,15 @@ test('only confirmed quotes are emitted once per UUID; no PII or fabricated mone
 });
 
 test('return visit respects consent expiry and session deduplication', () => {
-  const savedChoice = JSON.stringify({ version: 1, choice: 'granted', expiresAt: Date.now() + 60_000 });
+  const savedChoice = JSON.stringify({ version: 2, choice: 'granted', expiresAt: Date.now() + 60_000 });
   const app = harness({ local: { [choiceKey]: savedChoice }, session: { [sentKey]: JSON.stringify([token]) } });
   assert.equal(app.panels[0].hidden, true);
   app.loaded();
   assert.equal(app.record(), false);
   assert.equal(app.conversions().length, 0);
   for (const saved of [
-    { version: 1, choice: 'denied', expiresAt: Date.now() + 60_000 },
-    { version: 1, choice: 'granted', expiresAt: Date.now() - 1 },
+    { version: 2, choice: 'denied', expiresAt: Date.now() + 60_000 },
+    { version: 2, choice: 'granted', expiresAt: Date.now() - 1 },
     { version: 0, choice: 'granted', expiresAt: Date.now() + 60_000 },
   ]) assert.equal(harness({ local: { [choiceKey]: JSON.stringify(saved) } }).scripts.length, 0);
 });
@@ -165,7 +165,7 @@ test('consent withdrawal in another tab stops conversions here', () => {
   const app = harness();
   app.choose('granted');
   app.loaded();
-  app.window.localStorage.setItem(choiceKey, JSON.stringify({ version: 1, choice: 'denied', expiresAt: Date.now() + 60_000 }));
+  app.window.localStorage.setItem(choiceKey, JSON.stringify({ version: 2, choice: 'denied', expiresAt: Date.now() + 60_000 }));
   app.listeners.storage({ key: choiceKey });
   assert.equal(app.record(), false);
   assert.equal(app.conversions().length, 0);
@@ -203,7 +203,7 @@ test('restoring consent does not resend a quote already emitted on this page', (
   assert.equal(app.conversions().length, 1);
 });
 
-async function submitForm({ payload, responseOk = true, networkFailure = false, mode = 'quote', measurementThrows = false } = {}) {
+async function submitForm({ payload, responseOk = true, networkFailure = false, mode = 'callback', measurementThrows = false } = {}) {
   const app = harness();
   const form = app.document.getElementById('quoteForm');
   const measured = [];
@@ -244,14 +244,14 @@ test('real form handler only calls measurement after fully confirmed backend sav
   const result = await submitForm({ payload: { ok: true, state: 'ready', reference: 'HEPA-000123' } });
   assert.equal(result.measured.length, 1);
   assert.equal(result.measured[0].submissionToken, token);
-  assert.equal(result.measured[0].requestMode, 'quote');
+  assert.equal(result.measured[0].requestMode, 'callback');
   assert.equal(result.form.wasReset, true);
 });
 
 test('measurement failure cannot turn a successful saved quote into an error', async () => {
   const result = await submitForm({ payload: { ok: true, state: 'ready', reference: 'HEPA-000123' }, measurementThrows: true });
   assert.equal(result.form.wasReset, true);
-  assert.match(result.message, /Ajánlatkérését megkaptuk/);
+  assert.match(result.message, /Visszahívási kérését megkaptuk/);
 });
 
 test('both cutting pages offer consent and withdrawal; the form initializes measurement first', () => {
