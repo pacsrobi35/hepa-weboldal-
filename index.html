@@ -2095,38 +2095,27 @@ textarea:focus {
     font-weight: 700;
 }
 
-.request-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 6px;
-}
-.request-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin: 0;
-    padding: 18px;
-    border: 2px solid #dce1dc;
+.request-intro { margin: 0 0 18px; color: #53615a; font-size: 15px; }
+.callback-extra {
+    margin: 24px 0;
+    border: 1px solid #dce1dc;
     border-radius: 9px;
+    background: #faf9f6;
+}
+.callback-extra summary {
     cursor: pointer;
+    padding: 18px 20px;
+    font-size: 17px;
+    font-weight: 700;
     color: #25342e;
 }
-.request-option:has(input:checked) { border-color: #ac7827; background: #faf5e9; }
-.request-option:has(input:focus-visible) { outline: 3px solid #152520; outline-offset: 3px; }
-.request-option input { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 4px; accent-color: #795015; }
-.request-option strong { display: block; font-size: 17px; }
-.request-option small { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; line-height: 1.5; }
-.request-intro { margin: 18px 0 22px; color: #53615a; font-size: 15px; }
-.quote-details legend { margin-bottom: 16px; font-size: 20px; color: #25342e; }
-.quote-details[hidden] { display: none; }
+.callback-extra summary:focus-visible { outline: 3px solid #152520; outline-offset: 3px; }
+.callback-extra[open] summary { border-bottom: 1px solid #dce1dc; }
+.callback-extra-content { padding: 20px; }
+.callback-extra-content > :first-child { margin-top: 0; }
 .quote-form .checkbox-item { align-items: flex-start; font-size: 14px; font-weight: 400; }
 .quote-form .checkbox-item input { flex: 0 0 auto; margin-top: 5px; }
 .quote-required-note { margin-bottom: 16px; }
-@media (max-width: 600px) {
-    .request-options { grid-template-columns: 1fr; }
-    .request-option { padding: 14px; }
-}
 
 .checkbox-item a,
 .form-help a {
@@ -2223,7 +2212,7 @@ textarea:focus {
         <a href="lapszabaszat.html">Online lapszabászat</a>
         <a href="#butorgyartas">Bútorgyártás</a>
         <a href="#tervbol-valosag">Munkáink</a>
-        <a href="#ajanlat" class="nav-cta">Bútorajánlatot kérek</a>
+        <a href="#ajanlat" class="nav-cta">Visszahívást kérek</a>
         <a href="#kapcsolat">Kapcsolat</a>
     </nav>
 </header>
@@ -2246,7 +2235,7 @@ textarea:focus {
             <p>3D látványtervvel már a gyártás előtt láthatja, hogyan fog kinézni a bútora.</p>
 
             <div class="hero-actions">
-                <a href="#ajanlat" class="btn">Egyedi árajánlatot kérek</a>
+                <a href="#ajanlat" class="btn">Visszahívást kérek</a>
                 <a href="#tervbol-valosag" class="btn btn-secondary">Munkáink megtekintése</a>
             </div>
 
@@ -2447,7 +2436,7 @@ textarea:focus {
                         így magabiztosabban dönthet a végleges kialakításról.
                     </p>
                 </div>
-                <a href="#ajanlat" class="btn">Látványterves ajánlatot kérek</a>
+                <a href="#ajanlat" class="btn">Visszahívást kérek</a>
             </aside>
 
 
@@ -2511,11 +2500,11 @@ textarea:focus {
             </div>
         </div>
 
-        <div class="reference-container" id="gardrob"><div class="reference-heading"><h2>Egyedi gardrób az Ön méreteire</h2></div><div class="empty-reference"><h3>Használjuk ki jól a rendelkezésre álló helyet</h3><p>Írja meg, mekkora gardróbot szeretne, és segítünk az elrendezéstől a látványterven át a beépítésig.</p><a href="#ajanlat" class="btn">Gardróbajánlatot kérek</a></div></div>
-        <div class="reference-container" id="eloszoba"><div class="reference-heading"><h2>Praktikus előszobabútor egyedi kialakítással</h2></div><div class="empty-reference"><h3>Mindennek meglesz a helye</h3><p>A cipőtárolótól a fogasokon át a beépített szekrényig az otthonához igazítjuk a megoldást.</p><a href="#ajanlat" class="btn">Előszobabútor-ajánlatot kérek</a></div></div>
-        <div class="reference-container" id="furdo"><div class="reference-heading"><h2>Méretre készített fürdőszobabútor</h2></div><div class="empty-reference"><h3>Kis helyen is átgondolt tárolás</h3><p>A mosdóhoz, a gépészethez és a helyiség méreteihez illeszkedő bútort tervezünk és készítünk.</p><a href="#ajanlat" class="btn">Fürdőszobabútor-ajánlatot kérek</a></div></div>
-        <div class="reference-container" id="nappali"><div class="reference-heading"><h2>Egyedi nappalibútor az enteriőrhöz igazítva</h2></div><div class="empty-reference"><h3>Egységes megjelenés, praktikus tárolás</h3><p>TV-falat, polcrendszert és tárolóbútort is az elképzeléseihez és a helyiséghez tervezünk.</p><a href="#ajanlat" class="btn">Nappalibútor-ajánlatot kérek</a></div></div>
-        <div class="reference-container" id="egyedi"><div class="reference-heading"><h2>Van egy különleges elképzelése?</h2></div><div class="empty-reference"><h3>Megtervezzük, megmutatjuk, elkészítjük</h3><p>Küldjön egy fotót, rajzot vagy inspirációs képet. Segítünk műszaki megoldást és látványtervet készíteni hozzá.</p><a href="#ajanlat" class="btn">Elmondom az elképzelésem</a></div></div>
+        <div class="reference-container" id="gardrob"><div class="reference-heading"><h2>Egyedi gardrób az Ön méreteire</h2></div><div class="empty-reference"><h3>Használjuk ki jól a rendelkezésre álló helyet</h3><p>Visszahíváskor átbeszéljük, milyen gardróbot szeretne, és segítünk az elrendezéstől a beépítésig.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="eloszoba"><div class="reference-heading"><h2>Praktikus előszobabútor egyedi kialakítással</h2></div><div class="empty-reference"><h3>Mindennek meglesz a helye</h3><p>A cipőtárolótól a fogasokon át a beépített szekrényig az otthonához igazítjuk a megoldást.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="furdo"><div class="reference-heading"><h2>Méretre készített fürdőszobabútor</h2></div><div class="empty-reference"><h3>Kis helyen is átgondolt tárolás</h3><p>A mosdóhoz, a gépészethez és a helyiség méreteihez illeszkedő bútort tervezünk és készítünk.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="nappali"><div class="reference-heading"><h2>Egyedi nappalibútor az enteriőrhöz igazítva</h2></div><div class="empty-reference"><h3>Egységes megjelenés, praktikus tárolás</h3><p>TV-falat, polcrendszert és tárolóbútort is az elképzeléseihez és a helyiséghez tervezünk.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
+        <div class="reference-container" id="egyedi"><div class="reference-heading"><h2>Van egy különleges elképzelése?</h2></div><div class="empty-reference"><h3>Megtervezzük, megmutatjuk, elkészítjük</h3><p>Egy beszélgetés is elég az induláshoz. Ha van fotója vagy vázlata, később megmutathatja.</p><a href="#ajanlat" class="btn">Visszahívást kérek</a></div></div>
 
     </section>
 
@@ -2594,7 +2583,7 @@ textarea:focus {
 
             <div class="showcase-footer">
                 <div><h3>Milyen lenne az Ön konyhája?</h3><p>Meséljen az elképzeléséről, a tervezésben segítünk.</p></div>
-                <a href="#ajanlat" class="btn">Megterveztetem a konyhámat</a>
+                <a href="#ajanlat" class="btn">Visszahívást kérek</a>
             </div>
         </div>
     </section>
@@ -2737,225 +2726,91 @@ textarea:focus {
                 <h2>Beszéljünk az elképzeléséről!</h2>
 
                 <p>
-                    Már körvonalazódott, milyen bútort szeretne? Küldje el a részleteket ajánlatkéréshez.
-                    Ha még vannak kérdései, kérjen visszahívást, és gondolkodjunk együtt.
+                    Egyedi bútort szeretne? Kérjen visszahívást, átbeszéljük az elképzelését, és egyeztetjük az ingyenes helyszíni felmérést.
                 </p>
 
             </div>
 
 
             <form class="quote-form" id="quoteForm" method="post" action="https://torczkyodukcvxwzutgf.supabase.co/functions/v1/submit-quote-request" enctype="multipart/form-data">
-
                 <label class="form-honeypot" aria-hidden="true">
                     Weboldal
                     <input type="text" name="company_website" tabindex="-1" autocomplete="off">
                 </label>
                 <input type="hidden" name="submission_token" id="submission_token">
+                <input type="hidden" name="request_mode" value="callback">
 
-                <fieldset class="form-fieldset" id="requestModeOptions">
-                    <legend>Hogyan induljunk el?</legend>
-                    <div class="request-options">
-                        <label class="request-option">
-                            <input type="radio" name="request_mode" value="quote" checked aria-controls="quoteDetails" aria-describedby="requestIntro">
-                            <span><strong>Árajánlatot kérek</strong><small>Megadom a méreteket és az elképzelésemet.</small></span>
-                        </label>
-                        <label class="request-option">
-                            <input type="radio" name="request_mode" value="callback" aria-controls="quoteDetails" aria-describedby="requestIntro">
-                            <span><strong>Visszahívást kérek</strong><small>Előbb átbeszélném a lehetőségeket.</small></span>
-                        </label>
-                    </div>
-                </fieldset>
-                <p class="request-intro" id="requestIntro" aria-live="polite">Az alábbi részletek segítenek az ajánlat előkészítésében. A pontos árhoz további egyeztetésre vagy helyszíni felmérésre lehet szükség.</p>
+                <p class="request-intro">Adja meg nevét, telefonszámát és a települést. Visszahívjuk, átbeszéljük az elképzelését, és egyeztetjük a következő lépést. Az első beszélgetéshez nem kellenek pontos méretek.</p>
                 <p class="form-help quote-required-note">A * jelölt mezők kitöltése szükséges.</p>
 
                 <div class="form-row">
-
                     <div class="form-group">
-
                         <label for="customer_name">Név *</label>
-
-                        <input
-                            id="customer_name"
-                            type="text"
-                            name="customer_name"
-                            autocomplete="name"
-                            minlength="2"
-                            maxlength="100"
-                            placeholder="Az Ön neve"
-                            required
-                        >
-
+                        <input id="customer_name" type="text" name="customer_name" autocomplete="name"
+                            minlength="2" maxlength="100" placeholder="Az Ön neve" required>
                     </div>
-
-
                     <div class="form-group">
-
                         <label for="phone">Telefonszám *</label>
-
-                        <input
-                            id="phone"
-                            type="tel"
-                            name="phone"
-                            autocomplete="tel"
-                            inputmode="tel"
-                            maxlength="40"
-                            placeholder="+36 ..."
-                            required
-                        >
-
+                        <input id="phone" type="tel" name="phone" autocomplete="tel" inputmode="tel"
+                            maxlength="40" placeholder="+36 ..." required>
                     </div>
-
                 </div>
 
-                <div class="form-group" id="callbackLocationGroup" hidden>
+                <div class="form-group">
                     <label for="callback_location">Település *</label>
-                    <input
-                        id="callback_location"
-                        type="text"
-                        name="callback_location"
-                        autocomplete="address-level2"
-                        minlength="2"
-                        maxlength="200"
-                        placeholder="Pl. Gödöllő"
-                        disabled
-                    >
+                    <input id="callback_location" type="text" name="callback_location" autocomplete="address-level2"
+                        minlength="2" maxlength="200" placeholder="Például: Aszód" required>
                 </div>
 
-
-                <fieldset class="form-fieldset quote-details" id="quoteDetails">
-                    <legend>Az elképzelés részletei</legend>
-                <div class="form-group">
-
-                    <label for="email">E-mail cím *</label>
-
-                    <input
-                        id="email"
-                        type="email"
-                        name="email"
-                        autocomplete="email"
-                        maxlength="254"
-                        placeholder="pelda@email.hu"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label for="project_type">Milyen bútorra kér ajánlatot? *</label>
-
-                    <select id="project_type" name="project_type" required>
-
-                        <option value="">
-                            Válasszon bútortípust...
-                        </option>
-
-                        <option>Konyhabútor</option>
-                        <option>Gardrób</option>
-                        <option>Előszobabútor</option>
-                        <option>Fürdőszobabútor</option>
-                        <option>Nappali bútor</option>
-                        <option>Irodabútor</option>
-                        <option>Egyéb</option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label for="message">
-                        Röviden az elképzeléséről *
-                    </label>
-
-                    <textarea
-                        id="message"
-                        name="message"
-                        minlength="3"
-                        maxlength="3700"
-                        placeholder="Például: Tolóajtós gardróbot szeretnék, fehér és fa hatású felületekkel, sok akasztós résszel."
-                        required
-                    ></textarea>
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label for="approximate_dimensions">
-                        Hozzávetőleges méretek *
-                    </label>
-
-                    <input
-                        id="approximate_dimensions"
-                        type="text"
-                        name="approximate_dimensions"
-                        maxlength="500"
-                        minlength="3"
-                        placeholder="Például: szélesség 300 cm, magasság 250 cm"
-                        required
-                    >
-
-                </div>
-
-                <div class="form-group">
-                    <label for="project_location">Helyszín / település *</label>
-                    <input id="project_location" type="text" name="project_location" minlength="2" maxlength="200" autocomplete="address-level2" placeholder="Például: Aszód" required>
-                </div>
-
-<div class="form-group">
-
-    <label for="attachments">
-        Kép, rajz vagy terv feltöltése (opcionális)
-    </label>
-
-    <p class="upload-text" id="attachments_help">
-        Ha van, tölthet fel helyszínfotót, kézzel rajzolt tervet
-        vagy inspirációs képet. Legfeljebb 5 JPG, PNG, WebP vagy PDF fájlt, fájlonként maximum 10 MB méretben.
-    </p>
-
-    <input
-        id="attachments"
-        type="file"
-        name="attachments"
-        accept=".jpg,.jpeg,.png,.webp,.pdf"
-        aria-describedby="attachments_help"
-        multiple
-    >
-
-</div>
-
-                </fieldset>
+                <details class="callback-extra">
+                    <summary>További részletek – nem kötelező</summary>
+                    <div class="callback-extra-content">
+                        <p class="form-help">Ha már van elképzelése vagy fotója, itt elküldheti. Ezek nélkül is visszahívjuk.</p>
+                        <div class="form-group">
+                            <label for="project_type">Milyen bútort szeretne?</label>
+                            <select id="project_type" name="project_type">
+                                <option value="">Még nem tudom / később egyeztetjük</option>
+                                <option>Konyhabútor</option>
+                                <option>Gardrób</option>
+                                <option>Előszobabútor</option>
+                                <option>Fürdőszobabútor</option>
+                                <option>Nappali bútor</option>
+                                <option>Irodabútor</option>
+                                <option>Egyéb</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Röviden az elképzeléséről</label>
+                            <textarea id="message" name="message" minlength="3" maxlength="3700"
+                                placeholder="Például: Új konyhát szeretnék világos frontokkal."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">E-mail cím</label>
+                            <input id="email" type="email" name="email" autocomplete="email" maxlength="254"
+                                placeholder="pelda@email.hu">
+                        </div>
+                        <div class="form-group">
+                            <label for="attachments">Kép, rajz vagy terv feltöltése</label>
+                            <p class="upload-text" id="attachments_help">Ha van, tölthet fel helyszínfotót, vázlatot vagy inspirációs képet. Legfeljebb 5 JPG, PNG, WebP vagy PDF fájlt, fájlonként maximum 10 MB méretben.</p>
+                            <input id="attachments" type="file" name="attachments" accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                aria-describedby="attachments_help" multiple>
+                        </div>
+                    </div>
+                </details>
 
                 <div class="form-group">
                     <label class="checkbox-item">
                         <input type="checkbox" name="consent" required aria-describedby="consent_help">
-                        <span id="consent_help">Elolvastam az <a href="adatkezeles.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, és tudomásul veszem, hogy a megadott adataimat az ajánlatkérés kezelése és a kapcsolatfelvétel céljából használják. *</span>
+                        <span id="consent_help">Elolvastam az <a href="adatkezeles.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, és tudomásul veszem, hogy a megadott adataimat a visszahíváskérésem kezelése és a kapcsolatfelvétel céljából használják. *</span>
                     </label>
                 </div>
 
-
-                <button type="submit" class="btn form-button" id="quoteSubmitButton">
-                    Árajánlatot kérek
-                </button>
-
-                <p class="quote-alternative">
-                    Inkább telefonon egyeztetne? <a href="tel:+36706273699">Hívjon minket: +36 70 627 36 99</a>
-                </p>
-
+                <button type="submit" class="btn form-button" id="quoteSubmitButton">Visszahívást kérek</button>
+                <p class="quote-alternative">Inkább most beszélne velünk? <a href="tel:+36706273699">Hívjon minket: +36 70 627 36 99</a></p>
                 <noscript>
                     <p class="form-help">Az online küldéshez JavaScript szükséges. Hívjon minket a <a href="tel:+36706273699">+36 70 627 36 99</a> számon, vagy írjon a <a href="mailto:hepaconstructkft@gmail.com">hepaconstructkft@gmail.com</a> címre.</p>
                 </noscript>
-
-                <div id="success-message" role="status" aria-live="polite">
-
-                    Köszönjük az érdeklődést!
-                    Hamarosan felvesszük Önnel a kapcsolatot. ✓
-
-                </div>
-
+                <div id="success-message" role="status" aria-live="polite">Köszönjük az érdeklődést! Hamarosan visszahívjuk. ✓</div>
             </form>
 
         </div>
@@ -3027,14 +2882,14 @@ textarea:focus {
 
                 <div class="contact-icon" aria-hidden="true"><svg class="line-icon"><use href="#icon-clipboard"></use></svg></div>
 
-                <h3>Bútorajánlat</h3>
+                <h3>Beszéljünk a bútoráról</h3>
 
                 <p>
-                    Küldje el elképzelését, és segítünk megvalósítani!
+                    Kérjen visszahívást, és átbeszéljük, hogyan valósíthatjuk meg elképzelését!
                 </p>
 
                 <a href="#ajanlat" class="contact-btn">
-                    Bútorajánlatot kérek
+                    Visszahívást kérek
                 </a>
 
             </div>
@@ -3089,7 +2944,7 @@ textarea:focus {
         </div>
     </footer>
 
-    <a class="mobile-quote-cta" href="#ajanlat">Bútorajánlatot kérek</a>
+    <a class="mobile-quote-cta" href="#ajanlat">Visszahívást kérek</a>
 
 
     <script>
@@ -3101,57 +2956,30 @@ textarea:focus {
         const quoteMessage = document.getElementById("success-message");
         const submissionTokenInput = document.getElementById("submission_token");
         const allowedFileTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
-        const requestModeOptions = document.getElementById("requestModeOptions");
-        const quoteDetails = document.getElementById("quoteDetails");
-        const callbackLocationGroup = document.getElementById("callbackLocationGroup");
         const callbackLocationInput = document.getElementById("callback_location");
-        const requestIntro = document.getElementById("requestIntro");
+        const projectTypeInput = document.getElementById("project_type");
+        const isKitchenInquiry = new URLSearchParams(window.location.search).get("tipus") === "konyha";
 
-        if (new URLSearchParams(window.location.search).get("tipus") === "konyha") {
-            document.getElementById("project_type").value = "Konyhabútor";
-            document.getElementById("message").placeholder = "Például: L alakú konyhabútort szeretnék, világos frontokkal, fa hatású munkalappal és beépített gépekkel.";
+        function prefillKitchen() {
+            if (!isKitchenInquiry) return;
+            projectTypeInput.value = "Konyhabútor";
+            document.getElementById("message").placeholder = "Például: L alakú konyhát szeretnék világos frontokkal és fa hatású munkalappal.";
         }
+        prefillKitchen();
 
-        function getRequestMode() {
-            return quoteForm.querySelector('[name="request_mode"]:checked').value;
-        }
-
-        function syncRequestMode() {
-            const isCallback = getRequestMode() === "callback";
-            quoteDetails.hidden = isCallback;
-            quoteDetails.disabled = isCallback;
-            callbackLocationGroup.hidden = !isCallback;
-            callbackLocationInput.disabled = !isCallback;
-            callbackLocationInput.required = isCallback;
-            requestIntro.textContent = isCallback
-                ? "Adja meg a nevét és telefonszámát. Visszahívjuk, és együtt pontosítjuk, milyen megoldásra van szüksége."
-                : "Az alábbi részletek segítenek az ajánlat előkészítésében. A pontos árhoz további egyeztetésre vagy helyszíni felmérésre lehet szükség.";
-            quoteSubmitButton.textContent = isCallback ? "Visszahívást kérek" : "Árajánlatot kérek";
-        }
-
-        requestModeOptions.addEventListener("change", () => {
-            syncRequestMode();
-            quoteMessage.style.display = "none";
-        });
         quoteForm.addEventListener("input", event => {
             if (typeof event.target.setCustomValidity === "function") event.target.setCustomValidity("");
         });
-        syncRequestMode();
 
-        function buildQuoteRequestData(mode) {
+        function buildCallbackRequestData() {
             const data = new FormData(quoteForm);
             data.delete("request_mode");
-            data.delete("project_location");
             data.delete("callback_location");
-            data.set("wants_callback", mode === "callback" ? "true" : "false");
-            data.set("wants_quote", mode === "quote" ? "true" : "false");
+            data.set("wants_callback", "true");
+            data.set("wants_quote", "false");
             data.set("wants_consultation", "false");
-            if (mode === "quote") {
-                const location = document.getElementById("project_location").value.trim();
-                data.set("message", `Helyszín: ${location}\n\n${data.get("message").trim()}`);
-            } else {
-                data.set("message", `Település: ${callbackLocationInput.value.trim()}`);
-            }
+            const details = String(data.get("message") || "").trim();
+            data.set("message", "Település: " + callbackLocationInput.value.trim() + (details ? "\n\n" + details : ""));
             return data;
         }
 
@@ -3181,14 +3009,13 @@ textarea:focus {
         quoteForm.addEventListener("submit", async function(event) {
             event.preventDefault();
             if (quoteForm.getAttribute("aria-busy") === "true") return;
-            const mode = getRequestMode();
             for (const field of quoteForm.querySelectorAll('input[type="text"], input[type="tel"], input[type="email"], textarea')) {
                 if (!field.matches(":disabled")) field.value = field.value.trim();
             }
             const phone = document.getElementById("phone");
             phone.setCustomValidity(phone.value.replace(/\D/g, "").length < 6 ? "Kérjük, adjon meg egy érvényes telefonszámot." : "");
             if (!quoteForm.reportValidity()) return;
-            const attachments = mode === "callback" ? [] : Array.from(quoteForm.querySelector('[name="attachments"]').files);
+            const attachments = Array.from(quoteForm.querySelector('[name="attachments"]').files);
             const invalidFiles = attachments.some(file => file.size > 10 * 1024 * 1024 || !allowedFileTypes.has(file.type));
 
             if (attachments.length > 5 || invalidFiles) {
@@ -3196,7 +3023,7 @@ textarea:focus {
                 return;
             }
 
-            const requestData = buildQuoteRequestData(mode);
+            const requestData = buildCallbackRequestData();
             if (String(requestData.get("message") || "").replace(/\r?\n/g, "\r\n").length > 4000) {
                 showQuoteMessage("Kérjük, rövidítse az elképzelés leírását: a helyszínnel együtt legfeljebb 4000 karakter küldhető.", true);
                 return;
@@ -3230,37 +3057,33 @@ textarea:focus {
                 }
                 const successText = payload.duplicate
                     ? "Ezt a beküldést már megkaptuk; újabb példány nem készült."
-                    : mode === "callback"
-                        ? "Köszönjük! Visszahívási kérését megkaptuk. Hamarosan telefonon jelentkezünk."
-                        : attachments.length
-                            ? "Köszönjük! Ajánlatkérését és a csatolt fájlokat megkaptuk. Hamarosan felvesszük Önnel a kapcsolatot."
-                            : "Köszönjük! Ajánlatkérését megkaptuk. Átnézzük a részleteket, és felvesszük Önnel a kapcsolatot az egyeztetéshez.";
+                    : "Köszönjük! Visszahívási kérését megkaptuk. Hamarosan telefonon jelentkezünk.";
                 showQuoteMessage(successText + reference + " ✓");
                 // Measurement must never interrupt a successfully saved inquiry.
                 try {
                     window.HEPAMarketing?.recordQuoteSubmission({
-                        requestMode: mode,
+                        requestMode: "callback",
                         responseOk: response.ok,
                         ok: payload.ok,
                         state: payload.state,
+                        reference: payload.reference,
                         submissionToken: requestData.get("submission_token")
                     });
                 } catch { /* The quote is saved even if optional measurement is unavailable. */ }
                 quoteForm.reset();
-                quoteForm.querySelector(`[name="request_mode"][value="${mode}"]`).checked = true;
-                syncRequestMode();
+                prefillKitchen();
                 renewSubmissionToken();
-                window.dispatchEvent(new CustomEvent("hepa:quote-request-success", { detail: { reference: payload.reference || null, requestMode: mode } }));
+                window.dispatchEvent(new CustomEvent("hepa:quote-request-success", { detail: { reference: payload.reference, requestMode: "callback" } }));
             } catch (error) {
                 const message = error.name === "AbortError"
                     ? "A beküldés eredményét még nem sikerült ellenőrizni. Az adatokat megtartottuk; próbálja újra ugyanazt a beküldést."
-                    : (error.message || "Az ajánlatkérés küldése nem sikerült. Kérjük, próbálja újra.");
+                    : (error.message || "A visszahíváskérés küldése nem sikerült. Kérjük, próbálja újra.");
                 showQuoteMessage(message, true);
             } finally {
                 clearTimeout(timeout);
                 quoteForm.removeAttribute("aria-busy");
                 enabledControls.forEach(control => { control.disabled = false; });
-                syncRequestMode();
+                quoteSubmitButton.textContent = "Visszahívást kérek";
             }
         });
 
