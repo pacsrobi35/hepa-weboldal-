@@ -2,7 +2,8 @@
 (() => {
   'use strict';
   const ADS_ID = 'AW-10787294242';
-  const SEND_TO = 'AW-10787294242/s7xoCNDcyPQcEKKY5Jco';
+  const QUOTE_SEND_TO = 'AW-10787294242/s7xoCNDcyPQcEKKY5Jco';
+  const CALLBACK_SEND_TO = 'AW-10787294242/igZYCNT_nIkdEKKY5Jco';
   const settingsOnly = document.currentScript?.hasAttribute('data-consent-settings-only') === true;
   const CONSENT_KEY = 'hepa-marketing-consent-v2';
   const PREVIOUS_CONSENT_KEY = 'hepa-marketing-consent-v1';
@@ -11,7 +12,7 @@
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const denied = { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' };
   const granted = { ...denied, ad_storage: 'granted', ad_user_data: 'granted' };
-  const pending = new Set();
+  const pending = new Map();
   let sent = new Set();
   let preference = readPreference();
   let started = false;
@@ -59,11 +60,11 @@
 
   function flush() {
     if (!hasConsent() || !loaded) return;
-    for (const id of pending) {
+    for (const [id, sendTo] of pending) {
       pending.delete(id);
       if (sent.has(id)) continue;
       // Only a confirmed request UUID is sent. No form fields or HEPA reference numbers.
-      command('event', 'conversion', { send_to: SEND_TO, transaction_id: id });
+      command('event', 'conversion', { send_to: sendTo, transaction_id: id });
       rememberSent(id);
     }
   }
@@ -181,7 +182,7 @@
           || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
       if (requestMode === 'callback' && (typeof reference !== 'string' || !/^HEPA-\d{6,}$/.test(reference))) return false;
       if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
-      pending.add(submissionToken);
+      pending.set(submissionToken, requestMode === 'callback' ? CALLBACK_SEND_TO : QUOTE_SEND_TO);
       flush();
       return true;
     },
@@ -192,7 +193,7 @@
           || typeof reference !== 'string' || !/^HEPA-LSZ-\d{6,}$/.test(reference)
           || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
       if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
-      pending.add(submissionToken);
+      pending.set(submissionToken, QUOTE_SEND_TO);
       flush();
       return true;
     }
