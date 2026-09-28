@@ -72,6 +72,7 @@ test('one confirmed callback is measured after consent, without submitted contac
   assert.equal(app.conversions().length, 1);
   assert.equal(app.window.HEPAMarketing.recordQuoteSubmission(valid), false);
   assert.deepEqual(Object.keys(app.conversions()[0][2]).sort(), ['send_to', 'transaction_id']);
+  assert.equal(app.conversions()[0][2].send_to, 'AW-10787294242/igZYCNT_nIkdEKKY5Jco');
   assert.equal(app.conversions()[0][2].transaction_id, uuid);
 });
 
