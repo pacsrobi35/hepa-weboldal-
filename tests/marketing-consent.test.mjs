@@ -130,6 +130,23 @@ test('only confirmed quotes are emitted once per UUID; no PII or fabricated mone
   assert.equal(app.conversions().length, 2);
 });
 
+test('queued furniture callbacks use their own conversion action while quotes keep the existing action', () => {
+  const app = harness();
+  app.choose('granted');
+  const callback = { ...valid, requestMode: 'callback', reference: 'HEPA-000123', submissionToken: secondToken };
+  assert.equal(app.record(callback), true);
+  assert.equal(app.record(valid), true);
+  assert.equal(app.record(callback), false, 'pending callback is counted once');
+  assert.equal(app.conversions().length, 0);
+  app.loaded();
+  assert.deepEqual(Array.from(app.conversions(), command => command[2].send_to), [
+    'AW-10787294242/igZYCNT_nIkdEKKY5Jco',
+    'AW-10787294242/s7xoCNDcyPQcEKKY5Jco',
+  ]);
+  assert.equal(app.record(callback), false, 'sent callback is counted once');
+  assert.deepEqual(Array.from(app.conversions(), command => command[2].transaction_id), [secondToken, token]);
+});
+
 test('return visit respects consent expiry and session deduplication', () => {
   const savedChoice = JSON.stringify({ version: 2, choice: 'granted', expiresAt: Date.now() + 60_000 });
   const app = harness({ local: { [choiceKey]: savedChoice }, session: { [sentKey]: JSON.stringify([token]) } });
