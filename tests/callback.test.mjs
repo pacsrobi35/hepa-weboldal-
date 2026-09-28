@@ -117,6 +117,8 @@ test('callback payload retains the optional kitchen details and attachment; conf
   const result = await submit({ ok: true, state: 'ready', reference: 'HEPA-000123' });
   assert.equal(result.request.get('wants_callback'), 'true');
   assert.equal(result.request.get('wants_quote'), 'false');
+  assert.equal(result.request.get('city'), 'Gödöllő');
+  assert.equal(result.request.has('callback_location'), false);
   assert.equal(result.request.get('project_type'), 'Konyhabútor');
   assert.equal(result.request.get('email'), 'teszt@example.test');
   assert.equal(result.request.get('message'), 'Település: Gödöllő\n\nVilágos frontok');
