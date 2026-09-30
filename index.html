@@ -2981,6 +2981,7 @@ textarea:focus {
             data.set("wants_consultation", "false");
             const details = String(data.get("message") || "").trim();
             data.set("message", "Település: " + callbackLocationInput.value.trim() + (details ? "\n\n" + details : ""));
+            window.HEPAMarketing?.appendAttribution(data);
             return data;
         }
 

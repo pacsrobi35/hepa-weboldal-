@@ -1700,6 +1700,7 @@
     body.append('payload', JSON.stringify(payload));
     body.append('submission_token', token);
     body.append('company_website', cleanText(honeypotValue));
+    window.HEPAMarketing?.appendAttribution(body);
     attachments.forEach((file) => body.append('attachments', file, file.name));
     return body;
   }

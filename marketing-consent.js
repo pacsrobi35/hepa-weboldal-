@@ -8,7 +8,10 @@
   const CONSENT_KEY = 'hepa-marketing-consent-v2';
   const PREVIOUS_CONSENT_KEY = 'hepa-marketing-consent-v1';
   const SENT_KEY = 'hepa-quote-conversions-v1';
+  const ATTRIBUTION_KEY = 'hepa-marketing-attribution-v1';
   const CONSENT_LIFETIME = 180 * 24 * 60 * 60 * 1000;
+  const ATTRIBUTION_LIFETIME = 30 * 24 * 60 * 60 * 1000;
+  const ATTRIBUTION_FIELDS = ['gclid', 'gbraid', 'wbraid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const denied = { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' };
   const granted = { ...denied, ad_storage: 'granted', ad_user_data: 'granted' };
@@ -56,6 +59,68 @@
     sent.add(id);
     sent = new Set([...sent].slice(-100));
     try { window.sessionStorage.setItem(SENT_KEY, JSON.stringify([...sent])); } catch { /* Optional storage. */ }
+  }
+
+
+  function cleanAttributionValue(value, maxLength) {
+    return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+  }
+
+  function readPageAttribution() {
+    const params = new URLSearchParams(window.location.search);
+    const result = {};
+    const limits = {
+      gclid: 512, gbraid: 512, wbraid: 512,
+      utm_source: 100, utm_medium: 100, utm_campaign: 200,
+      utm_term: 500, utm_content: 500
+    };
+    for (const key of ATTRIBUTION_FIELDS) {
+      const value = cleanAttributionValue(params.get(key), limits[key]);
+      if (value) result[key] = value;
+    }
+    if (!Object.keys(result).length) return null;
+    result.landing_page = cleanAttributionValue(window.location.pathname, 500);
+    if (document.referrer) {
+      try {
+        const referrer = new URL(document.referrer);
+        if (referrer.origin !== window.location.origin) {
+          result.initial_referrer = cleanAttributionValue(referrer.origin + referrer.pathname, 500);
+        }
+      } catch { /* Ignore malformed referrers. */ }
+    }
+    return result;
+  }
+
+  const pageAttribution = readPageAttribution();
+
+  function readStoredAttribution() {
+    if (!hasConsent()) return null;
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY));
+      if (saved?.version !== 1 || !Number.isFinite(saved.expiresAt) || saved.expiresAt <= Date.now()) {
+        window.localStorage.removeItem(ATTRIBUTION_KEY);
+        return null;
+      }
+      const { version, expiresAt, ...data } = saved;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveCurrentAttribution() {
+    if (!hasConsent() || !pageAttribution) return;
+    try {
+      window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify({
+        version: 1,
+        expiresAt: Date.now() + ATTRIBUTION_LIFETIME,
+        ...pageAttribution
+      }));
+    } catch { /* Attribution is optional; the form must keep working. */ }
+  }
+
+  function clearStoredAttribution() {
+    try { window.localStorage.removeItem(ATTRIBUTION_KEY); } catch { /* Optional storage. */ }
   }
 
   function flush() {
@@ -118,13 +183,16 @@
     // Retain only the in-memory sent set to avoid re-emitting a quote if consent is restored.
     // The optional session storage is removed immediately on withdrawal.
     try { window.sessionStorage.removeItem(SENT_KEY); } catch { /* Optional storage. */ }
+    clearStoredAttribution();
   }
 
   function choose(choice) {
     preference = { version: 2, choice, expiresAt: Date.now() + CONSENT_LIFETIME };
     try { window.localStorage.setItem(CONSENT_KEY, JSON.stringify(preference)); } catch { /* Keep this page's choice. */ }
-    if (choice === 'granted') startMeasurement();
-    else stopMeasurement();
+    if (choice === 'granted') {
+      saveCurrentAttribution();
+      startMeasurement();
+    } else stopMeasurement();
     closePanel();
   }
 
@@ -196,6 +264,17 @@
       pending.set(submissionToken, QUOTE_SEND_TO);
       flush();
       return true;
+    },
+    appendAttribution(formData) {
+      if (!(formData instanceof FormData) || !hasConsent()) return false;
+      const attribution = readStoredAttribution();
+      if (!attribution) return false;
+      formData.set('marketing_attribution', JSON.stringify(attribution));
+      return true;
+    },
+    getAttribution() {
+      const attribution = readStoredAttribution();
+      return attribution ? Object.freeze({ ...attribution }) : null;
     }
   });
 
@@ -206,5 +285,8 @@
     else stopMeasurement();
   });
   createPanel();
-  if (hasConsent()) startMeasurement();
+  if (hasConsent()) {
+    saveCurrentAttribution();
+    startMeasurement();
+  }
 })();
