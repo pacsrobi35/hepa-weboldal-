@@ -93,14 +93,19 @@ type Material = {
   displayOrder: number;
 };
 
+type EdgeBand = {
+  code: string;
+  thicknessMm: number | null;
+  materialType: string;
+};
+
 type CuttingItem = {
   materialClientId: string;
   name: string;
   lengthMm: number;
   widthMm: number;
   quantity: number;
-  edgeCode: string;
-  edgeMaterialType: string;
+  edgeBands: EdgeBand[];
   note: string;
   displayOrder: number;
 };
@@ -113,7 +118,7 @@ type Totals = {
 };
 
 type ValidatedPayload = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   flow: Flow;
   sizeBasis: "finished";
   contact: Contact;
@@ -332,7 +337,112 @@ function parseLogistics(value: unknown): Logistics {
   };
 }
 
-function parseManualData(source: Record<string, unknown>) {
+function parseEdgeBands(
+  item: Record<string, unknown>,
+  itemIndex: number,
+  schemaVersion: 1 | 2,
+): EdgeBand[] {
+  if (schemaVersion === 1) {
+    const code = enumValue<string>(
+      item.edgeCode,
+      edgeCodes,
+      `${itemIndex}. tétel élzárási kódja`,
+    );
+    const needsEdgeMaterial = code !== "0-0";
+    const materialType = fieldText(
+      item.edgeMaterialType,
+      `${itemIndex}. tétel élzáró típusa`,
+      120,
+      needsEdgeMaterial ? 2 : 0,
+    );
+
+    return [{
+      code,
+      thicknessMm: null,
+      materialType: needsEdgeMaterial ? materialType : "",
+    }];
+  }
+
+  if (!Array.isArray(item.edgeBands) || item.edgeBands.length < 1 || item.edgeBands.length > 2) {
+    fail(`A(z) ${itemIndex}. tételnél egy vagy két élanyag adható meg.`);
+  }
+
+  const edgeBands = item.edgeBands.map((raw, edgeIndex): EdgeBand => {
+    const position = edgeIndex + 1;
+    const source = record(raw, `${itemIndex}. tétel ${position}. élanyaga`);
+    const code = enumValue<string>(
+      source.code,
+      edgeCodes,
+      `${itemIndex}. tétel ${position}. élanyagának kódja`,
+    );
+
+    if (position === 2 && code === "0-0") {
+      fail(`A(z) ${itemIndex}. tétel második élanyagánál válasszon élzárási kódot.`);
+    }
+
+    if (code === "0-0") {
+      const thicknessMm = optionalNumber(
+        source.thicknessMm,
+        `${itemIndex}. tétel ${position}. élanyagának vastagsága`,
+        0.1,
+        10,
+      );
+      const materialType = fieldText(
+        source.materialType,
+        `${itemIndex}. tétel ${position}. élanyagának megnevezése`,
+        120,
+      );
+      if (thicknessMm !== null || materialType) {
+        fail(
+          `A(z) ${itemIndex}. tételnél élzárás nélkül ne adjon meg élanyag-vastagságot vagy megnevezést.`,
+        );
+      }
+      return { code, thicknessMm: null, materialType: "" };
+    }
+
+    return {
+      code,
+      thicknessMm: numericField(
+        source.thicknessMm,
+        `${itemIndex}. tétel ${position}. élanyagának vastagsága`,
+        0.1,
+        10,
+      ),
+      materialType: fieldText(
+        source.materialType,
+        `${itemIndex}. tétel ${position}. élanyagának megnevezése`,
+        120,
+        1,
+      ),
+    };
+  });
+
+  const edgeCounts = edgeBands.reduce(
+    (counts, edgeBand) => {
+      const [longEdges, shortEdges] = edgeBand.code.split("-").map(Number);
+      return {
+        longEdges: counts.longEdges + longEdges,
+        shortEdges: counts.shortEdges + shortEdges,
+      };
+    },
+    { longEdges: 0, shortEdges: 0 },
+  );
+  if (edgeCounts.longEdges > 2 || edgeCounts.shortEdges > 2) {
+    fail(
+      `A(z) ${itemIndex}. tétel élanyagai ugyanarra az oldalra a lehetségesnél több élzárást adnak meg.`,
+    );
+  }
+
+  if (edgeBands.length === 2 && edgeBands[0].code === "0-0") {
+    fail(
+      `A(z) ${itemIndex}. tételnél élzárás nélkül nem adható meg második élanyag.`,
+    );
+  }
+
+  return edgeBands;
+}
+
+function parseManualData(source: Record<string, unknown>, schemaVersion: 1 | 2) {
   if (!Array.isArray(source.materials) || source.materials.length < 1) {
     fail("Vegyen fel legalább egy anyagot.");
   }
@@ -399,24 +509,15 @@ function parseManualData(source: Record<string, unknown>) {
       999,
       true,
     );
-    const edgeCode = enumValue<string>(
-      item.edgeCode,
-      edgeCodes,
-      `${index + 1}. tétel élzárási kódja`,
-    );
-    const needsEdgeMaterial = edgeCode !== "0-0";
-    const edgeMaterialType = fieldText(
-      item.edgeMaterialType,
-      `${index + 1}. tétel élzáró típusa`,
-      120,
-      needsEdgeMaterial ? 2 : 0,
-    );
+    const edgeBands = parseEdgeBands(item, index + 1, schemaVersion);
     const note = fieldText(item.note, `${index + 1}. tétel megjegyzése`, 500);
 
-    const [longEdges, shortEdges] = edgeCode.split("-").map(Number);
     pieces += quantity;
     areaM2 += quantity * lengthMm * widthMm / 1_000_000;
-    edgeM += quantity * (longEdges * lengthMm + shortEdges * widthMm) / 1000;
+    edgeM += edgeBands.reduce((sum, edgeBand) => {
+      const [longEdges, shortEdges] = edgeBand.code.split("-").map(Number);
+      return sum + quantity * (longEdges * lengthMm + shortEdges * widthMm) / 1000;
+    }, 0);
 
     return {
       materialClientId,
@@ -424,8 +525,7 @@ function parseManualData(source: Record<string, unknown>) {
       lengthMm,
       widthMm,
       quantity,
-      edgeCode,
-      edgeMaterialType: needsEdgeMaterial ? edgeMaterialType : "",
+      edgeBands,
       note,
       displayOrder: index + 1,
     };
@@ -445,9 +545,10 @@ function parseManualData(source: Record<string, unknown>) {
 
 function parsePayload(value: unknown): ValidatedPayload {
   const source = record(value, "ajánlatkérés");
-  if (source.schemaVersion !== 1) {
+  if (source.schemaVersion !== 1 && source.schemaVersion !== 2) {
     fail("Az űrlap verziója nem támogatott. Kérjük, frissítse az oldalt.");
   }
+  const schemaVersion = source.schemaVersion;
 
   const flow = enumValue<Flow>(source.flow, flows, "beküldési mód");
   const details = record(source.details, "ajánlat részletei");
@@ -477,7 +578,7 @@ function parsePayload(value: unknown): ValidatedPayload {
   }
 
   if (flow === "manual") {
-    const manual = parseManualData(details);
+    const manual = parseManualData(details, schemaVersion);
     materials = manual.materials;
     items = manual.items;
     totals = manual.totals;
@@ -514,7 +615,7 @@ function parsePayload(value: unknown): ValidatedPayload {
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion,
     flow,
     sizeBasis,
     contact,
@@ -717,6 +818,18 @@ function trimMessage(value: string, maxLength: number) {
   return `${value.slice(0, maxLength - suffix.length).trimEnd()}${suffix}`;
 }
 
+function formatDecimal(value: number) {
+  return String(value).replace(".", ",");
+}
+
+function formatEdgeBand(edgeBand: EdgeBand) {
+  if (edgeBand.code === "0-0") return "0-0 · élzárás nélkül";
+  const thickness = edgeBand.thicknessMm === null
+    ? ""
+    : ` · ${formatDecimal(edgeBand.thicknessMm)} mm`;
+  return `${edgeBand.code}${thickness} · ${edgeBand.materialType}`;
+}
+
 function buildSummary(
   payload: ValidatedPayload,
   files: ValidatedFile[],
@@ -749,9 +862,13 @@ function buildSummary(
         const material = payload.materials.find(
           (candidate) => candidate.clientId === item.materialClientId,
         );
-        const edge = item.edgeCode === "0-0"
-          ? "0-0, élzárás nélkül"
-          : `${item.edgeCode} (${edgeCodeLabels[item.edgeCode]}); ${item.edgeMaterialType}`;
+        const edge = item.edgeBands
+          .map((edgeBand, edgeIndex) =>
+            item.edgeBands.length > 1
+              ? `${edgeIndex + 1}. élanyag: ${formatEdgeBand(edgeBand)}`
+              : formatEdgeBand(edgeBand)
+          )
+          .join("; ");
         return `${index + 1}. ${item.name || "Névtelen tétel"} – ${material?.name || "ismeretlen anyag"}, ${item.lengthMm} × ${item.widthMm} mm, ${item.quantity} db; él: ${edge}${item.note ? `; megjegyzés: ${item.note}` : ""}`;
       }),
     );
@@ -859,6 +976,66 @@ function success(
   }, status, origin);
 }
 
+
+type MarketingAttribution = {
+  gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  landing_page?: string;
+  initial_referrer?: string;
+};
+
+function parseMarketingAttribution(formData: FormData): MarketingAttribution | null {
+  const rawValue = formData.get("marketing_attribution");
+  if (typeof rawValue !== "string" || !rawValue.trim() || rawValue.length > 4000) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawValue);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const source = parsed as Record<string, unknown>;
+  const pick = (key: string, maxLength: number) =>
+    typeof source[key] === "string" ? source[key].trim().slice(0, maxLength) : "";
+  const attribution: MarketingAttribution = {
+    gclid: pick("gclid", 512),
+    gbraid: pick("gbraid", 512),
+    wbraid: pick("wbraid", 512),
+    utm_source: pick("utm_source", 100),
+    utm_medium: pick("utm_medium", 100),
+    utm_campaign: pick("utm_campaign", 200),
+    utm_term: pick("utm_term", 500),
+    utm_content: pick("utm_content", 500),
+    landing_page: pick("landing_page", 500),
+    initial_referrer: pick("initial_referrer", 500),
+  };
+  return Object.values(attribution).some(Boolean) ? attribution : null;
+}
+
+async function persistMarketingAttribution(
+  supabase: SupabaseClient,
+  quoteId: number,
+  attribution: MarketingAttribution | null,
+) {
+  if (!attribution) return;
+  const update: Record<string, string> = {};
+  for (const [key, value] of Object.entries(attribution)) {
+    if (value) update[key] = value;
+  }
+  if (!Object.keys(update).length) return;
+  const { error } = await supabase
+    .from("quote_requests")
+    .update({ ...update, marketing_captured_at: new Date().toISOString() })
+    .eq("id", quoteId);
+  if (error) console.error("marketing attribution update failed", error.code);
+}
+
 function serviceRoleKey() {
   const modernKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
   if (modernKeys) {
@@ -945,6 +1122,7 @@ function rpcArguments(
 ) {
   return {
     p_request: {
+      schemaVersion: payload.schemaVersion,
       submissionToken,
       flow: payload.flow,
       contact: {
@@ -967,17 +1145,24 @@ function rpcArguments(
           name: material.name,
           thickness_mm: material.thicknessMm,
         })),
-        items: payload.items.map((item) => ({
-          position: item.displayOrder,
-          material_client_id: item.materialClientId,
-          label: item.name || null,
-          length_mm: item.lengthMm,
-          width_mm: item.widthMm,
-          quantity: item.quantity,
-          edge_code: item.edgeCode,
-          edge_material_type: item.edgeMaterialType || null,
-          note: item.note || null,
-        })),
+        items: payload.items.map((item) => {
+          const [primaryEdge, secondaryEdge] = item.edgeBands;
+          return {
+            position: item.displayOrder,
+            material_client_id: item.materialClientId,
+            label: item.name || null,
+            length_mm: item.lengthMm,
+            width_mm: item.widthMm,
+            quantity: item.quantity,
+            edge_code: primaryEdge.code,
+            edge_material_type: primaryEdge.materialType || null,
+            edge_thickness_mm: primaryEdge.thicknessMm,
+            edge_code_2: secondaryEdge?.code || null,
+            edge_material_type_2: secondaryEdge?.materialType || null,
+            edge_thickness_mm_2: secondaryEdge?.thicknessMm ?? null,
+            note: item.note || null,
+          };
+        }),
       },
       logistics: payload.logistics
         ? {
@@ -1297,6 +1482,7 @@ async function handleRequest(request: Request) {
     return json({ ok: true }, 200, origin);
   }
 
+  const marketingAttribution = parseMarketingAttribution(formData);
   const submissionTokenValue = formData.get("submission_token");
   const submissionToken = typeof submissionTokenValue === "string"
     ? submissionTokenValue.trim()
@@ -1399,6 +1585,7 @@ async function handleRequest(request: Request) {
   }
 
   if (isDuplicate && ingestState === "ready") {
+    await persistMarketingAttribution(supabase, quoteRequestId, marketingAttribution);
     await processNotification(supabase, {
       quoteRequestId,
       payload,
@@ -1423,6 +1610,8 @@ async function handleRequest(request: Request) {
       origin,
     );
   }
+
+  await persistMarketingAttribution(supabase, quoteRequestId, marketingAttribution);
 
   const fileRows: Array<Record<string, unknown>> = [];
   const filePurpose = payload.flow === "upload"
