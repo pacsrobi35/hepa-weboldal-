@@ -96,6 +96,66 @@ function checked(formData: FormData, name: string) {
   return ["on", "true", "1"].includes(text(formData, name, 10).toLowerCase());
 }
 
+
+type MarketingAttribution = {
+  gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  landing_page?: string;
+  initial_referrer?: string;
+};
+
+function parseMarketingAttribution(formData: FormData): MarketingAttribution | null {
+  const rawValue = formData.get("marketing_attribution");
+  if (typeof rawValue !== "string" || !rawValue.trim() || rawValue.length > 4000) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawValue);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const source = parsed as Record<string, unknown>;
+  const pick = (key: string, maxLength: number) =>
+    typeof source[key] === "string" ? source[key].trim().slice(0, maxLength) : "";
+  const attribution: MarketingAttribution = {
+    gclid: pick("gclid", 512),
+    gbraid: pick("gbraid", 512),
+    wbraid: pick("wbraid", 512),
+    utm_source: pick("utm_source", 100),
+    utm_medium: pick("utm_medium", 100),
+    utm_campaign: pick("utm_campaign", 200),
+    utm_term: pick("utm_term", 500),
+    utm_content: pick("utm_content", 500),
+    landing_page: pick("landing_page", 500),
+    initial_referrer: pick("initial_referrer", 500),
+  };
+  return Object.values(attribution).some(Boolean) ? attribution : null;
+}
+
+async function persistMarketingAttribution(
+  supabase: SupabaseClient,
+  quoteId: number,
+  attribution: MarketingAttribution | null,
+) {
+  if (!attribution) return;
+  const update: Record<string, string> = {};
+  for (const [key, value] of Object.entries(attribution)) {
+    if (value) update[key] = value;
+  }
+  if (!Object.keys(update).length) return;
+  const { error } = await supabase
+    .from("quote_requests")
+    .update({ ...update, marketing_captured_at: new Date().toISOString() })
+    .eq("id", quoteId);
+  if (error) console.error("marketing attribution update failed", error.code);
+}
+
 function serviceRoleKey() {
   const modernKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
   if (modernKeys) {
@@ -176,6 +236,9 @@ async function sendQuoteNotification(details: {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) return { sent: false, error: "resend-api-key-missing" };
 
+  const callbackOnly = details.wantsCallback && !details.wantsQuote && !details.wantsConsultation;
+  const notificationTitle = callbackOnly ? "Új bútoros visszahíváskérés" : "Új bútorgyártási ajánlatkérés";
+
   const requested = [
     details.wantsCallback ? "visszahívás" : "",
     details.wantsQuote ? "árajánlat" : "",
@@ -183,7 +246,7 @@ async function sendQuoteNotification(details: {
   ].filter(Boolean).join(", ") || "nincs külön megjelölve";
 
   const body = [
-    "Új bútorgyártási ajánlatkérés érkezett a weboldalról.",
+    `${notificationTitle} érkezett a weboldalról.`,
     "",
     `Név: ${details.customerName}`,
     `Telefonszám: ${details.phone}`,
@@ -209,7 +272,7 @@ async function sendQuoteNotification(details: {
         from: Deno.env.get("QUOTE_NOTIFICATION_FROM") ||
           "HEPA ajánlatkérő <onboarding@resend.dev>",
         to: ["hepaconstructkft@gmail.com"],
-        subject: "Új bútorgyártási ajánlatkérés érkezett",
+        subject: `${notificationTitle} érkezett`,
         text: body,
         ...(details.email ? { reply_to: details.email } : {}),
       }),
@@ -297,11 +360,13 @@ async function handleRequest(request: Request) {
     return json({ ok: true }, 200, origin);
   }
 
+  const marketingAttribution = parseMarketingAttribution(formData);
   const customerName = text(formData, "customer_name", 100);
   const phone = text(formData, "phone", 40);
   const emailValue = text(formData, "email", 254).toLowerCase();
   const furnitureLabel = text(formData, "project_type", 80);
   const message = text(formData, "message", 4000);
+  const city = text(formData, "city", 120);
   const dimensions = text(formData, "approximate_dimensions", 500);
   const consent = checked(formData, "consent");
   const wantsCallback = checked(formData, "wants_callback");
@@ -334,6 +399,10 @@ async function handleRequest(request: Request) {
 
   if (message && (message.length < 3 || message.length > 4000)) {
     return json({ error: "A leírás legalább 3, legfeljebb 4000 karakter lehet." }, 400, origin);
+  }
+
+  if (city.length > 120) {
+    return json({ error: "A település legfeljebb 120 karakter lehet." }, 400, origin);
   }
 
   if (dimensions.length > 500 || furnitureLabel.length > 80) {
@@ -385,6 +454,7 @@ async function handleRequest(request: Request) {
     wants_callback: wantsCallback,
     wants_quote: wantsQuote,
     wants_consultation: wantsConsultation,
+    ...(city ? { city } : {}),
   };
   const payloadHash = await sha256(new TextEncoder().encode(JSON.stringify({
     request: requestDetails,
@@ -421,6 +491,8 @@ async function handleRequest(request: Request) {
   if (!started || !Number.isSafeInteger(quoteId) || quoteId < 1 || typeof started.state !== "string" || !["ingesting", "ready"].includes(started.state)) {
     return json({ code: "save-unconfirmed", error: "A mentést nem sikerült ellenőrizni. Próbálja újra ugyanazt a beküldést." }, 503, origin);
   }
+
+  await persistMarketingAttribution(supabase, quoteId, marketingAttribution);
 
   if (started.state === "ingesting") {
     const fileRows = [];
