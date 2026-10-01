@@ -18,3 +18,6 @@ verify_jwt = true
 
 [functions.resend-quote-webhook]
 verify_jwt = false
+
+[functions.record-lead-funnel-event]
+verify_jwt = false

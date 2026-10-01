@@ -11,7 +11,7 @@ const cuttingPages = await Promise.all(['lapszabaszat.html', 'lapszabaszat-ajanl
   .map(path => readFile(new URL('../' + path, import.meta.url), 'utf8')));
 const token = '10000000-0000-4000-8000-000000000001';
 const secondToken = '10000000-0000-4000-8000-000000000002';
-const choiceKey = 'hepa-marketing-consent-v2';
+const choiceKey = 'hepa-marketing-consent-v3';
 const sentKey = 'hepa-quote-conversions-v1';
 const valid = { requestMode: 'quote', responseOk: true, ok: true, state: 'ready', submissionToken: token };
 
@@ -63,7 +63,7 @@ function harness({ local = {}, session = {}, blocked = false, settingsOnly = fal
     addEventListener(name, callback) { listeners[name] = callback; },
     matchMedia() { return { matches: true }; }, dispatchEvent() {},
   };
-  vm.runInNewContext(source, { window, document, console });
+  vm.runInNewContext(source, { window, document, console, URLSearchParams, URL });
   return {
     window, document, docNodes, scripts, panels, cookieWrites, settings, listeners,
     choose(choice) { panels[0].querySelector(`[data-consent-${choice === 'granted' ? 'accept' : 'reject'}]`).listeners.click(); },
@@ -148,15 +148,15 @@ test('queued furniture callbacks use their own conversion action while quotes ke
 });
 
 test('return visit respects consent expiry and session deduplication', () => {
-  const savedChoice = JSON.stringify({ version: 2, choice: 'granted', expiresAt: Date.now() + 60_000 });
+  const savedChoice = JSON.stringify({ version: 3, choice: 'granted', expiresAt: Date.now() + 60_000 });
   const app = harness({ local: { [choiceKey]: savedChoice }, session: { [sentKey]: JSON.stringify([token]) } });
   assert.equal(app.panels[0].hidden, true);
   app.loaded();
   assert.equal(app.record(), false);
   assert.equal(app.conversions().length, 0);
   for (const saved of [
-    { version: 2, choice: 'denied', expiresAt: Date.now() + 60_000 },
-    { version: 2, choice: 'granted', expiresAt: Date.now() - 1 },
+    { version: 3, choice: 'denied', expiresAt: Date.now() + 60_000 },
+    { version: 3, choice: 'granted', expiresAt: Date.now() - 1 },
     { version: 0, choice: 'granted', expiresAt: Date.now() + 60_000 },
   ]) assert.equal(harness({ local: { [choiceKey]: JSON.stringify(saved) } }).scripts.length, 0);
 });
@@ -182,7 +182,7 @@ test('consent withdrawal in another tab stops conversions here', () => {
   const app = harness();
   app.choose('granted');
   app.loaded();
-  app.window.localStorage.setItem(choiceKey, JSON.stringify({ version: 2, choice: 'denied', expiresAt: Date.now() + 60_000 }));
+  app.window.localStorage.setItem(choiceKey, JSON.stringify({ version: 3, choice: 'denied', expiresAt: Date.now() + 60_000 }));
   app.listeners.storage({ key: choiceKey });
   assert.equal(app.record(), false);
   assert.equal(app.conversions().length, 0);
@@ -220,22 +220,27 @@ test('restoring consent does not resend a quote already emitted on this page', (
   assert.equal(app.conversions().length, 1);
 });
 
-async function submitForm({ payload, responseOk = true, networkFailure = false, mode = 'callback', measurementThrows = false } = {}) {
+async function submitForm({ payload, responseOk = true, networkFailure = false, mode = 'callback', measurementThrows = false, validity = true, attachments = [], message = 'Konyhabútor' } = {}) {
   const app = harness();
   const form = app.document.getElementById('quoteForm');
   const measured = [];
+  const attempts = [];
   form.elements = [];
   form.querySelectorAll = () => [];
-  form.reportValidity = () => true;
+  form.reportValidity = () => validity;
   form.reset = () => { form.wasReset = true; };
   form.querySelector('[name="request_mode"]:checked').value = mode;
-  form.querySelector('[name="attachments"]').files = [];
+  form.querySelector('[name="attachments"]').files = attachments;
   app.document.getElementById('phone').value = '+36701234567';
   app.document.getElementById('project_location').value = 'Aszód';
   app.document.getElementById('callback_location').value = 'Aszód';
-  app.window.HEPAMarketing = { recordQuoteSubmission(data) { measured.push(data); if (measurementThrows) throw new Error('tag unavailable'); } };
+  app.window.HEPAMarketing = {
+    appendAttribution() {},
+    recordSubmitAttempt(data) { attempts.push(data); if (measurementThrows) throw new Error('collector unavailable'); },
+    recordQuoteSubmission(data) { measured.push(data); if (measurementThrows) throw new Error('tag unavailable'); }
+  };
   class TestFormData extends Map {
-    constructor() { super([['message', 'Konyhabútor'], ['submission_token', token]]); }
+    constructor() { super([['message', message], ['submission_token', token]]); }
   }
   const formScript = html.slice(html.indexOf('        const prefersReducedMotion'), html.indexOf('        const types ='));
   vm.runInNewContext(formScript, {
@@ -245,8 +250,24 @@ async function submitForm({ payload, responseOk = true, networkFailure = false, 
     fetch: async () => { if (networkFailure) throw new Error('network'); return { ok: responseOk, json: async () => payload }; },
   });
   await form.listeners.submit({ preventDefault() {} });
-  return { measured, form, message: app.document.getElementById('success-message').textContent };
+  return { measured, attempts, form, message: app.document.getElementById('success-message').textContent };
 }
+
+test('callback attempt is measured only after browser, attachment and message validation pass', async () => {
+  for (const options of [
+    { validity: false }, { attachments: [{ size: 11 * 1024 * 1024, type: 'image/jpeg' }] },
+    { attachments: [{ size: 10, type: 'application/javascript' }] }, { message: 'x'.repeat(4001) },
+  ]) {
+    const result = await submitForm(options);
+    assert.equal(result.attempts.length, 0);
+    assert.equal(result.measured.length, 0);
+  }
+  const result = await submitForm({ networkFailure: true });
+  assert.equal(result.attempts.length, 1, 'a valid attempt remains an attempt when the backend is offline');
+  assert.deepEqual(Object.keys(result.attempts[0]), ['funnel']);
+  assert.equal(result.attempts[0].funnel, 'callback');
+  assert.equal(result.measured.length, 0);
+});
 
 test('real form handler only calls measurement after fully confirmed backend save', async () => {
   for (const options of [
@@ -340,6 +361,7 @@ async function submitCuttingForm({
   payload = { ok: true, reference: 'HEPA-LSZ-000123' }, responseOk = true, status = 201,
   networkFailure = false, invalidJson = false, consent = 'granted', flow = 'manual',
   measurementThrows = false, measurementMissing = false,
+  validationErrors = [],
 } = {}) {
   const app = harness();
   if (consent) app.choose(consent);
@@ -350,9 +372,17 @@ async function submitCuttingForm({
   const successes = [];
   const feedback = [];
   const submittedTokens = [];
+  const attempts = [];
+  if (app.window.HEPAMarketing) {
+    const original = app.window.HEPAMarketing;
+    app.window.HEPAMarketing = {
+      ...original,
+      recordSubmitAttempt(data) { attempts.push(data); return original.recordSubmitAttempt?.(data); }
+    };
+  }
   const context = {
     form, activeFlow: flow, isSubmitting: false, FLOW_STEPS: { [flow]: ['contact', 'review'] }, stepIndex: 1,
-    validateStep: () => [], clearTimeout() {}, saveTimer: null, saveDraft() {},
+    validateStep: () => validationErrors, updateStep() {}, clearTimeout() {}, saveTimer: null, saveDraft() {},
     buildSubmissionPayload: value => value, collectSubmissionFields: () => ({ customer_email: 'private@example.test' }),
     readMaterials: () => [], readItems: () => [], files: { upload: [], help: [] },
     submissionToken: token, createSubmissionToken: () => secondToken, fieldValue: () => '',
@@ -378,8 +408,19 @@ async function submitCuttingForm({
   assert.ok(readJson.length > 0 && handler.length > 0);
   vm.runInNewContext(readJson + handler, context);
   await form.listeners.submit({ preventDefault() {} });
-  return { app, context, form, successes, feedback, submittedTokens };
+  return { app, context, form, successes, feedback, submittedTokens, attempts };
 }
+
+test('cutting attempt is measured only after all wizard validation passes', async () => {
+  const invalid = await submitCuttingForm({ validationErrors: ['invalid contact'] });
+  assert.equal(invalid.attempts.length, 0);
+  assert.equal(invalid.submittedTokens.length, 0);
+  const valid = await submitCuttingForm({ networkFailure: true });
+  assert.equal(valid.attempts.length, 1);
+  assert.deepEqual(Object.keys(valid.attempts[0]), ['funnel']);
+  assert.equal(valid.attempts[0].funnel, 'cutting');
+  assert.equal(valid.successes.length, 0);
+});
 
 test('real cutting handler measures confirmed manual, upload and help inquiries using the submitted UUID', async () => {
   for (const flow of ['manual', 'upload', 'help']) {

@@ -1775,6 +1775,7 @@
     const multipartBody = buildMultipartBody(payload, tokenAtSubmission, fieldValue('company_website'), attachments);
     const reviewHtml = document.querySelector('#review-list').innerHTML;
 
+    try { window.HEPAMarketing?.recordSubmitAttempt?.({ funnel: 'cutting' }); } catch { /* Optional measurement cannot interrupt the request. */ }
     setSubmitFeedback('Az ajánlatkérés küldése folyamatban van…', 'info');
     setSubmitting(true);
     try {
