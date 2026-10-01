@@ -89,6 +89,7 @@ async function submit(payload, responseOk = true) {
   controls.phone = element(); controls.phone.value = '+36 70 627 36 99';
   const window = {
     location: { search: '?tipus=konyha' }, matchMedia: () => ({ matches: true }),
+    HEPAPhotoUploads: { isHeic: () => false, prepare: async file => file },
     HEPAMarketing: { appendAttribution() {}, recordQuoteSubmission(data) { measured.push(data); } }, dispatchEvent() {},
   };
   let request;
@@ -100,6 +101,7 @@ async function submit(payload, responseOk = true) {
         ['message', 'Világos frontok'], ['attachments', attachment], ['consent', 'on'],
       ]);
     }
+    append(name, value) { this.set(name, value); }
   }
   const from = html.indexOf('        const prefersReducedMotion');
   const until = html.indexOf('        const types =', from);

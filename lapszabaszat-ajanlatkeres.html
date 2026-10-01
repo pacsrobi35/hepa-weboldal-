@@ -136,8 +136,8 @@
 
                   <div class="drop-zone" id="upload-drop-zone">
                     <strong>Húzza ide a fájlokat</strong>
-                    <p>XLSX, CSV, PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB, összesen max. 15 MB</p>
-                    <input id="upload-files" type="file" multiple aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.csv,.pdf,.jpg,.jpeg,.png" data-file-input="upload">
+                    <p>XLSX, CSV, PDF, JPG, PNG vagy HEIC/HEIF (iPhone-fotó) · legfeljebb 5 fájl · fájlonként max. 6 MB, összesen max. 15 MB</p>
+                    <input id="upload-files" type="file" multiple aria-required="true" aria-describedby="upload-files-error" accept=".xlsx,.csv,.pdf,.jpg,.jpeg,.png,.heic,.heif,image/heic,image/heif" data-file-input="upload">
                     <label class="btn btn-small btn-ghost" for="upload-files">Fájl kiválasztása</label>
                   </div>
                   <div class="file-list" id="upload-file-list" aria-live="polite"></div>
@@ -201,8 +201,8 @@
                   </div>
                   <div class="drop-zone" id="help-drop-zone" style="margin-top:22px">
                     <strong>Kép vagy vázlat csatolása – opcionális</strong>
-                    <p>PDF, JPG vagy PNG · legfeljebb 5 fájl · fájlonként max. 6 MB, összesen max. 15 MB</p>
-                    <input id="help-files" type="file" multiple aria-describedby="help-files-error" accept=".pdf,.jpg,.jpeg,.png" data-file-input="help">
+                    <p>PDF, JPG, PNG vagy HEIC/HEIF (iPhone-fotó) · legfeljebb 5 fájl · fájlonként max. 6 MB, összesen max. 15 MB</p>
+                    <input id="help-files" type="file" multiple aria-describedby="help-files-error" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,image/heic,image/heif" data-file-input="help">
                     <label class="btn btn-small btn-ghost" for="help-files">Fájl kiválasztása</label>
                   </div>
                   <div class="file-list" id="help-file-list" aria-live="polite"></div>
@@ -388,6 +388,7 @@
     </div>
   </footer>
 
+  <script src="/photo-uploads.js" defer></script>
   <script src="lapszabaszat.js" defer></script>
 </body>
 </html>

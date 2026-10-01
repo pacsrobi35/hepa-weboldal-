@@ -2792,8 +2792,8 @@ textarea:focus {
                         </div>
                         <div class="form-group">
                             <label for="attachments">Kép, rajz vagy terv feltöltése</label>
-                            <p class="upload-text" id="attachments_help">Ha van, tölthet fel helyszínfotót, vázlatot vagy inspirációs képet. Legfeljebb 5 JPG, PNG, WebP vagy PDF fájlt, fájlonként maximum 10 MB méretben.</p>
-                            <input id="attachments" type="file" name="attachments" accept=".jpg,.jpeg,.png,.webp,.pdf"
+                            <p class="upload-text" id="attachments_help">Ha van, tölthet fel helyszínfotót, vázlatot vagy inspirációs képet. Legfeljebb 5 JPG, PNG, WebP, HEIC/HEIF (iPhone-fotó) vagy PDF fájlt, fájlonként maximum 10 MB méretben.</p>
+                            <input id="attachments" type="file" name="attachments" accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.pdf,image/heic,image/heif"
                                 aria-describedby="attachments_help" multiple>
                         </div>
                     </div>
@@ -2948,6 +2948,7 @@ textarea:focus {
     <a class="mobile-quote-cta" href="#ajanlat">Visszahívást kérek</a>
 
 
+    <script src="/photo-uploads.js"></script>
     <script>
 
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -3019,10 +3020,10 @@ textarea:focus {
             phone.setCustomValidity(phone.value.replace(/\D/g, "").length < 6 ? "Kérjük, adjon meg egy érvényes telefonszámot." : "");
             if (!quoteForm.reportValidity()) return;
             const attachments = Array.from(quoteForm.querySelector('[name="attachments"]').files);
-            const invalidFiles = attachments.some(file => file.size > 10 * 1024 * 1024 || !allowedFileTypes.has(file.type));
+            const invalidFiles = attachments.some(file => file.size > 10 * 1024 * 1024 || (!allowedFileTypes.has(file.type) && !window.HEPAPhotoUploads.isHeic(file)));
 
             if (attachments.length > 5 || invalidFiles) {
-                showQuoteMessage("Legfeljebb 5 JPG, PNG, WebP vagy PDF fájl tölthető fel, fájlonként maximum 10 MB méretben.", true);
+                showQuoteMessage("Legfeljebb 5 JPG, PNG, WebP, HEIC/HEIF (iPhone-fotó) vagy PDF fájl tölthető fel, fájlonként maximum 10 MB méretben.", true);
                 return;
             }
 
@@ -3039,9 +3040,20 @@ textarea:focus {
             quoteMessage.style.display = "none";
             quoteMessage.classList.remove("error");
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 45000);
+            let timeout;
 
             try {
+                if (attachments.some(file => window.HEPAPhotoUploads.isHeic(file))) {
+                    quoteSubmitButton.textContent = "Fotók előkészítése...";
+                    const preparedAttachments = [];
+                    for (const file of attachments) {
+                        preparedAttachments.push(await window.HEPAPhotoUploads.prepare(file, { maxBytes: 10 * 1024 * 1024 }));
+                    }
+                    requestData.delete("attachments");
+                    preparedAttachments.forEach(file => requestData.append("attachments", file, file.name));
+                    quoteSubmitButton.textContent = "Küldés...";
+                }
+                timeout = setTimeout(() => controller.abort(), 45000);
                 const response = await fetch(quoteForm.action, {
                     method: "POST",
                     body: requestData,

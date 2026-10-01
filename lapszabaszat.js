@@ -100,6 +100,12 @@
   let restoredFilesMeta = { upload: [], help: [] };
   let submissionToken = createSubmissionToken();
   let isSubmitting = false;
+  const fileQueues = { upload: Promise.resolve(), help: Promise.resolve() };
+  const pendingFileBatches = { upload: 0, help: 0 };
+
+  function photosProcessing() {
+    return Boolean(pendingFileBatches[activeFlow]);
+  }
 
   const menuButton = document.querySelector('.menu-toggle');
   const menu = document.querySelector('.main-nav');
@@ -249,14 +255,43 @@
   }
 
   function addFiles(flow, incoming) {
-    const error = document.querySelector(`#${flow}-files-error`);
-    if (error) error.textContent = '';
-    const { accepted, messages } = validateFileBatch(files[flow], [...incoming], flow);
-    if (accepted.length) restoredFilesMeta[flow] = [];
-    files[flow].push(...accepted);
-    if (error) error.textContent = messages.join(' ');
-    renderFiles(flow);
-    queueSave();
+    const selected = [...incoming];
+    if (!selected.length || isSubmitting) return;
+    pendingFileBatches[flow] += 1;
+    setSubmitting(isSubmitting);
+    fileQueues[flow] = fileQueues[flow].then(async () => {
+      const error = document.querySelector(`#${flow}-files-error`);
+      const messages = [];
+      const normalized = [];
+      if (error) error.textContent = selected.some((file) => window.HEPAPhotoUploads.isHeic(file))
+        ? 'iPhone-fotók előkészítése…' : '';
+      for (const file of selected) {
+        // Avoid decoding files that cannot fit in this attachment set.
+        if (files[flow].length + normalized.length >= MAX_FILES) {
+          messages.push(`Legfeljebb ${MAX_FILES} fájl választható.`);
+          break;
+        }
+        try {
+          const photo = await window.HEPAPhotoUploads.prepare(file, { maxBytes: MAX_FILE_SIZE });
+          const batch = validateFileBatch([...files[flow], ...normalized], [photo], flow);
+          normalized.push(...batch.accepted);
+          messages.push(...batch.messages);
+        } catch (error) {
+          messages.push(error.message || `${file.name}: a fotót nem sikerült előkészíteni.`);
+        }
+      }
+      if (normalized.length) restoredFilesMeta[flow] = [];
+      files[flow].push(...normalized);
+      if (error) error.textContent = messages.join(' ');
+      renderFiles(flow);
+      queueSave();
+    }).catch(() => {
+      document.querySelector(`#${flow}-files-error`).textContent = 'A fájlok előkészítése nem sikerült. Kérjük, válassza ki őket újra.';
+    }).finally(() => {
+      pendingFileBatches[flow] -= 1;
+      setSubmitting(isSubmitting);
+    });
+    return fileQueues[flow];
   }
 
   document.querySelectorAll('[data-file-input]').forEach((input) => {
@@ -1311,9 +1346,9 @@
     progressBar.style.width = `${((stepIndex + 1) / steps.length) * 100}%`;
     backButton.textContent = stepIndex === 0 ? 'Vissza a választáshoz' : 'Vissza';
     nextButton.hidden = isLastStep;
-    nextButton.disabled = isLastStep;
+    nextButton.disabled = isLastStep || isSubmitting || photosProcessing();
     submitButton.hidden = !isLastStep;
-    submitButton.disabled = !isLastStep || isSubmitting;
+    submitButton.disabled = !isLastStep || isSubmitting || photosProcessing();
     nextButton.textContent = activeFlow === 'manual' && activeStep === 'items' ? 'Ajánlatkérés folytatása →' : 'Tovább →';
     document.querySelector('#change-flow').hidden = stepIndex === 0;
     if (activeStep === 'items') {
@@ -1376,6 +1411,7 @@
     else { stepIndex -= 1; updateStep(); }
   });
   nextButton.addEventListener('click', () => {
+    if (!activeFlow || isSubmitting || photosProcessing()) return;
     const step = FLOW_STEPS[activeFlow][stepIndex];
     if (validateStep(step).length) return;
     stepIndex += 1;
@@ -1715,11 +1751,14 @@
 
   function setSubmitting(submitting) {
     isSubmitting = submitting;
-    form.setAttribute('aria-busy', String(submitting));
+    form.setAttribute('aria-busy', String(submitting || photosProcessing()));
     const steps = activeFlow ? FLOW_STEPS[activeFlow] : [];
     const isLastStep = steps.length > 0 && stepIndex === steps.length - 1;
-    nextButton.disabled = submitting || isLastStep;
-    submitButton.disabled = submitting || !isLastStep;
+    nextButton.disabled = submitting || isLastStep || photosProcessing();
+    submitButton.disabled = submitting || !isLastStep || photosProcessing();
+    document.querySelectorAll('[data-file-input]').forEach((input) => {
+      input.disabled = submitting || pendingFileBatches[input.dataset.fileInput] > 0;
+    });
     backButton.disabled = submitting;
     document.querySelector('#change-flow').disabled = submitting;
     submitButton.textContent = submitting ? 'Küldés folyamatban…' : 'Ajánlatkérés elküldése';
@@ -1744,7 +1783,7 @@
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!activeFlow || isSubmitting) return;
+    if (!activeFlow || isSubmitting || photosProcessing()) return;
     const steps = FLOW_STEPS[activeFlow];
     if (stepIndex !== steps.length - 1) {
       nextButton.click();
