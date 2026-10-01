@@ -3030,6 +3030,7 @@ textarea:focus {
                 showQuoteMessage("Kérjük, rövidítse az elképzelés leírását: a helyszínnel együtt legfeljebb 4000 karakter küldhető.", true);
                 return;
             }
+            try { window.HEPAMarketing?.recordSubmitAttempt?.({ funnel: "callback" }); } catch { /* Optional measurement cannot interrupt the request. */ }
             const enabledControls = Array.from(quoteForm.elements).filter(control => !control.matches(":disabled"));
             quoteForm.setAttribute("aria-busy", "true");
             enabledControls.forEach(control => { control.disabled = true; });

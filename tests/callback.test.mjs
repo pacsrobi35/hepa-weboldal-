@@ -39,7 +39,7 @@ function marketing(initial = {}) {
     localStorage: storage, sessionStorage: storage,
     location: { hostname: 'hepabutor.hu' }, addEventListener() {},
   };
-  vm.runInNewContext(marketingSource, { window, document });
+  vm.runInNewContext(marketingSource, { window, document, URLSearchParams, URL });
   return {
     nodes, scripts, window,
     choose(choice) { nodes.panel.querySelector(`[data-consent-${choice === 'granted' ? 'accept' : 'reject'}]`).listeners.click(); },
@@ -89,7 +89,7 @@ async function submit(payload, responseOk = true) {
   controls.phone = element(); controls.phone.value = '+36 70 627 36 99';
   const window = {
     location: { search: '?tipus=konyha' }, matchMedia: () => ({ matches: true }),
-    HEPAMarketing: { recordQuoteSubmission(data) { measured.push(data); } }, dispatchEvent() {},
+    HEPAMarketing: { appendAttribution() {}, recordQuoteSubmission(data) { measured.push(data); } }, dispatchEvent() {},
   };
   let request;
   class FakeFormData extends Map {
