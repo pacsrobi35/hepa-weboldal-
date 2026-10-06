@@ -71,26 +71,22 @@ header nav .nav-cta:hover, header nav .nav-cta:focus-visible { color: #fffdf8; b
 .showcase-heading .design-feature-kicker { color: #99662b; font-size: 12px; letter-spacing: 1.2px; }
 .showcase-heading h2 { margin: 7px 0 12px; color: var(--green-950); font-size: clamp(31px, 3.15vw, 43px); letter-spacing: -1.1px; line-height: 1.17; }
 .showcase-heading p { max-width: 790px; color: var(--muted); font-size: 16px; line-height: 1.65; }
-.project-tabs { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 22px; }
-.project-tab { padding: 10px 17px; min-height: 44px; border: 1px solid #d6dacf; border-radius: 5px; color: #385244; background: #f5f3eb; font-family: inherit; font-size: 14px; font-weight: 650; line-height: 1.4; cursor: pointer; }
-.project-tabs[hidden] { display: none; }
-.project-tab:hover { background: #eaece2; }
-.project-tab[aria-selected="true"] { color: #fffdf8; background: var(--green-950); border-color: var(--green-950); }
-.kitchen-project { padding: 23px; margin: 0; border: 1px solid #e6e1d7; border-radius: 10px; background: #fffefb; box-shadow: 0 5px 24px #3f3d2d06; }
-.kitchen-project[hidden] { display: none; }
-.kitchen-project-title { gap: 12px; margin-bottom: 19px; }
-.kitchen-project-number { color: #a17031; }
+.kitchen-project { display: grid; grid-template-columns: minmax(200px, .65fr) minmax(0, 2fr); column-gap: 30px; row-gap: 18px; padding: 23px; margin: 0; border: 1px solid #e6e1d7; border-radius: 10px; background: #fffefb; box-shadow: 0 5px 24px #3f3d2d06; }
+.kitchen-project + .kitchen-project { margin-top: 24px; }
+.kitchen-project--grey { background: #f3f2e8; border-color: #dddccb; }
+.kitchen-project-title { display: block; grid-column: 1; align-self: center; margin: 0; }
+.kitchen-project-number { display: inline-flex; align-items: center; justify-content: center; width: 35px; height: 35px; margin-bottom: 14px; color: #385d49; background: #e3eadb; border: 1px solid #d2dcc8; border-radius: 50%; font-size: 12px; }
 .kitchen-project h3 { color: var(--green-950); font-size: 22px; letter-spacing: -.3px; }
-.kitchen-project-title p { color: var(--muted); font-size: 14px; }
-.kitchen-pair { gap: 18px; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); align-items: end; }
+.kitchen-project-title p { margin: 9px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.kitchen-pair { grid-column: 2; gap: 18px; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); align-items: end; }
 .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
 .kitchen-pair figcaption { min-height: 46px; margin-bottom: 9px; color: var(--green-950); font-size: 17px; }
 .kitchen-pair figcaption span { color: #73796d; font-size: 12px; }
 .showcase-image { border-radius: 6px; background: #edeae3; }
 .kitchen-pair .showcase-image img { height: auto; }
 .showcase-zoom { color: #fff; background: #173e33ee; border-color: #ffffff3b; }
-.kitchen-details { margin-top: 19px; border-color: #e7e2d7; }
-.kitchen-details summary { padding-top: 16px; color: #385d49; font-size: 14px; }
+.kitchen-details { grid-column: 1 / -1; margin-top: 0; border-color: #e0dfd2; }
+.kitchen-details summary { padding-top: 14px; color: #385d49; font-size: 14px; }
 .showcase-footer { margin-top: 26px; gap: 18px; }
 .showcase-footer h3 { color: var(--green-950); font-size: 21px; }
 .showcase-footer p { color: var(--muted); font-size: 14px; }
@@ -300,7 +296,10 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .hero-proof { max-width: 570px; gap: 8px 20px; }
   .cutting-quick-inner { align-items: flex-start; }
   .cutting-quick-actions { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .kitchen-pair { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
+  .kitchen-project { grid-template-columns: minmax(0, 1fr); row-gap: 18px; }
+  .kitchen-project-title { display: flex; align-items: flex-start; gap: 12px; }
+  .kitchen-project-number { flex: 0 0 35px; margin-bottom: 0; }
+  .kitchen-pair { grid-column: 1; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
   .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
   .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: none; }
   .furniture-types { gap: 15px; }
@@ -337,7 +336,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .kitchen-project { padding: 18px; }
   .kitchen-project h3 { font-size: 20px; }
   .kitchen-project-title { align-items: flex-start; }
-  .kitchen-project-number { padding-top: 3px; }
+  .kitchen-project-number { padding-top: 0; }
   .kitchen-pair, .kitchen-project--grey .kitchen-pair { grid-template-columns: 1fr; gap: 21px; }
   .kitchen-pair figcaption { min-height: 0; }
   .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: 360px; margin-inline: auto; }
@@ -401,10 +400,8 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .cutting-quick .btn { width: 100%; }
   .cutting-quick .card-detail-link, .cutting-quick .text-link { margin: 0 auto; }
   .showcase-heading h2, .intro h2 { font-size: 30px; line-height: 1.2; }
-  .project-tabs { gap: 8px; }
-  .project-tab { flex: 1 1 130px; padding: 10px 12px; font-size: 13px; }
   .kitchen-project { padding: 14px; }
-  .kitchen-project-title { gap: 9px; margin-bottom: 17px; }
+  .kitchen-project-title { gap: 9px; margin-bottom: 0; }
   .kitchen-project h3 { font-size: 18px; }
   .kitchen-project-title p { font-size: 12px; }
   .kitchen-pair figcaption { font-size: 16px; }
