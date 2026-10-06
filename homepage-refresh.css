@@ -98,13 +98,21 @@ header nav .nav-cta:hover, header nav .nav-cta:focus-visible { color: #fffdf8; b
 .intro h2 { margin-bottom: 10px; color: var(--green-950); font-size: clamp(30px, 3vw, 40px); line-height: 1.2; letter-spacing: -.8px; }
 .intro p { color: var(--muted); font-size: 16px; }
 .furniture-types { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-button.type { min-height: 252px; padding: 22px; border: 1px solid #e1d9c9; border-radius: 7px; box-shadow: 0 4px 13px #362f2109; transition: transform .2s, box-shadow .2s, border-color .2s; }
-button.type::before { background: linear-gradient(180deg, #10281e00 20%, #10281e12 40%, #0d2b21ed 100%); }
-button.type:hover::before, button.type:focus-visible::before { background: linear-gradient(180deg, #10281e00 20%, #10281e05 40%, #0d2b21e0 100%); }
-button.type:hover { transform: translateY(-3px); box-shadow: 0 9px 23px #362f2118; }
-button.type .type-title { margin-bottom: 4px; font-size: 22px; letter-spacing: -.25px; }
-button.type .type-description { font-size: 12px; line-height: 1.5; }
-button.type.active { border-color: #ae7d37; box-shadow: 0 0 0 2px #ae7d3745; }
+button.type { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; min-width: 0; min-height: 0; padding: 0; overflow: hidden; color: var(--green-950); background: #fffaf1; border: 1px solid #d8dccd; border-radius: 8px; box-shadow: 0 4px 13px #362f2108; transition: transform .2s, box-shadow .2s, border-color .2s; }
+button.type::before { content: none; }
+button.type .type-photo { display: block; position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 205px; overflow: hidden; background: #e9e4d7; }
+button.type .type-image { display: block; position: static; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+button.type:hover .type-image, button.type:focus-visible .type-image { transform: scale(1.025); }
+button.type .type-copy { display: grid; grid-template-columns: minmax(0, 1fr) 28px; column-gap: 10px; row-gap: 5px; flex: 1; align-content: center; padding: 14px 18px; border-top: 1px solid #d5b67f; background: #fffaf1; text-align: left; transition: background .2s; }
+button.type .type-title { grid-column: 1 / -1; margin: 0; color: var(--green-950); font-size: 21px; line-height: 1.25; letter-spacing: -.25px; }
+button.type .type-description { align-self: center; margin: 0; color: #4e6252; font-size: 12px; line-height: 1.45; }
+button.type .type-arrow { display: inline-flex; align-items: center; justify-content: center; align-self: center; width: 28px; height: 28px; color: #315547; background: #eef1e5; border: 1px solid #d9dcc8; border-radius: 50%; font-size: 19px; line-height: 1; transition: background .2s, color .2s, transform .2s; }
+button.type:hover { transform: translateY(-3px); border-color: #b6bd9f; box-shadow: 0 9px 23px #362f2112; }
+button.type:hover .type-copy, button.type:focus-visible .type-copy { background: #f8f3e7; }
+button.type.active { border-color: #6c8c6a; box-shadow: 0 0 0 2px #6c8c6a38; }
+button.type.active .type-copy { background: #edf2e6; }
+button.type.active .type-arrow { color: #fffdf5; background: var(--green-800); border-color: var(--green-800); transform: rotate(90deg); }
+
 .references { padding: 0 var(--page-gutter) 53px; background: var(--sage); }
 .reference-container.active { padding-top: 17px; }
 .reference-heading { margin-bottom: 26px; }
@@ -303,7 +311,6 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
   .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: none; }
   .furniture-types { gap: 15px; }
-  button.type { min-height: 235px; padding: 18px; }
   button.type .type-title { font-size: 19px; }
   button.type .type-description { font-size: 11px; }
   .process-container { display: block; }
@@ -344,7 +351,6 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .showcase-footer h3 { font-size: 20px; }
   .furniture-types { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .intro h2 { font-size: 32px; }
-  button.type { min-height: 230px; padding: 18px; }
   button.type .type-title { font-size: 20px; }
   button.type .type-description { font-size: 12px; }
   .references { padding-bottom: 40px; }
@@ -411,9 +417,9 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .showcase-footer .btn { width: 100%; }
   .furniture { padding-bottom: 29px; }
   .furniture-types { gap: 12px; }
-  button.type { min-height: 195px; padding: 13px; }
-  button.type .type-title { font-size: 16px; letter-spacing: -.35px; }
-  button.type .type-description { font-size: 10px; line-height: 1.4; }
+  button.type .type-copy { padding: 12px 11px; column-gap: 6px; row-gap: 7px; }
+  button.type .type-title { font-size: clamp(14px, 3.8vw, 16px); letter-spacing: -.35px; }
+  button.type .type-description { font-size: 11px; line-height: 1.4; }
   .reference-heading h2 { font-size: 25px; }
   .reference-heading p { font-size: 14px; }
   .gallery { gap: 12px; }
@@ -456,7 +462,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .hero h1 { font-size: 33px; letter-spacing: -1.55px; }
   .hero-eyebrow { font-size: 9px; }
   .furniture-types { grid-template-columns: 1fr; }
-  button.type { min-height: 230px; padding: 20px; }
+  button.type .type-copy { padding: 14px 16px; }
   button.type .type-title { font-size: 22px; }
   button.type .type-description { font-size: 12px; }
   .gallery { grid-template-columns: 1fr; }
