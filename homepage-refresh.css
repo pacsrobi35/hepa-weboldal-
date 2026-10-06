@@ -134,18 +134,30 @@ button.type.active { border-color: #ae7d37; box-shadow: 0 0 0 2px #ae7d3745; }
 .customer-reviews { padding: 0 var(--page-gutter) 45px; background: #f6f1e6; }
 .reviews-inner { max-width: 1200px; margin: 0 auto; padding-top: 26px; border-top: 1px solid #dfd6c5; }
 .customer-reviews h2 { margin: 0 0 19px; color: var(--green-950); font-size: 22px; line-height: 1.3; letter-spacing: -.4px; }
-.review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 35px; }
-.review { position: relative; min-width: 0; margin: 0; padding: 0 15px 0 35px; color: var(--green-950); }
-.review::before { content: "“"; position: absolute; top: -8px; left: 0; color: #ac782f; font-family: Georgia, serif; font-size: 51px; line-height: 1; }
-.review + .review { border-left: 1px solid #dfd6c5; padding-left: 52px; }
-.review + .review::before { left: 18px; }
-.review > p, .review blockquote { margin-bottom: 13px; font-size: 17px; line-height: 1.55; font-style: italic; }
-.review figcaption { color: #304e3e; font-size: 13px; line-height: 1.65; }
-.review-source { display: block; color: #526153; font-style: normal; font-size: 12px; line-height: 1.65; }
-.review-source strong { display: block; color: #304e3e; font-size: 13px; }
-.review-source span { display: block; }
-.reviews-link { display: block; width: fit-content; margin: 23px 0 0 auto; color: #916020; font-size: 13px; font-weight: 650; text-underline-offset: 4px; }
+.review-carousel { overflow: hidden; border: 1px solid #dfd9c8; border-radius: 16px; background: #fffdf8; box-shadow: 0 8px 28px #173e3305; }
+.review-viewport { overflow: hidden; touch-action: pan-y; }
+.review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.review-carousel.is-enhanced .review-grid { display: flex; gap: 0; transition: transform .65s cubic-bezier(.22, .61, .36, 1); }
+.review { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; margin: 0; padding: 28px 42px 24px; color: var(--green-950); text-align: center; }
+.review-carousel.is-enhanced .review { flex: 0 0 100%; box-sizing: border-box; }
+.review-stars { margin-bottom: 13px; color: #a97825; font-size: 22px; letter-spacing: 4px; line-height: 1.3; }
+.review blockquote { max-width: 830px; margin: 0 0 17px; font-size: 24px; line-height: 1.5; font-style: italic; }
+.review figcaption { color: #304e3e; font-size: 14px; line-height: 1.65; }
+.review-source { display: block; margin-top: 2px; color: #626b60; font-style: normal; font-size: 12px; line-height: 1.65; }
+.review-controls { display: flex; align-items: center; gap: 10px; margin: 0 24px; padding: 13px 0; border-top: 1px solid #e8e3d5; }
+.review-controls[hidden] { display: none; }
+.review-controls button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0; border: 1px solid #d4dccd; background: #edf2e8; color: var(--green-950); font: inherit; cursor: pointer; transition: background .2s; }
+.review-controls button:hover { background: #dce8d6; }
+.review-controls button:focus-visible { outline-offset: 2px; }
+.review-controls .review-toggle { margin-right: auto; padding: 0 14px; border-radius: 24px; font-size: 12px; font-weight: 650; }
+.review-toggle-icon { width: 14px; font-size: 15px; text-align: center; }
+.review-controls .review-arrow { flex: 0 0 44px; border-radius: 50%; font-size: 23px; line-height: 1; }
+.review-position { min-width: 40px; color: #626b60; font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
+.reviews-link { display: block; width: fit-content; margin: 18px 0 0 auto; color: #916020; font-size: 13px; font-weight: 650; text-underline-offset: 4px; }
 .reviews-link:hover { color: var(--green-950); }
+@media (prefers-reduced-motion: reduce) {
+  .review-carousel.is-enhanced .review-grid { transition: none; }
+}
 
 .quote-section { position: relative; isolation: isolate; padding: 68px var(--page-gutter); color: var(--green-950); background: #f4eddf; border-block: 1px solid #e4d8c0; }
 .quote-section::before { content: ""; position: absolute; z-index: -1; inset: auto 0 0; height: 680px; max-height: 100%; pointer-events: none; background-image: linear-gradient(180deg, #f4eddf 0%, #f7f2e7b3 35%, #f7f2e724 72%, #f7f2e70f 100%), url("quote-atmosphere-v1.webp"); background-size: cover; background-position: center, left bottom; background-repeat: no-repeat; }
@@ -305,11 +317,8 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .process-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
   .process-steps::before { display: none; }
   .step-number { margin-bottom: 10px; }
-  .review-grid { gap: 25px; }
-  .review { padding-left: 28px; padding-right: 0; }
-  .review + .review { padding-left: 35px; }
-  .review + .review::before { left: 8px; }
-  .review > p, .review blockquote { font-size: 15px; }
+  .review { padding: 25px 26px 22px; }
+  .review blockquote { font-size: 21px; }
   .quote-section { padding-top: 42px; padding-bottom: 43px; }
   .quote-section::before { height: 430px; background-image: linear-gradient(180deg, #f4eddf 0%, #f7f2e7bf 35%, #f7f2e759 100%), url("quote-atmosphere-v1.webp"); }
   .quote-container { grid-template-columns: 1fr; gap: 27px; }
@@ -385,10 +394,14 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .process-step p { font-size: 12px; }
   .customer-reviews { padding-bottom: 34px; }
   .customer-reviews h2 { font-size: 21px; }
-  .review-grid { grid-template-columns: 1fr; gap: 22px; }
-  .review, .review + .review { padding: 0 0 0 32px; border-left: 0; }
-  .review + .review::before { left: 0; }
-  .reviews-link { margin-top: 24px; margin-left: 32px; font-size: 12px; }
+  .review-grid { grid-template-columns: 1fr; }
+  .review { padding: 25px 20px 22px; }
+  .review blockquote { font-size: 19px; }
+  .review-stars { font-size: 20px; }
+  .review-controls { margin: 0 14px; gap: 6px; }
+  .review-controls .review-toggle { padding-inline: 11px; }
+  .review-position { min-width: 34px; }
+  .reviews-link { margin-top: 17px; margin-inline: auto; font-size: 12px; }
   .quote-header h2 { font-size: 31px; }
   .quote-header p { font-size: 15px; }
   .quote-form { padding: 21px 18px; }

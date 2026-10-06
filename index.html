@@ -2532,13 +2532,31 @@ textarea:focus {
 
     <!-- ÁRAJÁNLAT -->
 
-    <section class="customer-reviews" aria-labelledby="reviews-title">
+    <section class="customer-reviews" id="ugyfeleink" aria-labelledby="reviews-title">
         <div class="reviews-inner">
             <span class="section-kicker">Ügyfeleink mondták</span>
             <h2 id="reviews-title">A bizalom a közös munkával kezdődik.</h2>
-            <div class="review-grid">
-                <figure class="review"><blockquote>„Megbízható, precíz, pontos munkavégzés.”</blockquote><figcaption><strong>Dávid Andor Kocsis</strong><span class="review-source">Részlet egy Google-véleményből</span></figcaption></figure>
-                <figure class="review"><blockquote>„A tervezéstől a kivitelezésig minden a megbeszéltek szerint történt.”</blockquote><figcaption><strong>Katalin Maurer</strong><span class="review-source">Részlet egy Google-véleményből</span></figcaption></figure>
+            <div class="review-carousel" role="region" aria-roledescription="lapozható vélemények" aria-label="Ügyfeleink Google-véleményei">
+                <div class="review-viewport" id="review-viewport">
+                    <div class="review-grid">
+                        <figure class="review">
+                            <div class="review-stars" role="img" aria-label="5 csillag az 5-ből"><span aria-hidden="true">★★★★★</span></div>
+                            <blockquote>„Megbízható, precíz, pontos munkavégzés.”</blockquote>
+                            <figcaption><strong>Dávid Andor Kocsis</strong><span class="review-source">Részlet egy Google-véleményből</span></figcaption>
+                        </figure>
+                        <figure class="review">
+                            <div class="review-stars" role="img" aria-label="5 csillag az 5-ből"><span aria-hidden="true">★★★★★</span></div>
+                            <blockquote>„A tervezéstől a kivitelezésig minden a megbeszéltek szerint történt.”</blockquote>
+                            <figcaption><strong>Katalin Maurer</strong><span class="review-source">Részlet egy Google-véleményből</span></figcaption>
+                        </figure>
+                    </div>
+                </div>
+                <div class="review-controls" hidden>
+                    <button class="review-toggle" type="button" data-review-toggle aria-label="Automatikus lapozás szüneteltetése" aria-controls="review-viewport"><span class="review-toggle-icon" aria-hidden="true">Ⅱ</span><span class="review-toggle-text">Szünet</span></button>
+                    <span class="review-position" aria-live="off">1 / 2</span>
+                    <button class="review-arrow" type="button" data-review-prev aria-label="Előző vélemény" aria-controls="review-viewport"><span aria-hidden="true">←</span></button>
+                    <button class="review-arrow" type="button" data-review-next aria-label="Következő vélemény" aria-controls="review-viewport"><span aria-hidden="true">→</span></button>
+                </div>
             </div>
             <a class="reviews-link" href="https://www.google.com/maps/place/B%C3%BAtorlapszab%C3%A1szat+Hepa-Construct+Kft/@47.6455274,19.4662714,17z/data=!4m8!3m7!1s0x4741cb0e54800137:0x3c53591351d435c5!8m2!3d47.6455274!4d19.4662714!9m1!1b1!16s%2Fg%2F11p5_7l26f?entry=ttu" target="_blank" rel="noopener">További vélemények a Google-on <span aria-hidden="true">↗</span></a>
         </div>
