@@ -71,17 +71,18 @@ header nav .nav-cta:hover, header nav .nav-cta:focus-visible { color: #fffdf8; b
 .showcase-heading .design-feature-kicker { color: #99662b; font-size: 12px; letter-spacing: 1.2px; }
 .showcase-heading h2 { margin: 7px 0 12px; color: var(--green-950); font-size: clamp(31px, 3.15vw, 43px); letter-spacing: -1.1px; line-height: 1.17; }
 .showcase-heading p { max-width: 790px; color: var(--muted); font-size: 16px; line-height: 1.65; }
-.kitchen-project { display: grid; grid-template-columns: minmax(200px, .65fr) minmax(0, 2fr); column-gap: 30px; row-gap: 18px; padding: 23px; margin: 0; border: 1px solid #e6e1d7; border-radius: 10px; background: #fffefb; box-shadow: 0 5px 24px #3f3d2d06; }
+.kitchen-project { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 20px; padding: 23px; margin: 0; border: 1px solid #e6e1d7; border-radius: 10px; background: #fffefb; box-shadow: 0 5px 24px #3f3d2d06; }
 .kitchen-project + .kitchen-project { margin-top: 24px; }
 .kitchen-project--grey { background: #f3f2e8; border-color: #dddccb; }
-.kitchen-project-title { display: block; grid-column: 1; align-self: center; margin: 0; }
-.kitchen-project-number { display: inline-flex; align-items: center; justify-content: center; width: 35px; height: 35px; margin-bottom: 14px; color: #385d49; background: #e3eadb; border: 1px solid #d2dcc8; border-radius: 50%; font-size: 12px; }
+.kitchen-project-title { display: flex; grid-column: 1; align-items: flex-start; gap: 12px; margin: 0; }
+.kitchen-project-number { display: inline-flex; flex: 0 0 35px; align-items: center; justify-content: center; width: 35px; height: 35px; margin-bottom: 0; color: #385d49; background: #e3eadb; border: 1px solid #d2dcc8; border-radius: 50%; font-size: 12px; }
 .kitchen-project h3 { color: var(--green-950); font-size: 22px; letter-spacing: -.3px; }
-.kitchen-project-title p { margin: 9px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
-.kitchen-pair { grid-column: 2; gap: 18px; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); align-items: end; }
+.kitchen-project-title p { margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.kitchen-pair { grid-column: 1; gap: 18px; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); align-items: end; }
 .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
-.kitchen-pair figcaption { min-height: 46px; margin-bottom: 9px; color: var(--green-950); font-size: 17px; }
-.kitchen-pair figcaption span { color: #73796d; font-size: 12px; }
+.kitchen-pair .showcase-label { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; max-width: 100%; min-height: 30px; margin-bottom: 12px; padding: 5px 12px; border: 1px solid; border-radius: 999px; font-size: 13px; font-weight: 650; line-height: 1.4; }
+.kitchen-pair .showcase-label--plan { color: #79572f; background: #f4e9d6; border-color: #e6d6b9; }
+.kitchen-pair .showcase-label--finished { color: #254b39; background: #e3ecdc; border-color: #cddcc3; }
 .showcase-image { border-radius: 6px; background: #edeae3; }
 .kitchen-pair .showcase-image img { height: auto; }
 .showcase-zoom { color: #fff; background: #173e33ee; border-color: #ffffff3b; }
@@ -345,7 +346,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .kitchen-project-title { align-items: flex-start; }
   .kitchen-project-number { padding-top: 0; }
   .kitchen-pair, .kitchen-project--grey .kitchen-pair { grid-template-columns: 1fr; gap: 21px; }
-  .kitchen-pair figcaption { min-height: 0; }
+  .kitchen-pair .showcase-label { min-height: 30px; }
   .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: 360px; margin-inline: auto; }
   .kitchen-detail-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .showcase-footer h3 { font-size: 20px; }
@@ -410,8 +411,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .kitchen-project-title { gap: 9px; margin-bottom: 0; }
   .kitchen-project h3 { font-size: 18px; }
   .kitchen-project-title p { font-size: 12px; }
-  .kitchen-pair figcaption { font-size: 16px; }
-  .kitchen-pair figcaption span { font-size: 11px; }
+  .kitchen-pair .showcase-label { font-size: 12px; }
   .kitchen-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
   .kitchen-details summary { font-size: 13px; }
   .showcase-footer .btn { width: 100%; }
