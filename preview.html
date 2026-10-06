@@ -2144,7 +2144,10 @@ textarea:focus {
 
     </style>
     <link rel="stylesheet" href="/homepage-refresh.css">
+    <link rel="stylesheet" href="/homepage-atmosphere.css">
+    <link rel="stylesheet" href="/homepage-lightbox.css">
     <script defer src="/homepage-refresh.js"></script>
+    <script defer src="/homepage-lightbox.js"></script>
 </head>
 
 <body>
@@ -2461,9 +2464,27 @@ textarea:focus {
 
     </section>
 
-    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Referencia nagy méretben" aria-hidden="true">
-        <button class="lightbox-close" type="button" aria-label="Nagyított kép bezárása">&times;</button>
-        <img alt="">
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" aria-hidden="true" hidden>
+        <div class="lightbox-panel" role="document">
+            <div class="lightbox-header">
+                <h2 id="lightbox-title">Munkáink részletei</h2>
+                <button class="lightbox-close" type="button" aria-label="Nagyított kép bezárása">&times;</button>
+            </div>
+            <div class="lightbox-stage" aria-busy="false">
+                <button class="lightbox-arrow lightbox-arrow--prev" type="button" data-lightbox-prev aria-label="Előző kép">&#8249;</button>
+                <img class="lightbox-photo" alt="" decoding="async">
+                <div class="lightbox-feedback" role="status" hidden>
+                    <p class="lightbox-message"></p>
+                    <button class="lightbox-retry" type="button" data-lightbox-retry hidden>Újrapróbálás</button>
+                </div>
+                <button class="lightbox-arrow lightbox-arrow--next" type="button" data-lightbox-next aria-label="Következő kép">&#8250;</button>
+            </div>
+            <div class="lightbox-info">
+                <p class="lightbox-caption"></p>
+                <p class="lightbox-position" aria-live="polite" aria-atomic="true"></p>
+            </div>
+            <div class="lightbox-thumbs" role="group" aria-label="A munka további képei"></div>
+        </div>
     </div>
     <!-- RENDELÉS MENETE -->
 
@@ -2989,28 +3010,6 @@ textarea:focus {
             });
         });
 
-        const lightbox = document.getElementById("lightbox");
-        const lightboxImage = lightbox.querySelector("img");
-        const lightboxClose = lightbox.querySelector(".lightbox-close");
-        let lightboxTrigger = null;
-
-        document.addEventListener("click", function(event) {
-            if (!(event.target instanceof Element)) return;
-            const button = event.target.closest(".gallery-item, [data-lightbox]");
-            if (!button) return;
-
-            const image = button.querySelector("img");
-            if (!image) return;
-
-            lightboxTrigger = button;
-            lightboxImage.src = button.dataset.full || image.currentSrc || image.src;
-            lightboxImage.alt = image.alt;
-            lightbox.classList.add("active");
-            lightbox.setAttribute("aria-hidden", "false");
-            document.body.classList.add("lightbox-open");
-            lightboxClose.focus();
-        });
-
         const referenceApiUrl = "/preview-reference-images.json";
         const referenceLabels = {
             konyha: "Konyhabútor",
@@ -3069,30 +3068,6 @@ textarea:focus {
         }
 
         loadReferenceImages();
-
-        function closeLightbox() {
-            if (!lightbox.classList.contains("active")) return;
-            lightbox.classList.remove("active");
-            lightbox.setAttribute("aria-hidden", "true");
-            document.body.classList.remove("lightbox-open");
-            lightboxImage.removeAttribute("src");
-            lightboxImage.alt = "";
-            lightboxTrigger?.focus();
-            lightboxTrigger = null;
-        }
-
-        lightbox.addEventListener("click", function(event) {
-            if (event.target === lightbox || event.target === lightboxClose) closeLightbox();
-        });
-
-        document.addEventListener("keydown", function(event) {
-            if (!lightbox.classList.contains("active")) return;
-            if (event.key === "Escape") closeLightbox();
-            if (event.key === "Tab") {
-                event.preventDefault();
-                lightboxClose.focus();
-            }
-        });
 
         const nav = document.getElementById("main-nav");
         const menuButton = document.querySelector(".menu-toggle");
