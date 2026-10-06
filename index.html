@@ -2146,6 +2146,7 @@ textarea:focus {
     <link rel="stylesheet" href="/homepage-refresh.css">
     <link rel="stylesheet" href="/homepage-atmosphere.css">
     <link rel="stylesheet" href="/homepage-lightbox.css">
+    <link rel="stylesheet" href="/homepage-personal-note.css">
     <script defer src="/homepage-refresh.js"></script>
     <script defer src="/homepage-lightbox.js"></script>
 </head>
@@ -2602,14 +2603,16 @@ textarea:focus {
 
         <div class="quote-container">
 
-            <div class="quote-header">
-
-                <h2>Beszéljünk az elképzeléséről!</h2>
-
-                <p>
-                    Mesélje el, milyen bútort szeretne! A helyszíni felmérés ingyenes.
-                </p>
-
+            <div class="quote-header quote-header--personal">
+                <div class="personal-message">
+                    <span class="personal-kicker">Személyesen, az első ötlettől</span>
+                    <h2>Az Ön ötletei adják az irányt, a mi kreativitásunk pedig a formát.</h2>
+                    <p class="personal-invitation">Beszéljük át, milyen bútort szeretne!</p>
+                </div>
+                <div class="personal-signoff">
+                    <p class="personal-signature">Róbert</p>
+                    <p class="personal-company">HEPA-CONSTRUCT</p>
+                </div>
             </div>
 
 
@@ -2621,6 +2624,7 @@ textarea:focus {
                 <input type="hidden" name="submission_token" id="submission_token">
                 <input type="hidden" name="request_mode" value="callback">
 
+                <p class="quote-survey-badge"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M20 4C11 3 4 7 5 14c1 6 10 7 13-1 1-3 2-6 2-9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 21 16 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Ingyenes helyszíni felmérés</span></p>
                 <p class="request-intro">Adja meg elérhetőségét, és visszahívjuk.</p>
                 <p class="form-help quote-required-note">A * jelölt mezők kitöltése szükséges.</p>
 

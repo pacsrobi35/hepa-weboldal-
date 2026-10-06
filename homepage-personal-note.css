@@ -1,0 +1,39 @@
+/* A personal introduction inside the existing callback section. */
+.quote-header--personal { padding-top: 10px; }
+.personal-message { padding-left: 24px; border-left: 2px solid #b17e36; }
+.personal-kicker { display: block; margin-bottom: 18px; color: #966728; font-size: 11px; font-weight: 750; line-height: 1.5; letter-spacing: 1.15px; text-transform: uppercase; }
+.quote-header--personal h2 { margin: 0 0 20px; font-size: clamp(33px, 2.8vw, 40px); line-height: 1.16; letter-spacing: -.8px; }
+.quote-header--personal .personal-invitation { margin: 0; font-size: 17px; line-height: 1.6; }
+.personal-signoff { margin: 23px 0 0 26px; }
+.quote-header--personal .personal-signature { margin: 0; color: #173e32; font-family: "Segoe Script", "Snell Roundhand", "URW Chancery L", "Z003", "Brush Script MT", cursive; font-size: 64px; font-style: italic; font-weight: 400; line-height: 1.15; letter-spacing: -1.5px; }
+.quote-header--personal .personal-company { margin: 0; color: #496252; font-size: 10px; font-weight: 650; line-height: 1.5; letter-spacing: 1.65px; }
+.quote-form .quote-survey-badge { display: flex; align-items: center; gap: 9px; margin: 0 0 17px; padding: 11px 13px; color: #2a503b; background: #eaf0e3; border-radius: 6px; font-size: 14px; font-weight: 650; line-height: 1.4; }
+.quote-survey-badge svg { flex: 0 0 18px; width: 18px; height: 18px; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .personal-message { padding-left: 19px; }
+  .personal-kicker { font-size: 10px; letter-spacing: .9px; }
+  .quote-header--personal h2 { font-size: 32px; }
+  .quote-header--personal .personal-invitation { font-size: 15px; }
+  .personal-signoff { margin-left: 21px; }
+}
+@media (max-width: 760px) {
+  .quote-header--personal { padding-top: 0; }
+  .personal-message { padding-left: 19px; }
+  .personal-kicker { margin-bottom: 12px; font-size: 10px; letter-spacing: .8px; }
+  .quote-header--personal h2 { max-width: 580px; margin-bottom: 12px; font-size: 30px; line-height: 1.2; letter-spacing: -.5px; }
+  .quote-header--personal .personal-invitation { font-size: 15px; line-height: 1.5; }
+  .personal-signoff { display: flex; align-items: center; gap: 17px; margin: 12px 0 0 21px; }
+  .quote-header--personal .personal-signature { font-size: 47px; }
+  .quote-header--personal .personal-company { font-size: 9px; letter-spacing: 1.1px; }
+}
+@media (max-width: 420px) {
+  .personal-message { padding-left: 15px; }
+  .quote-header--personal h2 { font-size: 27px; }
+  .quote-header--personal .personal-invitation { font-size: 14px; }
+  .personal-signoff { margin-left: 17px; gap: 14px; }
+  .quote-form .quote-survey-badge { padding: 10px; font-size: 12px; gap: 7px; }
+}
+@media (max-width: 360px) {
+  .quote-header--personal h2 { font-size: 25px; }
+  .personal-kicker { font-size: 9px; letter-spacing: .6px; }
+}
