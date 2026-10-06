@@ -389,7 +389,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .logo .logo-name { font-size: 16px; letter-spacing: .25px; }
   .logo .logo-service { display: block; font-size: 7px; letter-spacing: .75px; }
   section[id], .reference-container { scroll-margin-top: 96px; }
-  .hero { min-height: 650px; padding: 45px var(--page-gutter) 40px; text-align: left; background-image: linear-gradient(180deg, #f8f4ebfa 0%, #f8f4ebef 47%, #f8f4ebc9 74%, #f8f4eb70 100%), url("konyhabutor-hero.webp"); background-position: center, 60% center; }
+  .hero { min-height: 650px; padding: 45px var(--page-gutter) 40px; text-align: left; background-image: linear-gradient(180deg, #f8f4ebed 0%, #f8f4ebdf 38%, #f8f4ebc4 72%, #f8f4eb70 100%), url("konyhabutor-hero.webp"); background-position: center, 60% center; }
   .hero-eyebrow, .hero-actions, .hero-proof { justify-content: flex-start; }
   .hero-eyebrow { margin-bottom: 18px; font-size: 10px; letter-spacing: 1.15px; }
   .hero-eyebrow::before { width: 23px; }
