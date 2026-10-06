@@ -147,7 +147,8 @@ button.type.active { border-color: #ae7d37; box-shadow: 0 0 0 2px #ae7d3745; }
 .reviews-link { display: block; width: fit-content; margin: 23px 0 0 auto; color: #916020; font-size: 13px; font-weight: 650; text-underline-offset: 4px; }
 .reviews-link:hover { color: var(--green-950); }
 
-.quote-section { padding: 68px var(--page-gutter); color: var(--green-950); background: linear-gradient(125deg, #dce8d1, #edf2e5 50%, #e5eddb); border-block: 1px solid #cddbc2; }
+.quote-section { position: relative; isolation: isolate; padding: 68px var(--page-gutter); color: var(--green-950); background: #f4eddf; border-block: 1px solid #e4d8c0; }
+.quote-section::before { content: ""; position: absolute; z-index: -1; inset: auto 0 0; height: 680px; max-height: 100%; pointer-events: none; background-image: linear-gradient(180deg, #f4eddf 0%, #f7f2e7b3 35%, #f7f2e724 72%, #f7f2e70f 100%), url("quote-atmosphere-v1.webp"); background-size: cover; background-position: center, left bottom; background-repeat: no-repeat; }
 .quote-container { display: grid; grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr); align-items: start; gap: 65px; max-width: 1200px; }
 .quote-header { padding-top: 22px; margin: 0; text-align: left; }
 .quote-header h2 { margin-bottom: 19px; color: var(--green-950); font-size: clamp(33px, 3.25vw, 43px); line-height: 1.13; letter-spacing: -.95px; }
@@ -310,6 +311,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .review + .review::before { left: 8px; }
   .review > p, .review blockquote { font-size: 15px; }
   .quote-section { padding-top: 42px; padding-bottom: 43px; }
+  .quote-section::before { height: 430px; background-image: linear-gradient(180deg, #f4eddf 0%, #f7f2e7bf 35%, #f7f2e759 100%), url("quote-atmosphere-v1.webp"); }
   .quote-container { grid-template-columns: 1fr; gap: 27px; }
   .quote-header { padding-top: 0; }
   .quote-header h2 { max-width: 560px; font-size: 35px; }
