@@ -82,7 +82,7 @@ header nav .nav-cta:hover, header nav .nav-cta:focus-visible { color: #fffdf8; b
 .kitchen-project h3 { color: var(--green-950); font-size: 22px; letter-spacing: -.3px; }
 .kitchen-project-title p { margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .kitchen-pair { grid-column: 1; gap: 18px; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); align-items: end; }
-.kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
+.kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
 .kitchen-pair .showcase-label { display: inline-flex; flex-direction: row; align-items: center; width: fit-content; max-width: 100%; min-height: 30px; margin-bottom: 12px; padding: 5px 12px; border: 1px solid; border-radius: 999px; font-size: 13px; font-weight: 650; line-height: 1.4; }
 .kitchen-pair .showcase-label--plan { color: #79572f; background: #f4e9d6; border-color: #e6d6b9; }
 .kitchen-pair .showcase-label--finished { color: #254b39; background: #e3ecdc; border-color: #cddcc3; }
@@ -311,7 +311,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .kitchen-project-title { display: flex; align-items: flex-start; gap: 12px; }
   .kitchen-project-number { flex: 0 0 35px; margin-bottom: 0; }
   .kitchen-pair { grid-column: 1; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
-  .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 64fr) minmax(0, 27fr); }
+  .kitchen-project--grey .kitchen-pair { grid-template-columns: minmax(0, 4fr) minmax(0, 3fr); }
   .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: none; }
   .furniture-types { gap: 15px; }
   button.type .type-title { font-size: 19px; }
@@ -349,7 +349,7 @@ body.lightbox-open .mobile-quote-cta { visibility: hidden; }
   .kitchen-project-number { padding-top: 0; }
   .kitchen-pair, .kitchen-project--grey .kitchen-pair { grid-template-columns: 1fr; gap: 21px; }
   .kitchen-pair .showcase-label { min-height: 30px; }
-  .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: 360px; margin-inline: auto; }
+  .kitchen-project--grey .kitchen-pair figure:last-child .showcase-image { max-width: none; margin-inline: auto; }
   .kitchen-detail-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .showcase-footer h3 { font-size: 20px; }
   .furniture-types { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
