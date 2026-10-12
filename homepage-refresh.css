@@ -168,8 +168,6 @@ button.type.active .type-arrow { color: #fffdf5; background: var(--green-800); b
 .review-controls button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0; border: 1px solid #d4dccd; background: #edf2e8; color: var(--green-950); font: inherit; cursor: pointer; transition: background .2s; }
 .review-controls button:hover { background: #dce8d6; }
 .review-controls button:focus-visible { outline-offset: 2px; }
-.review-controls .review-toggle { order: 1; min-width: 102px; padding: 0 12px; border-radius: 24px; font-size: 11px; font-weight: 650; }
-.review-toggle-icon { width: 13px; font-size: 13px; text-align: center; }
 .review-controls .review-arrow { flex: 0 0 40px; border-radius: 50%; font-size: 21px; line-height: 1; }
 .review-controls [data-review-prev] { order: 0; }
 .review-controls [data-review-next] { order: 2; }

@@ -31,16 +31,14 @@
     const controls = reviewCarousel.querySelector('.review-controls');
     const previous = controls?.querySelector('[data-review-prev]');
     const next = controls?.querySelector('[data-review-next]');
-    const toggle = controls?.querySelector('[data-review-toggle]');
     const position = controls?.querySelector('.review-position');
     const reviews = track ? [...track.querySelectorAll('.review')] : [];
 
     // Without a complete carousel, keep every review readable as ordinary content.
-    if (viewport && track && controls && previous && next && toggle && position && reviews.length > 1) {
+    if (viewport && track && controls && previous && next && position && reviews.length > 1) {
       const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
       const narrowBook = window.matchMedia('(max-width: 640px)');
       let index = 0;
-      let playbackChoice = null;
       let inView = false;
       let hovering = viewport.matches(':hover');
       let touching = false;
@@ -48,19 +46,9 @@
       let timer;
       let turn = null;
       let queuedDirection = null;
-      const wantsPlayback = () => playbackChoice ?? !motion.matches;
+      const wantsPlayback = () => !motion.matches;
       const pageCount = () => narrowBook.matches ? 1 : 2;
       const spreadAt = start => Array.from({ length: pageCount() }, (_, offset) => (start + offset) % reviews.length);
-      const renderToggle = () => {
-        const playing = wantsPlayback();
-        const text = toggle.querySelector('.review-toggle-text');
-        const icon = toggle.querySelector('.review-toggle-icon');
-        if (text) text.textContent = playing ? 'Szünet' : 'Lejátszás';
-        if (icon) icon.textContent = playing ? 'Ⅱ' : '▶';
-        toggle.setAttribute('aria-label', playing
-          ? 'Vélemények automatikus váltásának szüneteltetése'
-          : 'Vélemények automatikus váltásának indítása');
-      };
       const cloneReview = review => {
         const clone = review.cloneNode(true);
         clone.removeAttribute('id');
@@ -204,11 +192,6 @@
 
       previous.addEventListener('click', () => move(-1));
       next.addEventListener('click', () => move(1));
-      toggle.addEventListener('click', () => {
-        playbackChoice = !wantsPlayback();
-        renderToggle();
-        schedule();
-      });
       controls.addEventListener('keydown', event => {
         if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
         event.preventDefault();
@@ -224,7 +207,6 @@
       });
       motion.addEventListener('change', () => {
         if (motion.matches) finishTurn(false);
-        renderToggle();
         schedule();
       });
       const resizeBook = () => {
@@ -280,7 +262,6 @@
 
       sizePages();
       renderSpread();
-      renderToggle();
       reviewCarousel.classList.add('is-enhanced');
       controls.hidden = false;
       schedule();
