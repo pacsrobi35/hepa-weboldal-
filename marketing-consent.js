@@ -379,12 +379,12 @@
     panel.setAttribute('aria-labelledby', 'hepa-consent-title');
     panel.innerHTML = `
       <div class="hepa-consent-copy">
-        <h2 id="hepa-consent-title">Segíthet mérni hirdetéseink eredményét</h2>
-        <p>Engedélyezi a hirdetésmérést? A Google Ads a sikeres bútoros visszahíváskérést és lapszabászati ajánlatkérést méri. A HEPA saját mérésében azt is látjuk, hányan kattintanak az ajánlatkérésre, jutnak el az űrlapig, kezdik kitölteni és küldik el. Az űrlap adatait nem küldjük a méréshez, és nem használunk személyre szabott hirdetést. Az oldal és az ajánlatkérés engedély nélkül is működik.</p>
-        <p><a href="/adatkezeles.html#meres">Részletek az adatkezelésről</a><span data-consent-status></span></p>
+        <h2 id="hepa-consent-title">Hirdetésmérés</h2>
+        <p>Engedélyezi a Google Ads és a HEPA hirdetésmérését? Az ajánlatkérés engedély nélkül is működik. <a href="/adatkezeles.html#meres" aria-label="Részletek a hirdetésmérés adatkezeléséről">Részletek</a></p>
+        <span data-consent-status></span>
       </div>
       <div class="hepa-consent-actions">
-        <button type="button" data-consent-reject>Nem engedélyezem</button>
+        <button type="button" data-consent-reject>Elutasítom</button>
         <button type="button" data-consent-accept>Engedélyezem</button>
         <button type="button" class="hepa-consent-close" data-consent-close hidden>Beállítások bezárása</button>
       </div>`;
