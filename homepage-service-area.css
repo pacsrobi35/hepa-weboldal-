@@ -1,0 +1,35 @@
+/* The furniture service area, immediately before the existing callback form. */
+.service-area {
+  padding: 50px var(--page-gutter) 44px;
+  background: var(--paper);
+  color: var(--green-950);
+  text-align: center;
+}
+.service-area-inner { max-width: 1200px; margin: 0 auto; }
+.service-area h2 {
+  margin: 0;
+  color: var(--green-950);
+  font-size: clamp(30px, 3.2vw, 43px);
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+.service-area-intro { margin: 10px 0 0; color: #496252; font-size: 17px; line-height: 1.6; }
+.service-area-figure { margin: 25px 0 0; }
+.service-area-figure picture { display: block; max-width: 860px; margin: 0 auto; }
+.service-area-map { display: block; width: 100%; height: auto; }
+.service-area figcaption { max-width: 1000px; margin: 22px auto 0; }
+.service-area figcaption p { margin: 0; font-size: 16px; line-height: 1.7; }
+.service-area figcaption .service-area-address { margin-top: 8px; color: #496252; font-size: 14px; }
+.service-area-address strong { font-weight: 500; }
+.service-area-source { margin: 10px 0 0; color: #6b7269; font-size: 11px; line-height: 1.5; }
+.service-area-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 600px) {
+  .service-area { padding-top: 38px; padding-bottom: 34px; }
+  .service-area h2 { font-size: 29px; letter-spacing: -.6px; }
+  .service-area-intro { max-width: 320px; margin: 10px auto 0; font-size: 15px; }
+  .service-area-figure { margin-top: 18px; }
+  .service-area-map { aspect-ratio: 360 / 350; }
+  .service-area figcaption { margin-top: 17px; }
+  .service-area figcaption p { font-size: 15px; line-height: 1.65; }
+  .service-area figcaption .service-area-address { font-size: 13px; }
+}

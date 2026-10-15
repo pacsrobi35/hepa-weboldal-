@@ -2147,6 +2147,7 @@ textarea:focus {
     <link rel="stylesheet" href="/homepage-atmosphere.css">
     <link rel="stylesheet" href="/homepage-lightbox.css">
     <link rel="stylesheet" href="/homepage-personal-note.css">
+    <link rel="stylesheet" href="/homepage-service-area.css">
     <script defer src="/homepage-refresh.js"></script>
     <script defer src="/homepage-lightbox.js"></script>
 </head>
@@ -2623,6 +2624,24 @@ textarea:focus {
                     <button class="review-arrow" type="button" data-review-next aria-label="Következő vélemény" aria-controls="review-viewport"><span aria-hidden="true">→</span></button>
                 </div>
             </div>
+        </div>
+    </section>
+    <section class="service-area" id="vallalasi-terulet" aria-labelledby="service-area-title">
+        <div class="service-area-inner">
+            <h2 id="service-area-title">Hol vállalunk munkát?</h2>
+            <p class="service-area-intro">Egyedi bútorok Budapesten és Pest megyében</p>
+            <figure class="service-area-figure">
+                <picture>
+                    <source media="(max-width: 600px)" srcset="/homepage-service-area-mobile.svg" width="360" height="350">
+                    <img class="service-area-map" src="/homepage-service-area.svg" width="900" height="460" loading="lazy" decoding="async"
+                        alt="Budapest és Pest megye kiemelve a térképen. Tájékozódási pontok: Vác, Szentendre, Gödöllő, Érd, Dabas, Cegléd és Nagykőrös. Aszódi műhelyünk arany jelölővel látható.">
+                </picture>
+                <figcaption>
+                    <p>Budapesten és Pest megye teljes területén vállalunk egyedi bútorkészítést, szállítással és beépítéssel.</p>
+                    <p class="service-area-address">Műhelyünk: <strong>2170 Aszód, Pesti út 27.</strong></p>
+                </figcaption>
+            </figure>
+            <p class="service-area-source">Térképadatok: <a href="https://github.com/wuerdo/geoHungary" target="_blank" rel="noopener noreferrer">geoHungary</a></p>
         </div>
     </section>
     <section class="quote-section" id="ajanlat">
