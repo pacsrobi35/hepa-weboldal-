@@ -1,0 +1,99 @@
+.reference-project-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  align-items: start;
+}
+.reference-project {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dce2dc;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(21, 37, 32, .045);
+}
+.reference-project .reference-project-cover {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #f2f2ed;
+  box-shadow: none;
+}
+.reference-project .reference-project-cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+}
+.reference-project .gallery-item:hover img,
+.reference-project .gallery-item:focus-visible img {
+  transform: none;
+}
+.reference-project .gallery-item:focus-visible {
+  outline: 3px solid #9e803b;
+  outline-offset: -4px;
+}
+.reference-project-body { padding: 22px 24px; }
+.reference-project h3 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.4;
+  color: #152520;
+}
+.reference-project-hint {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #59685e;
+}
+.reference-project-details { margin-top: 16px; }
+.reference-project-details summary,
+.reference-more-projects > summary {
+  padding: 12px 0;
+  color: #253f33;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reference-project-details summary:focus-visible,
+.reference-more-projects > summary:focus-visible {
+  outline: 3px solid #9e803b;
+  outline-offset: 4px;
+}
+.reference-project-extra {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.reference-project-extra .gallery-item {
+  width: 100%;
+  border-radius: 8px;
+  background: #f2f2ed;
+}
+.reference-project-extra .gallery-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+}
+.reference-more-projects { margin-top: 30px; }
+.reference-more-projects > summary {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 15px 24px;
+  border: 1px solid #a9b7ac;
+  border-radius: 10px;
+  background: #f4f6f1;
+}
+.reference-more-projects[open] > summary { margin-bottom: 28px; }
+@media (max-width: 640px) {
+  .reference-project-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .reference-project-body { padding: 18px; }
+  .reference-project h3 { font-size: 19px; }
+  .reference-more-projects > summary { width: 100%; text-align: center; }
+}

@@ -87,7 +87,7 @@
   }
 
   function open(button) {
-    const group = button.closest('.kitchen-project') || button.closest('.reference-container')
+    const group = button.closest('.kitchen-project') || button.closest('.reference-project') || button.closest('.reference-container')
       || button.closest('.gallery');
     const buttons = group ? [...group.querySelectorAll('.gallery-item, [data-lightbox]')] : [button];
     items = buttons.map(element => {
