@@ -6,6 +6,7 @@
   const CALLBACK_SEND_TO = 'AW-10787294242/igZYCNT_nIkdEKKY5Jco';
   const settingsOnly = document.currentScript?.hasAttribute('data-consent-settings-only') === true;
   const CONSENT_KEY = 'hepa-marketing-consent-v3';
+  const ANALYTICS_KEY = 'hepa-analytics-consent-v1';
   const PREVIOUS_CONSENT_KEYS = ['hepa-marketing-consent-v2', 'hepa-marketing-consent-v1'];
   const SENT_KEY = 'hepa-quote-conversions-v1';
   const FUNNEL_KEY = 'hepa-lead-funnel-v1';
@@ -22,6 +23,7 @@
   const pending = new Map();
   let sent = new Set();
   let preference = readPreference();
+  let analyticsPreference = readAnalyticsPreference();
   let started = false;
   let loaded = false;
   let tag;
@@ -49,6 +51,24 @@
       }
     } catch { /* Storage may be blocked; default remains no measurement. */ }
     return null;
+  }
+
+  function readAnalyticsPreference() {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(ANALYTICS_KEY));
+      if (value?.version === 1 && ['granted', 'denied'].includes(value.choice)
+          && Number.isFinite(value.expiresAt) && value.expiresAt > Date.now()) return value;
+    } catch { /* A separate affirmative choice is required. */ }
+    // Preserve an earlier refusal; an earlier ad grant does not grant statistics.
+    return preference?.choice === 'denied' ? { version: 1, choice: 'denied', expiresAt: preference.expiresAt } : null;
+  }
+
+  function hasAnalyticsConsent() {
+    return analyticsPreference?.choice === 'granted' && analyticsPreference.expiresAt > Date.now();
+  }
+
+  function notifyAnalytics() {
+    try { window.dispatchEvent(new CustomEvent('hepa:analytics-consent')); } catch { /* Independent optional collector. */ }
   }
 
   function hasConsent() {
@@ -344,9 +364,12 @@
     clearStoredAttribution();
   }
 
-  function choose(choice) {
+  function choose(choice, statistics = choice) {
     preference = { version: 3, choice, expiresAt: Date.now() + CONSENT_LIFETIME };
     try { window.localStorage.setItem(CONSENT_KEY, JSON.stringify(preference)); } catch { /* Keep this page's choice. */ }
+    analyticsPreference = { version: 1, choice: statistics, expiresAt: Date.now() + CONSENT_LIFETIME };
+    try { window.localStorage.setItem(ANALYTICS_KEY, JSON.stringify(analyticsPreference)); } catch { /* Current page choice. */ }
+    notifyAnalytics();
     if (choice === 'granted') {
       saveCurrentAttribution();
       startMeasurement();
@@ -364,7 +387,7 @@
   function openPanel(opener) {
     lastOpener = opener || null;
     panel.querySelector('[data-consent-status]').textContent = preference
-      ? (hasConsent() ? 'A hirdetésmérés jelenleg engedélyezve van. Itt bármikor visszavonhatja.' : 'A hirdetésmérés jelenleg ki van kapcsolva.')
+      ? ('Statisztika: ' + (hasAnalyticsConsent() ? 'engedélyezve' : 'kikapcsolva') + '. Hirdetésmérés: ' + (hasConsent() ? 'engedélyezve' : 'kikapcsolva') + '.')
       : '';
     panel.querySelector('[data-consent-close]').hidden = !preference;
     panel.hidden = false;
@@ -379,17 +402,19 @@
     panel.setAttribute('aria-labelledby', 'hepa-consent-title');
     panel.innerHTML = `
       <div class="hepa-consent-copy">
-        <h2 id="hepa-consent-title">Hirdetésmérés</h2>
-        <p>Engedélyezi a Google Ads és a HEPA hirdetésmérését? Az ajánlatkérés engedély nélkül is működik. <a href="/adatkezeles.html#meres" aria-label="Részletek a hirdetésmérés adatkezeléséről">Részletek</a></p>
+        <h2 id="hepa-consent-title">Statisztika és hirdetésmérés</h2>
+        <p>Mérhetjük, hogyan használja a honlapot, és eredményesek-e a hirdetéseink? A kitöltött adatokat nem használjuk látogatási statisztikához. Az ajánlatkérés mérés nélkül is működik. <a href="/adatkezeles.html#meres" aria-label="Részletek a látogatási statisztika és hirdetésmérés adatkezeléséről">Részletek</a></p>
         <span data-consent-status></span>
       </div>
       <div class="hepa-consent-actions">
         <button type="button" data-consent-reject>Elutasítom</button>
-        <button type="button" data-consent-accept>Engedélyezem</button>
+        <button type="button" data-consent-statistics>Csak statisztika</button>
+        <button type="button" data-consent-accept>Mindet engedélyezem</button>
         <button type="button" class="hepa-consent-close" data-consent-close hidden>Beállítások bezárása</button>
       </div>`;
     panel.querySelector('[data-consent-reject]').addEventListener('click', () => choose('denied'));
     panel.querySelector('[data-consent-accept]').addEventListener('click', () => choose('granted'));
+    panel.querySelector('[data-consent-statistics]').addEventListener('click', () => choose('denied', 'granted'));
     panel.querySelector('[data-consent-close]').addEventListener('click', closePanel);
     panel.addEventListener('keydown', event => {
       if (event.key === 'Escape' && preference) closePanel();
@@ -398,16 +423,19 @@
     document.querySelectorAll('[data-marketing-settings]').forEach(button => {
       button.addEventListener('click', () => openPanel(button));
     });
-    if (!preference) openPanel();
+    if (!preference || !analyticsPreference) openPanel();
   }
 
   // Called only from the corresponding form's backend-confirmed success branch.
   window.HEPAMarketing = Object.freeze({
+    hasAnalyticsConsent,
     recordQuoteSubmission({ requestMode, responseOk, ok, state, reference, submissionToken } = {}) {
-      if (!canMeasure() || !['quote', 'callback'].includes(requestMode)
+      if (!['quote', 'callback'].includes(requestMode)
           || responseOk !== true || ok !== true || state !== 'ready'
           || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
       if (requestMode === 'callback' && (typeof reference !== 'string' || !/^HEPA-\d{6,}$/.test(reference))) return false;
+      if (requestMode === 'callback') { try { window.HEPAVisit?.submitSuccess('callback', submissionToken); } catch { /* Optional. */ } }
+      if (!canMeasure()) return false;
       if (requestMode === 'callback') recordFunnel('submit_success', 'callback', submissionToken);
       if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
       pending.set(submissionToken, requestMode === 'callback' ? CALLBACK_SEND_TO : QUOTE_SEND_TO);
@@ -417,9 +445,11 @@
     recordCuttingQuoteSubmission({ responseOk, ok, reference, submissionToken } = {}) {
       // The cutting endpoint confirms finalization with ok + reference, without a state field.
       // Its honeypot response has no reference and must never count as an inquiry.
-      if (!canMeasure() || responseOk !== true || ok !== true
+      if (responseOk !== true || ok !== true
           || typeof reference !== 'string' || !/^HEPA-LSZ-\d{6,}$/.test(reference)
           || typeof submissionToken !== 'string' || !UUID.test(submissionToken)) return false;
+      try { window.HEPAVisit?.submitSuccess('cutting', submissionToken); } catch { /* Optional. */ }
+      if (!canMeasure()) return false;
       recordFunnel('submit_success', 'cutting', submissionToken);
       if (sent.has(submissionToken) || pending.has(submissionToken)) return false;
       pending.set(submissionToken, QUOTE_SEND_TO);
@@ -428,6 +458,7 @@
     },
     // Called only after all form-specific validation has passed.
     recordSubmitAttempt({ funnel } = {}) {
+      try { window.HEPAVisit?.record('submit_attempt', funnel, funnel); } catch { /* Optional. */ }
       return recordFunnel('submit_attempt', funnel);
     },
     appendAttribution(formData) {
@@ -444,8 +475,10 @@
   });
 
   window.addEventListener('storage', event => {
-    if (event.key !== CONSENT_KEY && event.key !== null) return;
+    if (![CONSENT_KEY, ANALYTICS_KEY, null].includes(event.key)) return;
     preference = readPreference();
+    analyticsPreference = readAnalyticsPreference();
+    notifyAnalytics();
     if (hasConsent()) { startMeasurement(); checkFormViews(); }
     else stopMeasurement();
   });

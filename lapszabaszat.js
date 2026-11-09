@@ -1240,6 +1240,7 @@
   }
 
   function showErrors(errors) {
+    try { for (const error of errors) window.HEPAVisit?.validationError('cutting', error.id); } catch { /* Optional measurement. */ }
     errorList.innerHTML = errors.map((error) => `<li><a href="#${escapeHtml(error.id)}">${escapeHtml(error.message)}</a></li>`).join('');
     errorSummary.classList.add('visible');
     errorSummary.focus();
@@ -1340,6 +1341,7 @@
   function updateStep() {
     const steps = FLOW_STEPS[activeFlow];
     const activeStep = steps[stepIndex];
+    wizard.dataset.measureFlow = activeFlow;
     const isLastStep = stepIndex === steps.length - 1;
     document.querySelectorAll('.step-panel').forEach((panel) => panel.classList.toggle('active', panel.dataset.step === activeStep));
     stepLabel.textContent = `${stepIndex + 1}/${steps.length}. lépés · ${STEP_NAMES[activeStep]}`;
@@ -1830,6 +1832,7 @@
           submissionToken = createSubmissionToken();
           saveDraft();
         }
+        try { window.HEPAVisit?.submitError('cutting', response.status >= 500 ? 'server' : 'rejected', response.status); } catch { /* Optional. */ }
         const message = submissionErrorMessage(response.status || 500, responseBody, response.headers.get('Retry-After'));
         setSubmitFeedback(message, 'error');
         submitFeedback.focus();
@@ -1846,6 +1849,7 @@
         });
       } catch (_) { /* The inquiry remains saved if advertising measurement is unavailable. */ }
     } catch (_) {
+      try { window.HEPAVisit?.submitError('cutting', 'network'); } catch { /* Optional. */ }
       setSubmitFeedback('Nem sikerült kapcsolódni az ajánlatkérőhöz. Az adatai megmaradtak; ellenőrizze az internetkapcsolatát, majd próbálja újra.', 'error');
       submitFeedback.focus();
     } finally {

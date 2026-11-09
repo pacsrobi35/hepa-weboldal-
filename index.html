@@ -30,6 +30,7 @@
 
     <link rel="stylesheet" href="/marketing-consent.css">
     <script defer src="/marketing-consent.js"></script>
+    <script defer src="/visitor-measurement.js"></script>
 
     <title>Egyedi bútorgyártás és lapszabászat Aszódon | HEPA</title>
 
@@ -2944,6 +2945,7 @@ textarea:focus {
             const invalidFiles = attachments.some(file => file.size > 10 * 1024 * 1024 || (!allowedFileTypes.has(file.type) && !window.HEPAPhotoUploads.isHeic(file)));
 
             if (attachments.length > 5 || invalidFiles) {
+                try { window.HEPAVisit?.record('validation_error', 'file', 'callback'); } catch {}
                 showQuoteMessage("Legfeljebb 5 JPG, PNG, WebP, HEIC/HEIF (iPhone-fotó) vagy PDF fájl tölthető fel, fájlonként maximum 10 MB méretben.", true);
                 return;
             }
@@ -2962,6 +2964,7 @@ textarea:focus {
             quoteMessage.classList.remove("error");
             const controller = new AbortController();
             let timeout;
+            let measurementStatus = 0;
 
             try {
                 if (attachments.some(file => window.HEPAPhotoUploads.isHeic(file))) {
@@ -2981,6 +2984,7 @@ textarea:focus {
                     signal: controller.signal
                 });
 
+                measurementStatus = response.status;
                 let payload = {};
                 try {
                     payload = await response.json();
@@ -3012,6 +3016,7 @@ textarea:focus {
                 renewSubmissionToken();
                 window.dispatchEvent(new CustomEvent("hepa:quote-request-success", { detail: { reference: payload.reference, requestMode: "callback" } }));
             } catch (error) {
+                try { window.HEPAVisit?.submitError('callback', error.name === 'AbortError' ? 'timeout' : measurementStatus >= 500 ? 'server' : measurementStatus ? 'rejected' : 'network', measurementStatus); } catch {}
                 const message = error.name === "AbortError"
                     ? "A beküldés eredményét még nem sikerült ellenőrizni. Az adatokat megtartottuk; próbálja újra ugyanazt a beküldést."
                     : (error.message || "A visszahíváskérés küldése nem sikerült. Kérjük, próbálja újra.");

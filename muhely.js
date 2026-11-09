@@ -294,6 +294,7 @@
   }
 
   function clearSensitiveView() {
+    window.HEPAVisitorReport?.reset();
     state.detailRequestSequence += 1;
     state.activeQuoteId = null;
     state.activeRequestKind = null;
@@ -422,6 +423,7 @@
     scheduleIdleSignOut();
     $('#signed-in-user').textContent = userData.user.email || 'HEPA-admin';
     setView('app-view');
+    window.HEPAVisitorReport?.openIfRequested();
     showListView();
     await loadQuotes();
   }
@@ -1128,6 +1130,8 @@
       setButtonBusy(button, false);
     }
   });
+
+  window.HEPAVisitorReport?.setup(db);
 
   $('#quote-search').addEventListener('input', applyFilters);
   $('#kind-filter').addEventListener('change', applyFilters);

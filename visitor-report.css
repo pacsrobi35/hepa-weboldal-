@@ -1,0 +1,17 @@
+.visitor-panel { margin: 0 0 28px; padding: clamp(16px,3vw,28px); background: #fffdf8; border: 1px solid #c5cfc8; border-radius: 16px; }
+.visitor-panel[hidden] { display: none; }
+.visitor-panel h2 { margin: 0 0 12px; }
+.visitor-panel h3 { font-size: 18px; margin: 0 0 14px; }
+.visitor-controls { display:flex; align-items:end; flex-wrap:wrap; gap:14px; margin:20px 0; }
+.visitor-controls label { display:grid; gap:7px; margin:0; min-width:150px; }
+.visitor-controls select { width:100%; min-height:44px; }
+.visitor-summary { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.visitor-block { margin:24px 0; min-width:0; }
+.visitor-table-wrap { overflow:auto; border:1px solid #dfe5df; border-radius:8px; }
+.visitor-panel table { border-collapse:collapse; width:100%; font-size:14px; }
+.visitor-panel th,.visitor-panel td { text-align:left; padding:12px; border-bottom:1px solid #e3e8e3; }
+.visitor-panel th { background:#edf2ed; color:#173c2f; white-space:nowrap; }
+.visitor-panel tr:last-child td { border-bottom:0; }
+.visitor-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.visitor-notice { padding:14px 16px; background:#f5eedc; border-left:3px solid #bd8b35; }
+@media(max-width:760px){.visitor-columns{grid-template-columns:1fr;gap:0}.visitor-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.visitor-controls label{flex:1 1 140px}.visitor-controls button{width:100%}}

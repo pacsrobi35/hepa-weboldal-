@@ -17,7 +17,7 @@
 .hepa-consent a { color: #172b24; text-decoration: underline; font-weight: 700; }
 .hepa-consent [data-consent-status] { display: block; margin-top: 4px; }
 .hepa-consent [data-consent-status]:empty { display: none; }
-.hepa-consent-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: 0 0 300px; gap: 8px; }
+.hepa-consent-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); flex: 0 0 430px; gap: 8px; }
 .hepa-consent-actions button {
   box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px 8px;
   border: 1px solid #172b24; border-radius: 6px; background: #f1f5f2; color: #172b24;
@@ -31,3 +31,5 @@
   .hepa-consent { inset: auto 8px max(8px, env(safe-area-inset-bottom)); padding: 10px 12px; display: block; max-height: calc(100dvh - 16px); }
   .hepa-consent-actions { margin-top: 8px; }
 }
+
+@media(max-width:760px) { .hepa-consent-actions { grid-template-columns: repeat(2, minmax(0,1fr)); } .hepa-consent-actions [data-consent-accept] { grid-column: 1 / -1; } }

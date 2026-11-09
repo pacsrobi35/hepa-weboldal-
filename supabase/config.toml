@@ -21,3 +21,7 @@ verify_jwt = false
 
 [functions.record-lead-funnel-event]
 verify_jwt = false
+
+# Collector validates its public client key; reports separately require verified admin + AAL2.
+[functions.visitor-measurement]
+verify_jwt = false

@@ -9,12 +9,14 @@
   <title>HEPA Műhely · Ajánlatkérések</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="muhely.css">
+  <link rel="stylesheet" href="visitor-report.css">
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"
     integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp"
     crossorigin="anonymous"
     defer
   ></script>
+  <script src="visitor-report.js" defer></script>
   <script src="muhely.js" defer></script>
 </head>
 <body>
@@ -127,10 +129,25 @@
         </div>
         <div class="user-actions">
           <span id="signed-in-user" class="signed-in-user"></span>
+          <button id="visitor-toggle" class="button button-secondary" type="button" aria-expanded="false" aria-controls="visitor-panel">Látogatói mérés</button>
           <button id="refresh-button" class="button button-secondary" type="button">Frissítés</button>
           <button id="signout-button" class="button button-link" type="button">Kilépés</button>
         </div>
       </div>
+
+      <section id="visitor-panel" class="visitor-panel" aria-labelledby="visitor-title" hidden>
+        <p class="eyebrow">Honlap → érdeklődés → megrendelés</p>
+        <h2 id="visitor-title">Hol jutnak el az érdeklődők?</h2>
+        <p>A statisztikát engedélyező látogatások. Egy látogatás 30 perc inaktivitás után újrakezdődik; ez nem azonos az egyedi emberek számával. Az ajánlatkérések adatbázisban visszaigazolt beküldések. A „Megrendelt státusz” a hozzájuk kapcsolt ügyek aktuális állapotát mutatja.</p>
+        <div class="visitor-controls">
+          <label>Időszak<select name="visitor-days"><option value="1">Ma</option><option value="7" selected>Elmúlt 7 nap</option><option value="14">Elmúlt 14 nap</option><option value="30">Elmúlt 30 nap</option></select></label>
+          <label>Nézet<select name="visitor-device"><option value="all">Minden nézet</option><option value="mobile">Mobil</option><option value="desktop">Asztali</option></select></label>
+          <label>Forrás<select name="visitor-source"><option value="all">Minden forrás</option><option value="google_ads">Google Ads</option><option value="google_organic">Google keresés</option><option value="direct">Közvetlen / ismeretlen</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="bing">Bing</option><option value="referral">Más weboldal</option><option value="other_campaign">Egyéb kampány</option></select></label>
+          <button type="button" class="button button-secondary" data-visitor-refresh>Adatok frissítése</button>
+        </div>
+        <p role="status" aria-live="polite" data-visitor-status></p>
+        <div data-visitor-content></div>
+      </section>
 
       <div id="list-view">
         <div class="summary-grid" role="region" aria-label="Ajánlatkérések összesítése">
