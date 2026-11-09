@@ -78,3 +78,15 @@ test('a statistics-only grant records confirmed submissions without loading Goog
   const token=randomUUID();window.HEPAMarketing.recordQuoteSubmission({requestMode:'callback',responseOk:true,ok:true,state:'ready',reference:'HEPA-000123',submissionToken:token});
   assert.deepEqual(success,[['callback',token]]);assert.equal(scripts.length,0);
 });
+
+
+test('visibility polling does not renew an idle visit; genuine interaction starts a new visit after the timeout',async()=>{
+  const app=harness({consent:true});await settled();
+  app.form.getBoundingClientRect=()=>({top:100,bottom:700,width:350,height:600});
+  app.tick();await settled();
+  const previous=JSON.parse(app.shared.values.get('hepa-visits-v1'));
+  app.advance(1800001);app.tick();await settled();
+  assert.equal(JSON.parse(app.shared.values.get('hepa-visits-v1')).lastActivity,previous.lastActivity);
+  app.event('pointerdown',{});app.tick();await settled();
+  assert.notEqual(JSON.parse(app.shared.values.get('hepa-visits-v1')).token,previous.token);
+});

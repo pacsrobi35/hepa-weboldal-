@@ -81,9 +81,14 @@
     if (!enabled || !granted() || !allowedEvent(type, target) || !['','callback','cutting'].includes(funnel)) return false;
     if (type === 'submit_success' && (!UUID.test(submissionToken || '') || target !== funnel)) return false;
     if (type !== 'submit_success' && submissionToken) return false;
+    // A duplicate visibility poll is not user activity. After two active minutes,
+    // repeat the existing 120-second milestone once per active minute so the
+    // last-observed timestamp stays current during a long genuine interaction.
+    const key = [type,target,funnel,submissionToken || '',type === 'engaged' && target === '120' ? Math.floor(activeSeconds / 60) : ''].join(':');
+    const expired = !session || Date.now() - session.lastActivity > 30 * 60 * 1000;
+    if (!expired && marks.has(key)) return false;
     ensureSession();
-    const key = [type,target,funnel,submissionToken || ''].join(':');
-    if (type === 'page_view' || marks.has(key)) return false;
+    if (type === 'page_view') return false;
     marks.add(key);
     add(type,target,funnel,Math.max(0,Math.min(1800000,Math.round(Number(value) || 0))),submissionToken);
     if (['cta_click','submit_success','submit_error','submit_attempt'].includes(type)) flush();
@@ -111,7 +116,7 @@
   }
   const funnelOf = form => form?.id === 'quoteForm' ? 'callback' : form?.id === 'cutting-form' ? 'cutting' : '';
   function viewForms() {
-    if (!enabled) return;
+    if (!enabled || document.hidden || Date.now() - lastInput >= 60000) return;
     for (const form of document.querySelectorAll('#quoteForm, #cutting-form')) {
       const r = form.getBoundingClientRect();
       if (r.width > 0 && r.height > 0 && r.top < innerHeight * .85 && r.bottom > innerHeight * .15) record('form_view',funnelOf(form),funnelOf(form));
@@ -179,8 +184,12 @@
   });
   window.addEventListener('hepa:analytics-consent',()=>granted()?start():stop());
   window.addEventListener('pagehide',()=>flush());
-  document.addEventListener('visibilitychange',()=>{ if(document.hidden)flush(); else {lastTick=Date.now();viewForms();} });
-  for (const name of ['pointerdown','keydown','touchstart']) document.addEventListener(name,()=>{lastInput=Date.now();},{passive:true});
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden)flush(); else {lastTick=Date.now();lastInput=Date.now();viewForms();} });
+  for (const name of ['pointerdown','keydown','touchstart']) document.addEventListener(name,event=>{
+    if (event.isTrusted !== true) return;
+    lastInput=Date.now();
+    if (enabled && granted()) { ensureSession(); save(); }
+  },{passive:true});
   document.addEventListener('scroll',()=>{
     lastInput=Date.now(); viewForms();
     const height=document.documentElement.scrollHeight;
@@ -215,7 +224,7 @@
     const form=event.target.closest?.('#quoteForm, #cutting-form'), funnel=funnelOf(form);
     if(funnel && event.target.name!=='company_website'){record('form_view',funnel,funnel);record('form_start',funnel,funnel);}
   });
-  document.addEventListener('invalid',event=>{const funnel=funnelOf(event.target.closest?.('form'));if(funnel)record('validation_error',fieldGroup(event.target.id),funnel);},true);
+  document.addEventListener('invalid',event=>{const funnel=funnelOf(event.target.closest?.('form'));if(funnel)record('validation_error',fieldGroup(event.target.id || event.target.name || ''),funnel);},true);
   document.addEventListener('toggle',event=>{
     const d=event.target;if(!d.open)return;
     record('details_open',d.matches?.('.callback-extra')?'optional':d.closest?.('.reference-project')?'project':d.closest?.('.reference-container')?'gallery':'faq');
